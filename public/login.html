@@ -175,7 +175,7 @@
                 if (response.ok) {
                     localStorage.setItem('token', data.token);
                     localStorage.setItem('usuario', JSON.stringify(data.usuario));
-                    window.location.href = 'index.html';
+                    window.location.href = 'index-auth.html';
                 } else {
                     mostrarErro(data.error || 'Erro ao fazer login');
                 }
@@ -196,7 +196,7 @@
                 });
 
                 if (response.ok) {
-                    window.location.href = 'index.html';
+                    window.location.href = 'index-auth.html';
                 } else {
                     localStorage.removeItem('token');
                     localStorage.removeItem('usuario');

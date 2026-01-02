@@ -2,7 +2,17 @@
   "permissions": {
     "allow": [
       "Bash(dir)",
-      "Bash(python -m http.server:*)"
+      "Bash(python -m http.server:*)",
+      "Bash(node test-connection.js:*)",
+      "Bash(npm run init-db-supabase:*)",
+      "Bash(npm run start-supabase:*)",
+      "Bash(if exist index.html ren index.html index-old.html)",
+      "Bash(ren:*)",
+      "Bash(ls:*)",
+      "Bash(node verificar-admin.js:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)"
     ]
   }
 }
