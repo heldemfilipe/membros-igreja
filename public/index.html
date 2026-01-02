@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Membros - Assembleia de Deus de Rio Claro</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <h1>🏛️ Assembleia de Deus de Rio Claro</h1>
+                <p>Sistema de Gerenciamento de Membros</p>
+            </div>
+            <nav>
+                <button class="nav-btn active" data-page="dashboard">Dashboard</button>
+                <button class="nav-btn" data-page="aniversariantes">Aniversariantes</button>
+                <button class="nav-btn" data-page="membros">Lista de Membros</button>
+                <button class="nav-btn" data-page="cadastro">Cadastrar Membro</button>
+            </nav>
+        </header>
+
+        <main>
+            <!-- DASHBOARD -->
+            <section id="dashboard-page" class="page active">
+                <h2>Dashboard</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">👥</div>
+                        <div class="stat-content">
+                            <h3>Total de Membros</h3>
+                            <p class="stat-number" id="total-membros">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🙏</div>
+                        <div class="stat-content">
+                            <h3>Congregados</h3>
+                            <p class="stat-number" id="total-congregados">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-content">
+                            <h3>Total Geral</h3>
+                            <p class="stat-number" id="total-geral">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3>Distribuição por Sexo</h3>
+                        <div id="chart-sexo" class="chart"></div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Distribuição por Tipo</h3>
+                        <div id="chart-tipo" class="chart"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ANIVERSARIANTES -->
+            <section id="aniversariantes-page" class="page">
+                <h2>Aniversariantes do Mês</h2>
+                <div class="filter-bar">
+                    <label>
+                        Mês:
+                        <select id="mes-filter">
+                            <option value="1">Janeiro</option>
+                            <option value="2">Fevereiro</option>
+                            <option value="3">Março</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Maio</option>
+                            <option value="6">Junho</option>
+                            <option value="7">Julho</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Setembro</option>
+                            <option value="10">Outubro</option>
+                            <option value="11">Novembro</option>
+                            <option value="12">Dezembro</option>
+                        </select>
+                    </label>
+                </div>
+                <div id="aniversariantes-list" class="list-container"></div>
+            </section>
+
+            <!-- LISTA DE MEMBROS -->
+            <section id="membros-page" class="page">
+                <h2>Lista de Membros</h2>
+                <div class="filter-bar">
+                    <input type="text" id="search-input" placeholder="Buscar por nome...">
+                    <select id="tipo-filter">
+                        <option value="">Todos os Tipos</option>
+                        <option value="Membro">Membros</option>
+                        <option value="Congregado">Congregados</option>
+                        <option value="Visitante">Visitantes</option>
+                        <option value="Frequentador">Frequentadores</option>
+                    </select>
+                </div>
+                <div id="membros-list" class="list-container"></div>
+            </section>
+
+            <!-- CADASTRO -->
+            <section id="cadastro-page" class="page">
+                <h2 id="form-title">Cadastrar Novo Membro</h2>
+                <form id="membro-form">
+                    <input type="hidden" id="membro-id">
+
+                    <div class="form-section">
+                        <h3>Identificação</h3>
+                        <div class="form-grid">
+                            <div class="form-group full-width">
+                                <label>Nome Completo <span class="required">*</span></label>
+                                <input type="text" id="nome" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Conhecido Como</label>
+                                <input type="text" id="conhecido_como">
+                            </div>
+                            <div class="form-group">
+                                <label>Igreja</label>
+                                <input type="text" id="igreja">
+                            </div>
+                            <div class="form-group">
+                                <label>Cargo</label>
+                                <input type="text" id="cargo">
+                            </div>
+                            <div class="form-group">
+                                <label>Sexo</label>
+                                <select id="sexo">
+                                    <option value="">Selecione</option>
+                                    <option value="Masculino">Masculino</option>
+                                    <option value="Feminino">Feminino</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Data de Nascimento</label>
+                                <input type="date" id="data_nascimento">
+                            </div>
+                            <div class="form-group">
+                                <label>Tipo de Participante</label>
+                                <select id="tipo_participante">
+                                    <option value="Membro">Membro</option>
+                                    <option value="Congregado">Congregado</option>
+                                    <option value="Visitante">Visitante</option>
+                                    <option value="Frequentador">Frequentador</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Endereço</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>CEP</label>
+                                <input type="text" id="cep" maxlength="9">
+                            </div>
+                            <div class="form-group full-width">
+                                <label>Logradouro</label>
+                                <input type="text" id="logradouro">
+                            </div>
+                            <div class="form-group">
+                                <label>Número</label>
+                                <input type="text" id="numero">
+                            </div>
+                            <div class="form-group">
+                                <label>Complemento</label>
+                                <input type="text" id="complemento">
+                            </div>
+                            <div class="form-group">
+                                <label>Bairro</label>
+                                <input type="text" id="bairro">
+                            </div>
+                            <div class="form-group">
+                                <label>Cidade</label>
+                                <input type="text" id="cidade">
+                            </div>
+                            <div class="form-group">
+                                <label>Estado</label>
+                                <input type="text" id="estado" maxlength="2">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Contato</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Telefone Principal</label>
+                                <input type="tel" id="telefone_principal">
+                            </div>
+                            <div class="form-group">
+                                <label>Telefone Secundário</label>
+                                <input type="tel" id="telefone_secundario">
+                            </div>
+                            <div class="form-group full-width">
+                                <label>E-mail</label>
+                                <input type="email" id="email">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Dados Complementares</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>CPF</label>
+                                <input type="text" id="cpf" maxlength="14">
+                            </div>
+                            <div class="form-group">
+                                <label>Estado Civil</label>
+                                <select id="estado_civil">
+                                    <option value="">Selecione</option>
+                                    <option value="Solteiro(a)">Solteiro(a)</option>
+                                    <option value="Casado(a)">Casado(a)</option>
+                                    <option value="Divorciado(a)">Divorciado(a)</option>
+                                    <option value="Viúvo(a)">Viúvo(a)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Profissão</label>
+                                <input type="text" id="profissao">
+                            </div>
+                            <div class="form-group">
+                                <label>Identidade</label>
+                                <input type="text" id="identidade">
+                            </div>
+                            <div class="form-group">
+                                <label>Órgão Expedidor</label>
+                                <input type="text" id="orgao_expedidor">
+                            </div>
+                            <div class="form-group">
+                                <label>Data de Expedição</label>
+                                <input type="date" id="data_expedicao">
+                            </div>
+                            <div class="form-group">
+                                <label>Grau de Instrução</label>
+                                <input type="text" id="grau_instrucao">
+                            </div>
+                            <div class="form-group">
+                                <label>Título de Eleitor</label>
+                                <input type="text" id="titulo_eleitor">
+                            </div>
+                            <div class="form-group">
+                                <label>Zona</label>
+                                <input type="text" id="titulo_eleitor_zona">
+                            </div>
+                            <div class="form-group">
+                                <label>Seção</label>
+                                <input type="text" id="titulo_eleitor_secao">
+                            </div>
+                            <div class="form-group">
+                                <label>Tipo Sanguíneo</label>
+                                <input type="text" id="tipo_sanguineo">
+                            </div>
+                            <div class="form-group">
+                                <label>Cert. Nasc./Casamento</label>
+                                <input type="text" id="cert_nascimento_casamento">
+                            </div>
+                            <div class="form-group">
+                                <label>Reservista</label>
+                                <input type="text" id="reservista">
+                            </div>
+                            <div class="form-group">
+                                <label>Carteira de Motorista</label>
+                                <input type="text" id="carteira_motorista">
+                            </div>
+                            <div class="form-group">
+                                <label>Data de Casamento</label>
+                                <input type="date" id="data_casamento">
+                            </div>
+                            <div class="form-group">
+                                <label>Naturalidade</label>
+                                <input type="text" id="naturalidade">
+                            </div>
+                            <div class="form-group">
+                                <label>UF Naturalidade</label>
+                                <input type="text" id="uf_naturalidade" maxlength="2">
+                            </div>
+                            <div class="form-group">
+                                <label>Nacionalidade</label>
+                                <input type="text" id="nacionalidade">
+                            </div>
+                            <div class="form-group">
+                                <label>Origem Religiosa</label>
+                                <input type="text" id="origem_religiosa">
+                            </div>
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="chefe_familiar">
+                                    Chefe Familiar
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Históricos da Pessoa</h3>
+                        <div id="historicos-container"></div>
+                        <button type="button" class="btn-secondary" onclick="addHistorico()">+ Adicionar Histórico</button>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Familiares</h3>
+                        <div id="familiares-container"></div>
+                        <button type="button" class="btn-secondary" onclick="addFamiliar()">+ Adicionar Familiar</button>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Informações Complementares</h3>
+                        <div class="form-group full-width">
+                            <textarea id="informacoes_complementares" rows="4"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Salvar</button>
+                        <button type="button" class="btn-secondary" onclick="resetForm()">Cancelar</button>
+                    </div>
+                </form>
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

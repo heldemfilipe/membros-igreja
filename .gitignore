@@ -1,0 +1,35 @@
+# Dependências
+node_modules/
+package-lock.json
+
+# Banco de dados
+database/membros.db
+data/
+
+# Backups
+backups/
+
+# Logs
+*.log
+npm-debug.log*
+logs/
+
+# Sistema Operacional
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Ambiente
+.env
+.env.local
+.env.production
+
+# Build
+dist/
+build/
