@@ -16,7 +16,9 @@
       "Bash(node testar-login.js:*)",
       "Bash(node testar-endpoint-login.js:*)",
       "Bash(curl:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ]
   }
 }
