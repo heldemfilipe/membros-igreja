@@ -1,6 +1,19 @@
-# 🏛️ Sistema de Gerenciamento de Membros - Assembleia de Deus de Rio Claro
+# 🏛️ Sistema de Gerenciamento de Membros
 
-Sistema completo de gerenciamento de membros da igreja, desenvolvido com Node.js, Express e PostgreSQL (Supabase).
+<div align="center">
+
+![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
+![Express](https://img.shields.io/badge/Express-000000?style=for-the-badge&logo=express&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
+
+Sistema completo de gerenciamento de membros de igreja, desenvolvido com Node.js, Express e PostgreSQL (Supabase).
+
+[Demo](https://membros-igreja.vercel.app) · [Reportar Bug](https://github.com/heldemfilipe/membros-igreja/issues) · [Documentação](https://github.com/heldemfilipe/membros-igreja/blob/main/DEPLOY.md)
+
+</div>
+
+---
 
 ## 📋 Funcionalidades
 
@@ -39,6 +52,22 @@ Sistema completo de gerenciamento de membros da igreja, desenvolvido com Node.js
 - Familiares
 - Histórico Eclesiástico
 - Observações
+
+## 🖼️ Screenshots
+
+<details>
+<summary>Clique para ver as capturas de tela</summary>
+
+### Dashboard
+![Dashboard com gráficos e estatísticas](#)
+
+### Lista de Membros
+![Lista de membros com filtros e exportação](#)
+
+### Aniversariantes
+![Aniversariantes da semana](#)
+
+</details>
 
 ## 🛠️ Tecnologias Utilizadas
 
@@ -86,7 +115,7 @@ membros-igreja/
 
 ### 1. Clone o Repositório
 ```bash
-git clone https://github.com/seu-usuario/membros-igreja.git
+git clone https://github.com/heldemfilipe/membros-igreja.git
 cd membros-igreja
 ```
 
@@ -417,6 +446,23 @@ npm run init-db-supabase
 - Abra o Console do navegador (F12)
 - Verifique se há erros JavaScript
 - Confirme se os dados estão sendo retornados pela API
+
+### Aviso de Vulnerabilidade do npm
+Se você vir um aviso sobre vulnerabilidade de segurança na biblioteca `xlsx`:
+```
+1 high severity vulnerability
+```
+
+**Isso é esperado e não afeta a segurança do sistema** porque:
+- A biblioteca `xlsx` tem vulnerabilidades conhecidas (Prototype Pollution e ReDoS)
+- Não há fix disponível no momento
+- O uso da biblioteca é apenas no backend para **gerar** planilhas (não processar entrada do usuário)
+- Os dados exportados vêm do banco de dados controlado, não de fontes externas
+- A vulnerabilidade só seria explorada se processássemos arquivos Excel maliciosos enviados por usuários
+
+**Alternativas** (caso queira eliminar o aviso):
+- Use `exceljs` (alternativa mais segura, mas com API diferente)
+- Desabilite a exportação Excel e use CSV
 
 ## 🤝 Contribuindo
 

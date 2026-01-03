@@ -771,7 +771,7 @@ app.get("/api/aniversariantes", verificarToken, async (req, res) => {
 });
 
 // ========== EXPORTAR PLANILHA ==========
-app.get("/api/membros/exportar", validarSessao, async (req, res) => {
+app.get("/api/membros/exportar", verificarToken, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT
