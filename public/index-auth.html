@@ -7,9 +7,7 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1a1a1a">
-    <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>
     <div class="container">
@@ -28,13 +26,12 @@
                 <button class="nav-btn active" data-page="dashboard">Dashboard</button>
                 <button class="nav-btn" data-page="aniversariantes">Aniversariantes</button>
                 <button class="nav-btn" data-page="membros">Lista de Membros</button>
-                <button class="nav-btn" data-page="cadastro">Cadastrar Membro</button>
+                <button class="nav-btn admin-only" data-page="cadastro" style="display: none;">Cadastrar Membro</button>
                 <button class="nav-btn admin-only" data-page="usuarios" style="display: none;">Usuários</button>
             </nav>
         </header>
 
         <main>
-            <!-- DASHBOARD -->
             <section id="dashboard-page" class="page active">
                 <h2>Dashboard</h2>
                 <div class="stats-grid">
@@ -61,19 +58,34 @@
                     </div>
                 </div>
 
+                <!-- Aniversariantes da Semana -->
+                <div style="margin-top: 30px;">
+                    <div class="chart-card">
+                        <h3>🎂 Aniversariantes da Semana</h3>
+                        <div id="dashboard-aniversariantes" class="list-container" style="max-height: 400px; overflow-y: auto;"></div>
+                    </div>
+                </div>
+
                 <div class="charts-grid">
                     <div class="chart-card">
                         <h3>Distribuição por Sexo</h3>
-                        <div id="chart-sexo" class="chart"></div>
+                        <div id="chart-sexo" class="chart-bars"></div>
                     </div>
                     <div class="chart-card">
                         <h3>Distribuição por Tipo</h3>
-                        <div id="chart-tipo" class="chart"></div>
+                        <div id="chart-tipo" class="chart-bars"></div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Distribuição por Cargo</h3>
+                        <div id="chart-cargo" class="chart-bars"></div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Estatísticas de Idade</h3>
+                        <div id="chart-idade" class="chart-stats"></div>
                     </div>
                 </div>
             </section>
 
-            <!-- ANIVERSARIANTES -->
             <section id="aniversariantes-page" class="page">
                 <h2>Aniversariantes do Mês</h2>
                 <div class="filter-bar">
@@ -98,7 +110,6 @@
                 <div id="aniversariantes-list" class="list-container"></div>
             </section>
 
-            <!-- LISTA DE MEMBROS -->
             <section id="membros-page" class="page">
                 <h2>Lista de Membros</h2>
                 <div class="filter-bar">
@@ -110,11 +121,19 @@
                         <option value="Visitante">Visitantes</option>
                         <option value="Frequentador">Frequentadores</option>
                     </select>
+                    <select id="cargo-filter">
+                        <option value="">Todos os Cargos</option>
+                        <option value="Membro">Membro</option>
+                        <option value="Cooperador">Cooperador</option>
+                        <option value="Diácono">Diácono</option>
+                        <option value="Presbítero">Presbítero</option>
+                        <option value="Evangelista">Evangelista</option>
+                        <option value="Pastor">Pastor</option>
+                    </select>
                 </div>
                 <div id="membros-list" class="list-container"></div>
             </section>
 
-            <!-- CADASTRO -->
             <section id="cadastro-page" class="page">
                 <h2 id="form-title">Cadastrar Novo Membro</h2>
                 <form id="membro-form">
@@ -137,7 +156,15 @@
                             </div>
                             <div class="form-group">
                                 <label>Cargo</label>
-                                <input type="text" id="cargo">
+                                <select id="cargo">
+                                    <option value="">Selecione</option>
+                                    <option value="Membro">Membro</option>
+                                    <option value="Cooperador">Cooperador</option>
+                                    <option value="Diácono">Diácono</option>
+                                    <option value="Presbítero">Presbítero</option>
+                                    <option value="Evangelista">Evangelista</option>
+                                    <option value="Pastor">Pastor</option>
+                                </select>
                             </div>
                             <div class="form-group">
                                 <label>Sexo</label>
@@ -168,7 +195,7 @@
                         <div class="form-grid">
                             <div class="form-group">
                                 <label>CEP</label>
-                                <input type="text" id="cep" maxlength="9">
+                                <input type="text" id="cep" maxlength="9" onblur="buscarCEP()" placeholder="00000-000">
                             </div>
                             <div class="form-group full-width">
                                 <label>Logradouro</label>
@@ -329,13 +356,12 @@
                     </div>
 
                     <div class="form-actions">
-                        <button type="submit" class="btn-primary">Salvar</button>
+                        <button type="submit" class="btn-primary" id="btn-salvar-membro">Salvar</button>
                         <button type="button" class="btn-secondary" onclick="resetForm()">Cancelar</button>
                     </div>
                 </form>
             </section>
 
-            <!-- USUÁRIOS (ADMIN) -->
             <section id="usuarios-page" class="page">
                 <h2>Gerenciar Usuários</h2>
                 <button class="btn-primary" style="margin-bottom: 20px;" onclick="abrirModalUsuario()">+ Novo Usuário</button>
@@ -344,7 +370,6 @@
         </main>
     </div>
 
-    <!-- Modal de Usuário -->
     <div id="modal-usuario" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -382,6 +407,146 @@
                 <div class="form-actions">
                     <button type="submit" class="btn-primary">Salvar</button>
                     <button type="button" class="btn-secondary" onclick="fecharModalUsuario()">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Visualização/Edição de Membro -->
+    <div id="modal-visualizar-membro" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h3 id="modal-membro-titulo">Visualizar Membro</h3>
+                <span class="close" onclick="fecharModalVisualizarMembro()">&times;</span>
+            </div>
+            <form id="form-modal-membro" onsubmit="salvarMembroModal(event)">
+                <div class="modal-body">
+                    <!-- Modo Visualização -->
+                    <div id="modal-view-mode" style="line-height: 1.8;">
+                        <!-- Conteúdo de visualização -->
+                    </div>
+
+                    <!-- Modo Edição -->
+                    <div id="modal-edit-mode" style="display: none;">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Nome Completo *</label>
+                                <input type="text" id="modal-nome" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Conhecido Como</label>
+                                <input type="text" id="modal-conhecido_como">
+                            </div>
+                            <div class="form-group">
+                                <label>Sexo</label>
+                                <select id="modal-sexo">
+                                    <option value="">Selecione</option>
+                                    <option value="Masculino">Masculino</option>
+                                    <option value="Feminino">Feminino</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Data de Nascimento</label>
+                                <input type="date" id="modal-data_nascimento">
+                            </div>
+                            <div class="form-group">
+                                <label>Cargo</label>
+                                <select id="modal-cargo">
+                                    <option value="">Selecione</option>
+                                    <option value="Membro">Membro</option>
+                                    <option value="Diácono">Diácono</option>
+                                    <option value="Cooperador">Cooperador</option>
+                                    <option value="Presbítero">Presbítero</option>
+                                    <option value="Evangelista">Evangelista</option>
+                                    <option value="Pastor">Pastor</option>
+                                    <option value="Outros">Outros</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Tipo</label>
+                                <select id="modal-tipo_participante">
+                                    <option value="Membro">Membro</option>
+                                    <option value="Congregado">Congregado</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Telefone Principal</label>
+                                <input type="tel" id="modal-telefone_principal">
+                            </div>
+                            <div class="form-group">
+                                <label>Telefone Secundário</label>
+                                <input type="tel" id="modal-telefone_secundario">
+                            </div>
+                            <div class="form-group full-width">
+                                <label>Email</label>
+                                <input type="email" id="modal-email">
+                            </div>
+                            <div class="form-group">
+                                <label>CEP</label>
+                                <input type="text" id="modal-cep" maxlength="9" onblur="buscarCEPModal()" placeholder="00000-000">
+                            </div>
+                            <div class="form-group full-width">
+                                <label>Logradouro</label>
+                                <input type="text" id="modal-logradouro">
+                            </div>
+                            <div class="form-group">
+                                <label>Número</label>
+                                <input type="text" id="modal-numero">
+                            </div>
+                            <div class="form-group">
+                                <label>Complemento</label>
+                                <input type="text" id="modal-complemento">
+                            </div>
+                            <div class="form-group">
+                                <label>Bairro</label>
+                                <input type="text" id="modal-bairro">
+                            </div>
+                            <div class="form-group">
+                                <label>Cidade</label>
+                                <input type="text" id="modal-cidade">
+                            </div>
+                            <div class="form-group">
+                                <label>Estado</label>
+                                <input type="text" id="modal-estado" maxlength="2">
+                            </div>
+                            <div class="form-group">
+                                <label>CPF</label>
+                                <input type="text" id="modal-cpf">
+                            </div>
+                            <div class="form-group">
+                                <label>RG</label>
+                                <input type="text" id="modal-identidade">
+                            </div>
+                            <div class="form-group">
+                                <label>Órgão Expedidor</label>
+                                <input type="text" id="modal-orgao_expedidor">
+                            </div>
+                            <div class="form-group">
+                                <label>Estado Civil</label>
+                                <select id="modal-estado_civil">
+                                    <option value="">Selecione</option>
+                                    <option value="Solteiro(a)">Solteiro(a)</option>
+                                    <option value="Casado(a)">Casado(a)</option>
+                                    <option value="Divorciado(a)">Divorciado(a)</option>
+                                    <option value="Viúvo(a)">Viúvo(a)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Profissão</label>
+                                <input type="text" id="modal-profissao">
+                            </div>
+                            <div class="form-group full-width">
+                                <label>Informações Complementares</label>
+                                <textarea id="modal-informacoes_complementares" rows="3"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-primary admin-only" id="btn-editar-modal" style="display: none;">Editar</button>
+                    <button type="submit" class="btn-primary" id="btn-salvar-modal" style="display: none;">Salvar</button>
+                    <button type="button" class="btn-secondary" id="btn-cancelar-modal" style="display: none;">Cancelar</button>
+                    <button type="button" class="btn-secondary" id="btn-fechar-modal" onclick="fecharModalVisualizarMembro()">Fechar</button>
                 </div>
             </form>
         </div>

@@ -555,11 +555,6 @@ app.get('/api/aniversariantes', verificarToken, (req, res) => {
     });
 });
 
-// Servir a aplicação web
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
 // Iniciar servidor
 app.listen(PORT, () => {
     console.log(`Servidor rodando em http://localhost:${PORT}`);

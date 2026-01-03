@@ -4,9 +4,7 @@
   "description": "Sistema de Gerenciamento de Membros da Igreja",
   "main": "server.js",
   "scripts": {
-    "start": "node server-auth.js",
-    "start-supabase": "node server-supabase.js",
-    "start-simples": "node server.js",
+    "start": "node server-supabase.js",
     "dev": "nodemon server-auth.js",
     "dev-supabase": "nodemon server-supabase.js",
     "init-db": "node scripts/init-db.js",

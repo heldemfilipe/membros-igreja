@@ -1,35 +1,56 @@
-# Dependências
+# Dependencies
 node_modules/
 package-lock.json
 
-# Banco de dados
-database/membros.db
-data/
-
-# Backups
-backups/
+# Environment variables
+.env
+.env.local
+.env.production
 
 # Logs
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 logs/
 
-# Sistema Operacional
+# OS files
 .DS_Store
 Thumbs.db
 
-# IDEs
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# Ambiente
-.env
-.env.local
-.env.production
+# Vercel
+.vercel
+
+# Database
+database/
+*.sqlite
+*.db
+data/
+
+# Backups
+backups/
+*.backup
+
+# Temporary files
+*.tmp
+temp/
+.cache/
 
 # Build
 dist/
 build/
+
+# Old/test files
+*.old
+*-old.*
+test-connection.js
+verificar-admin.js
+testar-login.js
+testar-endpoint-login.js

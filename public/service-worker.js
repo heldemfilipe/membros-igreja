@@ -1,7 +1,6 @@
 const CACHE_NAME = 'membros-igreja-v1';
 const urlsToCache = [
   '/',
-  '/index.html',
   '/login.html',
   '/styles.css',
   '/app-auth.js',
