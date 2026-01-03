@@ -111,7 +111,13 @@
             </section>
 
             <section id="membros-page" class="page">
-                <h2>Lista de Membros</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+                    <h2 style="margin: 0;">Lista de Membros</h2>
+                    <button class="btn-primary" onclick="exportarPlanilha()" style="display: flex; align-items: center; gap: 8px;">
+                        <span>📊</span>
+                        <span>Exportar Planilha</span>
+                    </button>
+                </div>
                 <div class="filter-bar">
                     <input type="text" id="search-input" placeholder="Buscar por nome...">
                     <select id="tipo-filter">

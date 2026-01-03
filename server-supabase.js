@@ -6,6 +6,7 @@ const bodyParser = require("body-parser");
 const bcrypt = require("bcryptjs");
 const { v4: uuidv4 } = require("uuid");
 const path = require("path");
+const XLSX = require("xlsx");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -765,6 +766,117 @@ app.get("/api/aniversariantes", verificarToken, async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error("Erro ao buscar aniversariantes:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ========== EXPORTAR PLANILHA ==========
+app.get("/api/membros/exportar", validarSessao, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT
+        nome,
+        conhecido_como,
+        sexo,
+        data_nascimento,
+        telefone_principal,
+        telefone_secundario,
+        email,
+        endereco_rua,
+        endereco_numero,
+        endereco_complemento,
+        endereco_bairro,
+        endereco_cidade,
+        endereco_estado,
+        endereco_cep,
+        tipo_participante,
+        cargo,
+        data_batismo,
+        igreja_origem,
+        observacoes,
+        created_at
+      FROM membros
+      ORDER BY nome`
+    );
+
+    // Formatar dados para Excel
+    const dados = result.rows.map((membro) => ({
+      Nome: membro.nome || "",
+      "Conhecido Como": membro.conhecido_como || "",
+      Sexo: membro.sexo || "",
+      "Data de Nascimento": membro.data_nascimento
+        ? new Date(membro.data_nascimento).toLocaleDateString("pt-BR")
+        : "",
+      "Telefone Principal": membro.telefone_principal || "",
+      "Telefone Secundário": membro.telefone_secundario || "",
+      Email: membro.email || "",
+      Rua: membro.endereco_rua || "",
+      Número: membro.endereco_numero || "",
+      Complemento: membro.endereco_complemento || "",
+      Bairro: membro.endereco_bairro || "",
+      Cidade: membro.endereco_cidade || "",
+      Estado: membro.endereco_estado || "",
+      CEP: membro.endereco_cep || "",
+      Tipo: membro.tipo_participante || "",
+      Cargo: membro.cargo || "",
+      "Data de Batismo": membro.data_batismo
+        ? new Date(membro.data_batismo).toLocaleDateString("pt-BR")
+        : "",
+      "Igreja de Origem": membro.igreja_origem || "",
+      Observações: membro.observacoes || "",
+      "Data de Cadastro": membro.created_at
+        ? new Date(membro.created_at).toLocaleDateString("pt-BR")
+        : "",
+    }));
+
+    // Criar workbook
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(dados);
+
+    // Ajustar largura das colunas
+    const colWidths = [
+      { wch: 30 }, // Nome
+      { wch: 20 }, // Conhecido Como
+      { wch: 10 }, // Sexo
+      { wch: 15 }, // Data Nascimento
+      { wch: 15 }, // Telefone Principal
+      { wch: 15 }, // Telefone Secundário
+      { wch: 30 }, // Email
+      { wch: 30 }, // Rua
+      { wch: 8 }, // Número
+      { wch: 15 }, // Complemento
+      { wch: 20 }, // Bairro
+      { wch: 20 }, // Cidade
+      { wch: 5 }, // Estado
+      { wch: 10 }, // CEP
+      { wch: 12 }, // Tipo
+      { wch: 15 }, // Cargo
+      { wch: 15 }, // Data Batismo
+      { wch: 30 }, // Igreja Origem
+      { wch: 40 }, // Observações
+      { wch: 15 }, // Data Cadastro
+    ];
+    ws["!cols"] = colWidths;
+
+    // Adicionar worksheet ao workbook
+    XLSX.utils.book_append_sheet(wb, ws, "Membros");
+
+    // Gerar buffer
+    const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+
+    // Enviar arquivo
+    const dataAtual = new Date().toISOString().split("T")[0];
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="membros_${dataAtual}.xlsx"`
+    );
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.send(buffer);
+  } catch (error) {
+    console.error("Erro ao exportar planilha:", error);
     res.status(500).json({ error: error.message });
   }
 });

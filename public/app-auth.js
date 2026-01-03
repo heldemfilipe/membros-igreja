@@ -1124,6 +1124,42 @@ async function deleteMembro(id, nome) {
   }
 }
 
+// ========== EXPORTAR PLANILHA ==========
+async function exportarPlanilha() {
+  try {
+    const response = await fetchAuth(`${API_URL}/membros/exportar`);
+
+    if (!response.ok) {
+      throw new Error("Erro ao exportar planilha");
+    }
+
+    // Obter o blob da resposta
+    const blob = await response.blob();
+
+    // Criar URL para download
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+
+    // Nome do arquivo com data atual
+    const dataAtual = new Date().toISOString().split("T")[0];
+    a.download = `membros_${dataAtual}.xlsx`;
+
+    // Adicionar ao DOM, clicar e remover
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    // Limpar URL
+    window.URL.revokeObjectURL(url);
+
+    alert("Planilha exportada com sucesso!");
+  } catch (error) {
+    console.error("Erro ao exportar planilha:", error);
+    alert("Erro ao exportar planilha. Tente novamente.");
+  }
+}
+
 function resetForm() {
   editingMemberId = null;
   document.getElementById("form-title").textContent = "Cadastrar Novo Membro";
