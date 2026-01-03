@@ -342,6 +342,102 @@ app.get("/api/membros", verificarToken, async (req, res) => {
   }
 });
 
+// ========== EXPORTAR PLANILHA UNIFICADA (TODOS OS CAMPOS) ==========
+app.get("/api/membros/exportar", verificarToken, async (req, res) => {
+  try {
+    // 1. Procurar todos os dados no banco
+    const membrosRes = await pool.query(`SELECT * FROM membros ORDER BY nome`);
+    const historicosRes = await pool.query(`SELECT * FROM historicos`);
+    const familiaresRes = await pool.query(`SELECT * FROM familiares`);
+
+    // 2. Mapear Históricos e Familiares para busca rápida
+    const historicosMap = {};
+    historicosRes.rows.forEach(h => {
+      if (!historicosMap[h.membro_id]) historicosMap[h.membro_id] = [];
+      const dataH = h.data ? new Date(h.data).toLocaleDateString("pt-BR") : "";
+      historicosMap[h.membro_id].push(`[${h.tipo || ''} - ${dataH}]: ${h.observacoes || ''}`);
+    });
+
+    const familiaresMap = {};
+    familiaresRes.rows.forEach(f => {
+      if (!familiaresMap[f.membro_id]) familiaresMap[f.membro_id] = [];
+      familiaresMap[f.membro_id].push(`${f.nome || ''} (${f.parentesco || ''})`);
+    });
+
+    // 3. Montar o objeto com TODOS os campos da tabela
+    const dadosCompletos = membrosRes.rows.map((m) => {
+      return {
+        "Nome Completo": m.nome || "",
+        "Conhecido Como": m.conhecido_como || "",
+        "Igreja": m.igreja || "",
+        "Cargo": m.cargo || "",
+        "Sexo": m.sexo || "",
+        "Data Nascimento": m.data_nascimento ? new Date(m.data_nascimento).toLocaleDateString("pt-BR") : "",
+        "CEP": m.cep || "",
+        "Logradouro": m.logradouro || "",
+        "Número": m.numero || "",
+        "Complemento": m.complemento || "",
+        "Bairro": m.bairro || "",
+        "Cidade": m.cidade || "",
+        "Estado (UF)": m.estado || "",
+        "Telefone Principal": m.telefone_principal || "",
+        "Telefone Secundário": m.telefone_secundario || "",
+        "E-mail": m.email || "",
+        "CPF": m.cpf || "",
+        "Estado Civil": m.estado_civil || "",
+        "Profissão": m.profissao || "",
+        "RG/Identidade": m.identidade || "",
+        "Órgão Expedidor": m.orgao_expedidor || "",
+        "Data Expedição": m.data_expedicao ? new Date(m.data_expedicao).toLocaleDateString("pt-BR") : "",
+        "Grau Instrução": m.grau_instrucao || "",
+        "Título Eleitor": m.titulo_eleitor || "",
+        "Zona": m.titulo_eleitor_zona || "",
+        "Seção": m.titulo_eleitor_secao || "",
+        "Tipo Sanguíneo": m.tipo_sanguineo || "",
+        "Certidão Nasc/Casam": m.cert_nascimento_casamento || "",
+        "Reservista": m.reservista || "",
+        "Carteira Motorista": m.carteira_motorista || "",
+        "Chefe Familiar": m.chefe_familiar ? "Sim" : "Não",
+        "Data Casamento": m.data_casamento ? new Date(m.data_casamento).toLocaleDateString("pt-BR") : "",
+        "Naturalidade": m.naturalidade || "",
+        "UF Naturalidade": m.uf_naturalidade || "",
+        "Nacionalidade": m.nacionalidade || "",
+        "Origem Religiosa": m.origem_religiosa || "",
+        "Tipo Participante": m.tipo_participante || "",
+        "Informações Complementares": m.informacoes_complementares || "",
+        "Histórico Eclesiástico ": historicosMap[m.id] ? historicosMap[m.id].join(" | ") : "",
+        "Familiares": familiaresMap[m.id] ? familiaresMap[m.id].join(" | ") : "",
+        "Data Cadastro": m.created_at ? new Date(m.created_at).toLocaleDateString("pt-BR") : ""
+      };
+    });
+
+    // 4. Gerar Excel
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(dadosCompletos);
+
+    // Ajustar larguras automáticas básicas para colunas críticas
+    ws["!cols"] = [
+      { wch: 35 }, { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 10 }, 
+      { wch: 15 }, { wch: 10 }, { wch: 30 }, { wch: 8 }, { wch: 15 },
+      { wch: 50 }, // Coluna Históricos bem larga
+      { wch: 40 }  // Coluna Familiares bem larga
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, "Dados Consolidados");
+
+    const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+    const dataAtual = new Date().toISOString().split("T")[0];
+
+    res.setHeader("Content-Disposition", `attachment; filename="exportacao_completa_${dataAtual}.xlsx"`);
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.send(buffer);
+
+  } catch (error) {
+    console.error("Erro ao exportar:", error);
+    res.status(500).json({ error: "Erro ao gerar planilha: " + error.message });
+  }
+});
+
 // Buscar membro por ID
 app.get("/api/membros/:id", verificarToken, async (req, res) => {
   const { id } = req.params;
@@ -766,117 +862,6 @@ app.get("/api/aniversariantes", verificarToken, async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error("Erro ao buscar aniversariantes:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ========== EXPORTAR PLANILHA ==========
-app.get("/api/membros/exportar", verificarToken, async (req, res) => {
-  try {
-    const result = await pool.query(
-      `SELECT
-        nome,
-        conhecido_como,
-        sexo,
-        data_nascimento,
-        telefone_principal,
-        telefone_secundario,
-        email,
-        endereco_rua,
-        endereco_numero,
-        endereco_complemento,
-        endereco_bairro,
-        endereco_cidade,
-        endereco_estado,
-        endereco_cep,
-        tipo_participante,
-        cargo,
-        data_batismo,
-        igreja_origem,
-        observacoes,
-        created_at
-      FROM membros
-      ORDER BY nome`
-    );
-
-    // Formatar dados para Excel
-    const dados = result.rows.map((membro) => ({
-      Nome: membro.nome || "",
-      "Conhecido Como": membro.conhecido_como || "",
-      Sexo: membro.sexo || "",
-      "Data de Nascimento": membro.data_nascimento
-        ? new Date(membro.data_nascimento).toLocaleDateString("pt-BR")
-        : "",
-      "Telefone Principal": membro.telefone_principal || "",
-      "Telefone Secundário": membro.telefone_secundario || "",
-      Email: membro.email || "",
-      Rua: membro.endereco_rua || "",
-      Número: membro.endereco_numero || "",
-      Complemento: membro.endereco_complemento || "",
-      Bairro: membro.endereco_bairro || "",
-      Cidade: membro.endereco_cidade || "",
-      Estado: membro.endereco_estado || "",
-      CEP: membro.endereco_cep || "",
-      Tipo: membro.tipo_participante || "",
-      Cargo: membro.cargo || "",
-      "Data de Batismo": membro.data_batismo
-        ? new Date(membro.data_batismo).toLocaleDateString("pt-BR")
-        : "",
-      "Igreja de Origem": membro.igreja_origem || "",
-      Observações: membro.observacoes || "",
-      "Data de Cadastro": membro.created_at
-        ? new Date(membro.created_at).toLocaleDateString("pt-BR")
-        : "",
-    }));
-
-    // Criar workbook
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(dados);
-
-    // Ajustar largura das colunas
-    const colWidths = [
-      { wch: 30 }, // Nome
-      { wch: 20 }, // Conhecido Como
-      { wch: 10 }, // Sexo
-      { wch: 15 }, // Data Nascimento
-      { wch: 15 }, // Telefone Principal
-      { wch: 15 }, // Telefone Secundário
-      { wch: 30 }, // Email
-      { wch: 30 }, // Rua
-      { wch: 8 }, // Número
-      { wch: 15 }, // Complemento
-      { wch: 20 }, // Bairro
-      { wch: 20 }, // Cidade
-      { wch: 5 }, // Estado
-      { wch: 10 }, // CEP
-      { wch: 12 }, // Tipo
-      { wch: 15 }, // Cargo
-      { wch: 15 }, // Data Batismo
-      { wch: 30 }, // Igreja Origem
-      { wch: 40 }, // Observações
-      { wch: 15 }, // Data Cadastro
-    ];
-    ws["!cols"] = colWidths;
-
-    // Adicionar worksheet ao workbook
-    XLSX.utils.book_append_sheet(wb, ws, "Membros");
-
-    // Gerar buffer
-    const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
-
-    // Enviar arquivo
-    const dataAtual = new Date().toISOString().split("T")[0];
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="membros_${dataAtual}.xlsx"`
-    );
-    res.setHeader(
-      "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    );
-    res.send(buffer);
-  } catch (error) {
-    console.error("Erro ao exportar planilha:", error);
     res.status(500).json({ error: error.message });
   }
 });
