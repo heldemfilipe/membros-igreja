@@ -557,6 +557,14 @@ app.get('/api/aniversariantes', verificarToken, (req, res) => {
 
 // Iniciar servidor
 app.listen(PORT, () => {
-    console.log(`Servidor rodando em http://localhost:${PORT}`);
-    console.log('Login padrão: admin@igreja.com / admin123');
+    // Verifica se está em ambiente de desenvolvimento ou produção
+    const isLocal = process.env.NODE_ENV !== 'production';
+    const serverUrl = isLocal ? `http://localhost:${PORT}` : `Porta: ${PORT}`;
+
+    console.log(`\n=========================================`);
+    console.log(`🚀 Servidor Ativo!`);
+    console.log(`🌐 Ambiente: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`📍 Endereço: ${serverUrl}`);
+    console.log(`🔑 Login: admin@igreja.com / admin123`);
+    console.log(`=========================================\n`);
 });

@@ -1,208 +1,213 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login - Sistema de Membros</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css" />
     <style>
-        .login-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-        }
+      .login-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        padding: 20px;
+      }
 
-        .login-box {
-            background-color: var(--bg-secondary);
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px var(--shadow);
-            width: 100%;
-            max-width: 400px;
-        }
+      .login-box {
+        background-color: var(--bg-secondary);
+        padding: 40px;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px var(--shadow);
+        width: 100%;
+        max-width: 400px;
+      }
 
-        .login-logo {
-            text-align: center;
-            margin-bottom: 30px;
-        }
+      .login-logo {
+        text-align: center;
+        margin-bottom: 30px;
+      }
 
-        .login-logo h1 {
-            color: var(--accent-primary);
-            font-size: 1.8em;
-            margin-bottom: 10px;
-        }
+      .login-logo h1 {
+        color: var(--accent-primary);
+        font-size: 1.8em;
+        margin-bottom: 10px;
+      }
 
-        .login-logo p {
-            color: var(--text-secondary);
-            font-size: 0.9em;
-        }
+      .login-logo p {
+        color: var(--text-secondary);
+        font-size: 0.9em;
+      }
 
-        .login-form {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
+      .login-form {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
 
-        .form-field {
-            display: flex;
-            flex-direction: column;
-        }
+      .form-field {
+        display: flex;
+        flex-direction: column;
+      }
 
-        .form-field label {
-            color: var(--text-primary);
-            margin-bottom: 8px;
-            font-size: 0.95em;
-        }
+      .form-field label {
+        color: var(--text-primary);
+        margin-bottom: 8px;
+        font-size: 0.95em;
+      }
 
-        .form-field input {
-            padding: 12px;
-            background-color: var(--bg-tertiary);
-            color: var(--text-primary);
-            border: 1px solid var(--border-color);
-            border-radius: 5px;
-            font-size: 1em;
-        }
+      .form-field input {
+        padding: 12px;
+        background-color: var(--bg-tertiary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 5px;
+        font-size: 1em;
+      }
 
-        .form-field input:focus {
-            outline: none;
-            border-color: var(--accent-primary);
-        }
+      .form-field input:focus {
+        outline: none;
+        border-color: var(--accent-primary);
+      }
 
-        .login-button {
-            padding: 14px;
-            background-color: var(--accent-primary);
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1.1em;
-            font-weight: bold;
-            transition: all 0.3s;
-        }
+      .login-button {
+        padding: 14px;
+        background-color: var(--accent-primary);
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1.1em;
+        font-weight: bold;
+        transition: all 0.3s;
+      }
 
-        .login-button:hover {
-            opacity: 0.9;
-        }
+      .login-button:hover {
+        opacity: 0.9;
+      }
 
-        .login-button:disabled {
-            background-color: var(--bg-tertiary);
-            cursor: not-allowed;
-        }
+      .login-button:disabled {
+        background-color: var(--bg-tertiary);
+        cursor: not-allowed;
+      }
 
-        .error-message {
-            background-color: #3d1f1f;
-            color: var(--accent-danger);
-            padding: 12px;
-            border-radius: 5px;
-            border: 1px solid var(--accent-danger);
-            display: none;
-        }
+      .error-message {
+        background-color: #3d1f1f;
+        color: var(--accent-danger);
+        padding: 12px;
+        border-radius: 5px;
+        border: 1px solid var(--accent-danger);
+        display: none;
+      }
 
-        .error-message.show {
-            display: block;
-        }
+      .error-message.show {
+        display: block;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="login-container">
-        <div class="login-box">
-            <div class="login-logo">
-                <h1>🏛️ Sistema de Membros</h1>
-                <p>Assembleia de Deus de Rio Claro</p>
-            </div>
-
-            <div id="error-message" class="error-message"></div>
-
-            <form id="login-form" class="login-form">
-                <div class="form-field">
-                    <label for="email">E-mail</label>
-                    <input type="email" id="email" required autocomplete="username">
-                </div>
-
-                <div class="form-field">
-                    <label for="senha">Senha</label>
-                    <input type="password" id="senha" required autocomplete="current-password">
-                </div>
-
-                <button type="submit" class="login-button" id="login-button">
-                    Entrar
-                </button>
-            </form>
+      <div class="login-box">
+        <div class="login-logo">
+          <h1>🏛️ Sistema de Membros</h1>
+          <p>Assembleia de Deus de Rio Claro</p>
         </div>
+
+        <div id="error-message" class="error-message"></div>
+
+        <form id="login-form" class="login-form">
+          <div class="form-field">
+            <label for="email">E-mail</label>
+            <input type="email" id="email" required autocomplete="username" />
+          </div>
+
+          <div class="form-field">
+            <label for="senha">Senha</label>
+            <input
+              type="password"
+              id="senha"
+              required
+              autocomplete="current-password"
+            />
+          </div>
+
+          <button type="submit" class="login-button" id="login-button">
+            Entrar
+          </button>
+        </form>
+      </div>
     </div>
 
     <script>
-        const loginForm = document.getElementById('login-form');
-        const errorMessage = document.getElementById('error-message');
-        const loginButton = document.getElementById('login-button');
+      const API_URL =
+        window.location.hostname === "localhost"
+          ? "http://localhost:3000/api"
+          : "/api";
+      const loginForm = document.getElementById("login-form");
+      const errorMessage = document.getElementById("error-message");
+      const loginButton = document.getElementById("login-button");
 
-        // Verificar se já está logado
-        const token = localStorage.getItem('token');
-        if (token) {
-            verificarSessao(token);
+      // Verificar se já está logado
+      const token = localStorage.getItem("token");
+      if (token) {
+        verificarSessao(token);
+      }
+
+      loginForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const email = document.getElementById("email").value;
+        const senha = document.getElementById("senha").value;
+
+        loginButton.disabled = true;
+        loginButton.textContent = "Entrando...";
+        errorMessage.classList.remove("show");
+
+        try {
+          const response = await fetch(`${API_URL}/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, senha }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            localStorage.setItem("token", data.token);
+            localStorage.setItem("usuario", JSON.stringify(data.usuario));
+            window.location.href = "index-auth.html";
+          } else {
+            mostrarErro(data.error || "Erro ao fazer login");
+          }
+        } catch (error) {
+          mostrarErro("Erro de conexão com o servidor");
+        } finally {
+          loginButton.disabled = false;
+          loginButton.textContent = "Entrar";
         }
+      });
 
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
+      async function verificarSessao(token) {
+        try {
+          const response = await fetch(`${API_URL}/auth/verify`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
 
-            const email = document.getElementById('email').value;
-            const senha = document.getElementById('senha').value;
-
-            loginButton.disabled = true;
-            loginButton.textContent = 'Entrando...';
-            errorMessage.classList.remove('show');
-
-            try {
-                const response = await fetch('http://localhost:3000/api/auth/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ email, senha })
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    localStorage.setItem('token', data.token);
-                    localStorage.setItem('usuario', JSON.stringify(data.usuario));
-                    window.location.href = 'index-auth.html';
-                } else {
-                    mostrarErro(data.error || 'Erro ao fazer login');
-                }
-            } catch (error) {
-                mostrarErro('Erro de conexão com o servidor');
-            } finally {
-                loginButton.disabled = false;
-                loginButton.textContent = 'Entrar';
-            }
-        });
-
-        async function verificarSessao(token) {
-            try {
-                const response = await fetch('http://localhost:3000/api/auth/verify', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (response.ok) {
-                    window.location.href = 'index-auth.html';
-                } else {
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('usuario');
-                }
-            } catch (error) {
-                console.error('Erro ao verificar sessão:', error);
-            }
+          if (response.ok) {
+            window.location.href = "index-auth.html";
+          } else {
+            localStorage.removeItem("token");
+            localStorage.removeItem("usuario");
+          }
+        } catch (error) {
+          console.error("Erro ao verificar sessão:", error);
         }
+      }
 
-        function mostrarErro(mensagem) {
-            errorMessage.textContent = mensagem;
-            errorMessage.classList.add('show');
-        }
+      function mostrarErro(mensagem) {
+        errorMessage.textContent = mensagem;
+        errorMessage.classList.add("show");
+      }
     </script>
-</body>
+  </body>
 </html>
