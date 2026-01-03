@@ -20,6 +20,7 @@ Sistema completo de gerenciamento de membros da igreja, desenvolvido com Node.js
 - 👁️ Visualização detalhada de informações
 - ✏️ Edição de dados (apenas administradores)
 - 🗑️ Exclusão de membros (apenas administradores)
+- 📊 **Exportação para Excel** - Baixe planilha completa com todos os membros
 
 ### Aniversariantes
 - 🎉 Lista de aniversariantes por mês
@@ -48,6 +49,7 @@ Sistema completo de gerenciamento de membros da igreja, desenvolvido com Node.js
 - **bcryptjs** - Criptografia de senhas
 - **UUID** - Geração de tokens de sessão
 - **CORS** - Configuração de CORS
+- **xlsx** - Geração de planilhas Excel
 
 ### Frontend
 - **HTML5** - Estrutura
@@ -327,6 +329,37 @@ Adicione um arquivo `railway.json`:
 - ✅ PWA (Progressive Web App)
 - ✅ Funciona offline (service worker)
 - ✅ Pode ser instalado na tela inicial
+
+## 📊 Exportação de Dados
+
+### Planilha Excel
+O sistema permite exportar todos os dados dos membros para uma planilha Excel (.xlsx):
+
+**Como usar:**
+1. Acesse a página "Lista de Membros"
+2. Clique no botão "📊 Exportar Planilha"
+3. O arquivo será baixado automaticamente com o nome `membros_YYYY-MM-DD.xlsx`
+
+**Conteúdo da planilha:**
+- Nome completo
+- Conhecido como
+- Sexo
+- Data de nascimento
+- Telefones (principal e secundário)
+- Email
+- Endereço completo (rua, número, complemento, bairro, cidade, estado, CEP)
+- Tipo de participante
+- Cargo
+- Data de batismo
+- Igreja de origem
+- Observações
+- Data de cadastro
+
+**Características:**
+- ✅ Todas as datas formatadas em PT-BR (DD/MM/AAAA)
+- ✅ Colunas com larguras ajustadas automaticamente
+- ✅ Requer autenticação
+- ✅ Compatível com Excel, Google Sheets e LibreOffice
 
 ## 🔒 Segurança
 
