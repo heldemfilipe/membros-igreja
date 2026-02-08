@@ -26,6 +26,7 @@
                 <button class="nav-btn active" data-page="dashboard">Dashboard</button>
                 <button class="nav-btn" data-page="aniversariantes">Aniversariantes</button>
                 <button class="nav-btn" data-page="membros">Lista de Membros</button>
+                <button class="nav-btn" data-page="departamentos">Departamentos</button>
                 <button class="nav-btn admin-only" data-page="cadastro" style="display: none;">Cadastrar Membro</button>
                 <button class="nav-btn admin-only" data-page="usuarios" style="display: none;">Usuários</button>
             </nav>
@@ -61,7 +62,7 @@
                 <!-- Aniversariantes da Semana -->
                 <div style="margin-top: 30px;">
                     <div class="chart-card">
-                        <h3>🎂 Aniversariantes da Semana</h3>
+                        <h3>🎂 Aniversariantes (Semana Atual e Anterior)</h3>
                         <div id="dashboard-aniversariantes" class="list-container" style="max-height: 400px; overflow-y: auto;"></div>
                     </div>
                 </div>
@@ -82,6 +83,14 @@
                     <div class="chart-card">
                         <h3>Estatísticas de Idade</h3>
                         <div id="chart-idade" class="chart-stats"></div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Distribuição por Faixa Etária</h3>
+                        <div id="chart-faixa-etaria" class="chart-bars"></div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Distribuição por Departamento</h3>
+                        <div id="chart-departamento" class="chart-bars"></div>
                     </div>
                 </div>
             </section>
@@ -113,10 +122,13 @@
             <section id="membros-page" class="page">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
                     <h2 style="margin: 0;">Lista de Membros</h2>
-                    <button class="btn-primary" onclick="exportarPlanilha()" style="display: flex; align-items: center; gap: 8px;">
-                        <span>📊</span>
-                        <span>Exportar Planilha</span>
-                    </button>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn-primary admin-only" onclick="abrirModalVisitante()" style="display: none;">+ Cadastrar Visitante</button>
+                        <button class="btn-primary" onclick="exportarPlanilha()" style="display: flex; align-items: center; gap: 8px;">
+                            <span>📊</span>
+                            <span>Exportar Planilha</span>
+                        </button>
+                    </div>
                 </div>
                 <div class="filter-bar">
                     <input type="text" id="search-input" placeholder="Buscar por nome...">
@@ -125,7 +137,6 @@
                         <option value="Membro">Membros</option>
                         <option value="Congregado">Congregados</option>
                         <option value="Visitante">Visitantes</option>
-                        <option value="Frequentador">Frequentadores</option>
                     </select>
                     <select id="cargo-filter">
                         <option value="">Todos os Cargos</option>
@@ -135,6 +146,9 @@
                         <option value="Presbítero">Presbítero</option>
                         <option value="Evangelista">Evangelista</option>
                         <option value="Pastor">Pastor</option>
+                    </select>
+                    <select id="departamento-filter">
+                        <option value="">Todos os Departamentos</option>
                     </select>
                 </div>
                 <div id="membros-list" class="list-container"></div>
@@ -190,7 +204,25 @@
                                     <option value="Membro">Membro</option>
                                     <option value="Congregado">Congregado</option>
                                     <option value="Visitante">Visitante</option>
-                                    <option value="Frequentador">Frequentador</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Departamento</label>
+                                <select id="cadastro-departamento">
+                                    <option value="">Nenhum</option>
+                                </select>
+                            </div>
+                            <div class="form-group" id="cargo-dept-group" style="display: none;">
+                                <label>Cargo no Departamento</label>
+                                <select id="cadastro-cargo-departamento">
+                                    <option value="">Nenhum</option>
+                                    <option value="Líder">Líder</option>
+                                    <option value="Vice-Líder">Vice-Líder</option>
+                                    <option value="Regente">Regente</option>
+                                    <option value="Secretário(a)">Secretário(a)</option>
+                                    <option value="Tesoureiro(a)">Tesoureiro(a)</option>
+                                    <option value="Professor(a)">Professor(a)</option>
+                                    <option value="Coordenador(a)">Coordenador(a)</option>
                                 </select>
                             </div>
                         </div>
@@ -368,6 +400,12 @@
                 </form>
             </section>
 
+            <section id="departamentos-page" class="page">
+                <h2>Departamentos</h2>
+                <button class="btn-primary admin-only" style="margin-bottom: 20px; display: none;" onclick="abrirModalDepartamento()">+ Novo Departamento</button>
+                <div id="departamentos-list" class="list-container"></div>
+            </section>
+
             <section id="usuarios-page" class="page">
                 <h2>Gerenciar Usuários</h2>
                 <button class="btn-primary" style="margin-bottom: 20px;" onclick="abrirModalUsuario()">+ Novo Usuário</button>
@@ -473,6 +511,7 @@
                                 <select id="modal-tipo_participante">
                                     <option value="Membro">Membro</option>
                                     <option value="Congregado">Congregado</option>
+                                    <option value="Visitante">Visitante</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -553,6 +592,113 @@
                     <button type="submit" class="btn-primary" id="btn-salvar-modal" style="display: none;">Salvar</button>
                     <button type="button" class="btn-secondary" id="btn-cancelar-modal" style="display: none;">Cancelar</button>
                     <button type="button" class="btn-secondary" id="btn-fechar-modal" onclick="fecharModalVisualizarMembro()">Fechar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Departamento -->
+    <div id="modal-departamento" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-departamento-title">Novo Departamento</h3>
+                <span class="close" onclick="fecharModalDepartamento()">&times;</span>
+            </div>
+            <form id="departamento-form">
+                <input type="hidden" id="departamento-id">
+                <div class="form-group">
+                    <label>Nome <span class="required">*</span></label>
+                    <input type="text" id="departamento-nome" required>
+                </div>
+                <div class="form-group">
+                    <label>Descrição</label>
+                    <textarea id="departamento-descricao" rows="3"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Salvar</button>
+                    <button type="button" class="btn-secondary" onclick="fecharModalDepartamento()">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Membros do Departamento -->
+    <div id="modal-dept-membros" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3 id="modal-dept-membros-title">Membros do Departamento</h3>
+                <span class="close" onclick="fecharModalDeptMembros()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="admin-only" style="display: none; margin-bottom: 15px;">
+                    <label style="margin-bottom: 5px; display: block;">Adicionar Membro</label>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <select id="dept-membro-select" style="flex: 2; min-width: 200px; padding: 10px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 5px;"></select>
+                        <select id="dept-cargo-select" style="flex: 1; min-width: 150px; padding: 10px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 5px;">
+                            <option value="">Sem cargo</option>
+                            <option value="Líder">Líder</option>
+                            <option value="Vice-Líder">Vice-Líder</option>
+                            <option value="Regente">Regente</option>
+                            <option value="Secretário(a)">Secretário(a)</option>
+                            <option value="Tesoureiro(a)">Tesoureiro(a)</option>
+                            <option value="Professor(a)">Professor(a)</option>
+                            <option value="Coordenador(a)">Coordenador(a)</option>
+                        </select>
+                        <button class="btn-primary" onclick="adicionarMembroDepartamento()">Adicionar</button>
+                    </div>
+                </div>
+                <div id="dept-membros-list" class="list-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Visitante -->
+    <div id="modal-visitante" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3>Cadastrar Visitante</h3>
+                <span class="close" onclick="fecharModalVisitante()">&times;</span>
+            </div>
+            <form id="visitante-form">
+                <div class="form-group">
+                    <label>Nome Completo <span class="required">*</span></label>
+                    <input type="text" id="visitante-nome" required>
+                </div>
+                <div class="form-group">
+                    <label>Data de Nascimento</label>
+                    <input type="date" id="visitante-data_nascimento">
+                </div>
+                <div class="form-group">
+                    <label>Telefone</label>
+                    <input type="tel" id="visitante-telefone">
+                </div>
+                <div class="form-group">
+                    <label>CEP</label>
+                    <input type="text" id="visitante-cep" maxlength="9" onblur="buscarCEPVisitante()" placeholder="00000-000">
+                </div>
+                <div class="form-group">
+                    <label>Logradouro</label>
+                    <input type="text" id="visitante-logradouro">
+                </div>
+                <div class="form-group">
+                    <label>Número</label>
+                    <input type="text" id="visitante-numero">
+                </div>
+                <div class="form-group">
+                    <label>Bairro</label>
+                    <input type="text" id="visitante-bairro">
+                </div>
+                <div class="form-group">
+                    <label>Cidade</label>
+                    <input type="text" id="visitante-cidade">
+                </div>
+                <div class="form-group">
+                    <label>Estado</label>
+                    <input type="text" id="visitante-estado" maxlength="2">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Cadastrar Visitante</button>
+                    <button type="button" class="btn-secondary" onclick="fecharModalVisitante()">Cancelar</button>
                 </div>
             </form>
         </div>

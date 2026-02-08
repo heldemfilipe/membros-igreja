@@ -1,4 +1,4 @@
-# 🏛️ Sistema de Gerenciamento de Membros
+# Sistema de Gerenciamento de Membros
 
 <div align="center">
 
@@ -9,481 +9,256 @@
 
 Sistema completo de gerenciamento de membros de igreja, desenvolvido com Node.js, Express e PostgreSQL (Supabase).
 
-[Demo](https://membros-igreja.vercel.app) · [Reportar Bug](https://github.com/heldemfilipe/membros-igreja/issues) · [Documentação](https://github.com/heldemfilipe/membros-igreja/blob/main/DEPLOY.md)
-
 </div>
 
 ---
 
-## 📋 Funcionalidades
+## Funcionalidades
 
 ### Dashboard
-- 📊 Estatísticas gerais (Total de Membros, Congregados, Total Geral)
-- 🎂 Aniversariantes da semana atual
-- 📈 Gráficos de pizza com distribuição por:
+- Estatisticas gerais (Total de Membros, Congregados, Total Geral)
+- Aniversariantes da semana atual e da semana anterior
+- Graficos de pizza com distribuicao por:
   - Sexo (Masculino/Feminino)
   - Tipo (Membro/Congregado/Visitante)
-  - Cargo (Membro/Diácono/Cooperador/Presbítero/Evangelista/Pastor)
-- 📊 Estatísticas de idade média
+  - Cargo (Membro/Diacono/Cooperador/Presbitero/Evangelista/Pastor)
+  - Faixa Etaria (0-17, 18-25, 26-35, 36-45, 46-60, 60+)
+  - Departamento (com "Sem Departamento" para membros nao vinculados)
+- Estatisticas de idade media
 
-### Gestão de Membros
-- ✅ Cadastro completo de membros
-- 🔍 Busca por nome
-- 🎯 Filtros por tipo e cargo
-- 👁️ Visualização detalhada de informações
-- ✏️ Edição de dados (apenas administradores)
-- 🗑️ Exclusão de membros (apenas administradores)
-- 📊 **Exportação para Excel** - Baixe planilha completa com todos os membros
+### Gestao de Membros
+- Cadastro completo com 38+ campos
+- Busca por nome com debounce
+- Filtros por tipo, cargo e departamento
+- Visualizacao detalhada em modal
+- Edicao e exclusao (apenas administradores)
+- Exportacao para Excel (.xlsx) com todos os campos
+- Cadastro simplificado de visitantes (modal com campos basicos)
 
-### Aniversariantes
-- 🎉 Lista de aniversariantes por mês
-- 📅 Filtro por mês específico
-- 🎨 Badges coloridos por cargo
+### Sistema de Departamentos
+- Cadastro de departamentos (Jovens, Adolescentes, Louvor, etc.)
+- Vinculo N:N entre membros e departamentos
+- Cargo dentro do departamento (Lider, Vice-Lider, Regente, Secretario(a), Tesoureiro(a), Professor(a), Coordenador(a))
+- Visualizacao dos membros de cada departamento com seus cargos
+- Filtro de membros por departamento na lista principal
+- Selecao de departamento e cargo no formulario de cadastro
+- Badges de departamento e cargo exibidos na lista de membros
+- Grafico de distribuicao por departamento no dashboard
 
-### Sistema de Permissões
-- 👤 **Usuários Membros**: Visualizam apenas Nome, Idade e Cargo
-- 👑 **Administradores**: Acesso completo a todas as informações e funções de edição/exclusão
-
-### Dados de Membros
-- Informações Pessoais (Nome, Conhecido Como, Sexo, Data de Nascimento)
-- Contatos (Telefone Principal, Telefone Secundário, Email)
-- Endereço Completo
-- Dados Eclesiais (Tipo, Cargo, Data de Batismo, Igreja de Origem)
-- Familiares
-- Histórico Eclesiástico
-- Observações
-
-## 🖼️ Screenshots
-
-<details>
-<summary>Clique para ver as capturas de tela</summary>
-
-### Dashboard
-![Dashboard com gráficos e estatísticas](#)
-
-### Lista de Membros
-![Lista de membros com filtros e exportação](#)
+### Vinculo Familiar Automatico
+- Ao cadastrar familiar como Conjuge ou Filho(a), o sistema cria automaticamente um perfil de membro
+- Conjuge: herda endereco e recebe sexo oposto
+- Filhos menores de 10 anos: cadastrados automaticamente como "Congregado"
+- Vinculo bidirecional (ex: se Heldem cadastra Vitoria como esposa, Vitoria tera Heldem como Conjuge)
+- Link "Ver perfil" clicavel nos familiares vinculados
 
 ### Aniversariantes
-![Aniversariantes da semana](#)
+- Lista de aniversariantes por mes
+- Dashboard mostra aniversariantes da semana atual e anterior
+- Busca automatica do mes anterior quando necessario (cross-month)
+- Badges coloridos por cargo
 
-</details>
+### Cadastro de Visitantes
+- Modal simplificado com campos basicos: nome, data de nascimento, telefone e endereco
+- Auto-preenchimento de endereco via CEP (API ViaCEP)
+- Tipo automaticamente definido como "Visitante"
 
-## 🛠️ Tecnologias Utilizadas
+### Sistema de Permissoes
+- **Usuarios Membros**: Visualizam apenas Nome, Idade e Cargo
+- **Administradores**: Acesso completo a todas as informacoes e funcoes de edicao/exclusao
+
+### Tipos de Participante
+- **Membro** - Membro efetivo da igreja
+- **Congregado** - Frequentador regular (inclui filhos menores de 10 anos)
+- **Visitante** - Cadastro simplificado para visitantes
+
+## Tecnologias Utilizadas
 
 ### Backend
 - **Node.js** - Runtime JavaScript
 - **Express** - Framework web
 - **PostgreSQL** - Banco de dados (via Supabase)
 - **bcryptjs** - Criptografia de senhas
-- **UUID** - Geração de tokens de sessão
-- **CORS** - Configuração de CORS
-- **xlsx** - Geração de planilhas Excel
+- **UUID** - Geracao de tokens de sessao
+- **xlsx** - Geracao de planilhas Excel
 
 ### Frontend
 - **HTML5** - Estrutura
-- **CSS3** - Estilização (tema dark, responsivo)
-- **JavaScript Vanilla** - Lógica do cliente
-- **Fetch API** - Comunicação com backend
+- **CSS3** - Estilizacao (tema dark, responsivo)
+- **JavaScript Vanilla** - Logica do cliente
+- **Fetch API** - Comunicacao com backend
 
 ### Database
 - **Supabase** - PostgreSQL hospedado na nuvem
 
-## 📦 Estrutura do Projeto
+## Estrutura do Projeto
 
 ```
 membros-igreja/
-├── public/                      # Frontend (arquivos estáticos)
-│   ├── index-auth.html         # Dashboard principal
-│   ├── login.html              # Página de login
-│   ├── app-auth.js             # Lógica JavaScript
-│   ├── styles.css              # Estilos CSS
-│   ├── manifest.json           # PWA manifest
-│   └── service-worker.js       # Service Worker (PWA)
-├── server-supabase.js          # Servidor principal (Supabase)
-├── package.json                # Dependências do projeto
-├── .env                        # Variáveis de ambiente (NÃO COMMITAR)
-└── README.md                   # Este arquivo
+├── public/                                    # Frontend
+│   ├── index-auth.html                       # Dashboard principal
+│   ├── login.html                            # Pagina de login
+│   ├── app-auth.js                           # Logica JavaScript
+│   ├── styles.css                            # Estilos CSS (dark theme)
+│   ├── manifest.json                         # PWA manifest
+│   └── service-worker.js                     # Service Worker
+├── database/
+│   ├── schema-supabase.sql                   # Schema completo do banco
+│   └── migration-departamentos-familia.sql   # Migration para novas tabelas
+├── server-supabase.js                        # Servidor principal
+├── package.json                              # Dependencias
+├── vercel.json                               # Configuracao Vercel
+├── .env                                      # Variaveis de ambiente (NAO COMMITAR)
+└── README.md                                 # Este arquivo
 ```
 
-## 🚀 Como Rodar Localmente
+## Banco de Dados
 
-### Pré-requisitos
+### Tabelas
+
+| Tabela | Descricao |
+|--------|-----------|
+| `membros` | Dados completos dos membros (38+ campos) |
+| `historicos` | Historico eclesiastico (FK membro_id) |
+| `familiares` | Familiares com vinculo a perfil (FK membro_id, membro_vinculado_id) |
+| `departamentos` | Departamentos da igreja |
+| `membro_departamentos` | Vinculo N:N membros-departamentos com cargo |
+| `usuarios` | Usuarios do sistema (admin/usuario) |
+| `sessoes` | Tokens de autenticacao |
+
+### Endpoints da API
+
+**Autenticacao:**
+- `POST /api/auth/login` - Login
+- `POST /api/auth/logout` - Logout
+- `GET /api/auth/verify` - Verificar token
+- `POST /api/auth/trocar-senha` - Trocar senha
+
+**Membros:**
+- `GET /api/membros` - Listar (com filtros: search, tipo, cargo, departamento)
+- `GET /api/membros/:id` - Buscar por ID (inclui historicos e familiares)
+- `POST /api/membros` - Criar (com auto-criacao de perfis familiares)
+- `PUT /api/membros/:id` - Atualizar
+- `DELETE /api/membros/:id` - Deletar
+- `GET /api/membros/exportar` - Exportar Excel
+- `GET /api/membros/:id/departamentos` - Departamentos do membro
+
+**Departamentos:**
+- `GET /api/departamentos` - Listar (com contagem de membros)
+- `POST /api/departamentos` - Criar
+- `PUT /api/departamentos/:id` - Atualizar
+- `DELETE /api/departamentos/:id` - Deletar
+- `GET /api/departamentos/:id/membros` - Membros do departamento
+- `POST /api/departamentos/:id/membros` - Adicionar membro (com cargo)
+- `PUT /api/departamentos/:departId/membros/:membroId` - Atualizar cargo
+- `DELETE /api/departamentos/:departId/membros/:membroId` - Remover membro
+
+**Dashboard:**
+- `GET /api/dashboard` - Estatisticas e graficos
+- `GET /api/aniversariantes` - Aniversariantes por mes
+
+**Usuarios (admin):**
+- `GET /api/usuarios` - Listar
+- `POST /api/usuarios` - Criar
+- `PUT /api/usuarios/:id` - Atualizar
+- `DELETE /api/usuarios/:id` - Deletar
+
+## Como Rodar Localmente
+
+### Pre-requisitos
 - Node.js 16+ instalado
 - Conta no Supabase (gratuita)
-- Git instalado
 
-### 1. Clone o Repositório
+### 1. Clone o Repositorio
 ```bash
 git clone https://github.com/heldemfilipe/membros-igreja.git
 cd membros-igreja
 ```
 
-### 2. Instale as Dependências
+### 2. Instale as Dependencias
 ```bash
 npm install
 ```
 
-### 3. Configure o Banco de Dados Supabase
+### 3. Configure o Banco de Dados
 
-#### 3.1. Criar Projeto no Supabase
-1. Acesse [supabase.com](https://supabase.com)
-2. Crie uma conta gratuita
-3. Crie um novo projeto
-4. Anote a **Database URL** nas configurações do projeto
+1. Acesse [supabase.com](https://supabase.com) e crie um projeto
+2. No **SQL Editor**, execute o conteudo de `database/schema-supabase.sql`
+3. Anote a **Database URL** nas configuracoes do projeto
 
-#### 3.2. Criar as Tabelas
+### 4. Configure as Variaveis de Ambiente
 
-Execute os seguintes comandos SQL no **SQL Editor** do Supabase:
-
-```sql
--- Tabela de Membros
-CREATE TABLE membros (
-    id SERIAL PRIMARY KEY,
-    nome VARCHAR(255) NOT NULL,
-    conhecido_como VARCHAR(255),
-    sexo VARCHAR(20),
-    data_nascimento DATE,
-    telefone_principal VARCHAR(20),
-    telefone_secundario VARCHAR(20),
-    email VARCHAR(255),
-    endereco_rua VARCHAR(255),
-    endereco_numero VARCHAR(20),
-    endereco_complemento VARCHAR(100),
-    endereco_bairro VARCHAR(100),
-    endereco_cidade VARCHAR(100),
-    endereco_estado VARCHAR(2),
-    endereco_cep VARCHAR(10),
-    tipo_participante VARCHAR(50),
-    cargo VARCHAR(100),
-    data_batismo DATE,
-    igreja_origem VARCHAR(255),
-    familiares JSONB,
-    historico_eclesiastico JSONB,
-    observacoes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Tabela de Usuários
-CREATE TABLE usuarios (
-    id SERIAL PRIMARY KEY,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    senha VARCHAR(255) NOT NULL,
-    nome VARCHAR(255) NOT NULL,
-    tipo VARCHAR(20) DEFAULT 'membro',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Tabela de Sessões
-CREATE TABLE sessoes (
-    id SERIAL PRIMARY KEY,
-    usuario_id INTEGER REFERENCES usuarios(id) ON DELETE CASCADE,
-    token VARCHAR(255) UNIQUE NOT NULL,
-    expires_at TIMESTAMP NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Índices para melhor performance
-CREATE INDEX idx_membros_nome ON membros(nome);
-CREATE INDEX idx_membros_data_nascimento ON membros(data_nascimento);
-CREATE INDEX idx_membros_tipo ON membros(tipo_participante);
-CREATE INDEX idx_membros_cargo ON membros(cargo);
-CREATE INDEX idx_sessoes_token ON sessoes(token);
-CREATE INDEX idx_sessoes_expires ON sessoes(expires_at);
-```
-
-#### 3.3. Criar Usuário Administrador
-
-```sql
--- Inserir usuário admin (senha: admin123)
-INSERT INTO usuarios (email, senha, nome, tipo)
-VALUES (
-    'admin@igreja.com',
-    '$2a$10$xQZ9J9X9Z9X9Z9X9Z9X9ZuXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxX',
-    'Administrador',
-    'admin'
-);
-```
-
-**IMPORTANTE**: Você precisa gerar o hash da senha usando bcryptjs. Execute este script Node.js:
-
-```javascript
-const bcrypt = require('bcryptjs');
-const senha = 'admin123';
-const hash = bcrypt.hashSync(senha, 10);
-console.log('Hash da senha:', hash);
-```
-
-Depois substitua o hash no SQL acima.
-
-### 4. Configure as Variáveis de Ambiente
-
-Crie um arquivo `.env` na raiz do projeto:
-
+Crie um arquivo `.env`:
 ```env
-# Porta do servidor
 PORT=3000
-
-# URL de conexão do PostgreSQL (Supabase)
 DATABASE_URL=postgresql://postgres:[SUA-SENHA]@[SEU-HOST].supabase.co:5432/postgres
-
-# Exemplo:
-# DATABASE_URL=postgresql://postgres:suasenha123@db.xxxxxxxxxxxx.supabase.co:5432/postgres
 ```
-
-**IMPORTANTE**:
-- Nunca commite o arquivo `.env` no Git!
-- A `DATABASE_URL` está disponível nas configurações do seu projeto Supabase
 
 ### 5. Inicie o Servidor
-
 ```bash
-npm run start-supabase
+npm start
 ```
 
-O servidor estará rodando em: `http://localhost:3000`
+Acesse: `http://localhost:3000`
 
-### 6. Acesse o Sistema
-
-Abra o navegador e acesse:
-```
-http://localhost:3000/login.html
-```
-
-**Credenciais padrão:**
+**Credenciais padrao:**
 - Email: `admin@igreja.com`
 - Senha: `admin123`
 
-## 🌐 Deploy na Vercel
+## Migration (Atualizacao do Banco)
 
-### Passo 1: Prepare o Projeto
+Se o banco ja existia antes das novas funcionalidades, execute no **SQL Editor** do Supabase:
 
-1. Certifique-se de que o arquivo `.gitignore` contém:
-```
-node_modules/
-.env
-*.log
-.DS_Store
+```sql
+-- Arquivo: database/migration-departamentos-familia.sql
+-- Cria tabelas de departamentos, vinculo membro-departamento com cargo,
+-- e coluna de vinculo familiar
 ```
 
-2. Crie um arquivo `vercel.json` na raiz:
-```json
-{
-  "version": 2,
-  "builds": [
-    {
-      "src": "server-supabase.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "server-supabase.js"
-    }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  }
-}
-```
+## Deploy
 
-### Passo 2: Configure o Projeto na Vercel
+### Vercel (Recomendado)
+1. Conecte o repositorio no [vercel.com](https://vercel.com)
+2. Configure a variavel `DATABASE_URL`
+3. Deploy automatico
 
-1. Acesse [vercel.com](https://vercel.com)
-2. Conecte sua conta GitHub
-3. Importe o repositório `membros-igreja`
-4. Configure as **Environment Variables**:
-   - `DATABASE_URL`: Sua connection string do Supabase
-   - `PORT`: 3000
+### Railway
+1. Conecte no [railway.app](https://railway.app)
+2. Configure a variavel `DATABASE_URL`
+3. Deploy automatico
 
-### Passo 3: Deploy
+## Seguranca
 
-1. Clique em "Deploy"
-2. Aguarde o build terminar
-3. Acesse a URL fornecida pela Vercel
+- Senhas criptografadas com bcryptjs
+- Tokens de sessao com UUID (expiram em 24h)
+- Validacao de permissoes no backend (middleware verificarToken + verificarAdmin)
+- Protecao CORS configuravel
+- Elementos admin-only ocultos via CSS + verificacao server-side
 
-## 🌐 Deploy na Cloudflare Pages
+## Mobile
 
-**IMPORTANTE**: Cloudflare Pages é otimizado para sites estáticos. Para este projeto com backend Node.js, recomendamos usar **Cloudflare Workers** ou **Vercel/Railway**.
+- Design responsivo (dark theme)
+- PWA (Progressive Web App) - instalavel na tela inicial
+- Service Worker para suporte offline
 
-### Alternativa: Cloudflare Workers + Pages
-
-1. **Frontend (Pages)**:
-   - Deploy apenas a pasta `public/` no Cloudflare Pages
-
-2. **Backend (Workers)**:
-   - Migre o `server-supabase.js` para Cloudflare Workers
-   - Use Cloudflare D1 ou continue com Supabase
-
-### Recomendação
-
-Para este projeto, sugerimos usar:
-- ✅ **Vercel** (melhor opção - suporte nativo para Node.js)
-- ✅ **Railway** (alternativa excelente)
-- ✅ **Render** (boa opção gratuita)
-- ⚠️ **Cloudflare Pages** (requer refatoração para Workers)
-
-## 🚀 Deploy no Railway (Alternativa Recomendada)
-
-### Passo 1: Prepare o Projeto
-
-Adicione um arquivo `railway.json`:
-```json
-{
-  "$schema": "https://railway.app/railway.schema.json",
-  "build": {
-    "builder": "NIXPACKS"
-  },
-  "deploy": {
-    "startCommand": "npm run start-supabase",
-    "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 10
-  }
-}
-```
-
-### Passo 2: Deploy
-
-1. Acesse [railway.app](https://railway.app)
-2. Conecte sua conta GitHub
-3. Selecione o repositório
-4. Adicione a variável de ambiente `DATABASE_URL`
-5. Deploy automático!
-
-## 📱 Recursos Mobile
-
-- ✅ Design responsivo
-- ✅ PWA (Progressive Web App)
-- ✅ Funciona offline (service worker)
-- ✅ Pode ser instalado na tela inicial
-
-## 📊 Exportação de Dados
-
-### Planilha Excel
-O sistema permite exportar todos os dados dos membros para uma planilha Excel (.xlsx):
-
-**Como usar:**
-1. Acesse a página "Lista de Membros"
-2. Clique no botão "📊 Exportar Planilha"
-3. O arquivo será baixado automaticamente com o nome `membros_YYYY-MM-DD.xlsx`
-
-**Conteúdo da planilha:**
-- Nome completo
-- Conhecido como
-- Sexo
-- Data de nascimento
-- Telefones (principal e secundário)
-- Email
-- Endereço completo (rua, número, complemento, bairro, cidade, estado, CEP)
-- Tipo de participante
-- Cargo
-- Data de batismo
-- Igreja de origem
-- Observações
-- Data de cadastro
-
-**Características:**
-- ✅ Todas as datas formatadas em PT-BR (DD/MM/AAAA)
-- ✅ Colunas com larguras ajustadas automaticamente
-- ✅ Requer autenticação
-- ✅ Compatível com Excel, Google Sheets e LibreOffice
-
-## 🔒 Segurança
-
-- ✅ Senhas criptografadas com bcryptjs
-- ✅ Tokens de sessão com UUID
-- ✅ Sessões expiram em 24 horas
-- ✅ Validação de permissões no backend
-- ✅ Proteção CORS configurável
-
-## 🎨 Cores do Sistema
-
-### Cargos
-- **Membro**: Marrom (#8f5a1e)
-- **Cooperador**: Amarelo (#8d8400)
-- **Diácono**: Verde (#38a038)
-- **Presbítero**: Azul (#1881a1)
-- **Evangelista**: Azul escuro (#162786)
-- **Pastor**: Vermelho (#8b3026)
-- **Outros**: Marrom claro (#aa6d45)
-
-### Sexo
-- **Masculino**: Azul (#4a90e2)
-- **Feminino**: Rosa (#e91e63)
-
-### Tipo
-- **Membro**: Verde (#50c878)
-- **Congregado**: Laranja (#f39c12)
-- **Visitante**: Roxo (#9b59b6)
-
-## 📝 Scripts Disponíveis
+## Scripts
 
 ```bash
-# Iniciar servidor com Supabase
-npm run start-supabase
-
-# Iniciar servidor (genérico)
-npm start
-
-# Inicializar banco de dados Supabase
-npm run init-db-supabase
+npm start              # Servidor producao (server-supabase.js)
+npm run dev-supabase   # Servidor dev com nodemon
+npm run backup         # Backup do banco
 ```
 
-## 🐛 Solução de Problemas
+## Cores do Sistema
 
-### Erro de Conexão com Banco
-- Verifique se a `DATABASE_URL` está correta
-- Confirme se o IP está liberado no Supabase (ou desabilite restrições de IP)
+**Cargos:** Membro (#8f5a1e) | Cooperador (#8d8400) | Diacono (#38a038) | Presbitero (#1881a1) | Evangelista (#162786) | Pastor (#8b3026)
 
-### Login não Funciona
-- Verifique se o usuário admin foi criado
-- Confirme se o hash da senha está correto
-- Verifique os logs do servidor
+**Sexo:** Masculino (#4a90e2) | Feminino (#e91e63)
 
-### Gráficos não Aparecem
-- Abra o Console do navegador (F12)
-- Verifique se há erros JavaScript
-- Confirme se os dados estão sendo retornados pela API
+**Tipo:** Membro (#852d22) | Congregado (#51990e) | Visitante (#9ea354)
 
-### Aviso de Vulnerabilidade do npm
-Se você vir um aviso sobre vulnerabilidade de segurança na biblioteca `xlsx`:
-```
-1 high severity vulnerability
-```
-
-**Isso é esperado e não afeta a segurança do sistema** porque:
-- A biblioteca `xlsx` tem vulnerabilidades conhecidas (Prototype Pollution e ReDoS)
-- Não há fix disponível no momento
-- O uso da biblioteca é apenas no backend para **gerar** planilhas (não processar entrada do usuário)
-- Os dados exportados vêm do banco de dados controlado, não de fontes externas
-- A vulnerabilidade só seria explorada se processássemos arquivos Excel maliciosos enviados por usuários
-
-**Alternativas** (caso queira eliminar o aviso):
-- Use `exceljs` (alternativa mais segura, mas com API diferente)
-- Desabilite a exportação Excel e use CSV
-
-## 🤝 Contribuindo
-
-1. Fork o projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/MinhaFeature`)
-3. Commit suas mudanças (`git commit -m 'Adiciona MinhaFeature'`)
-4. Push para a branch (`git push origin feature/MinhaFeature`)
-5. Abra um Pull Request
-
-## 📄 Licença
-
-Este projeto está sob a licença MIT.
-
-## 👨‍💻 Autor
-
-Desenvolvido para a Assembleia de Deus de Rio Claro
-
-## 📞 Suporte
-
-Para dúvidas ou problemas, abra uma issue no GitHub.
+**Departamento:** Roxo (#8e44ad) para badges de cargo no departamento
 
 ---
 
-**Nota**: Este é um sistema em produção. Sempre faça backup dos dados antes de atualizar!
+Desenvolvido para a Assembleia de Deus de Rio Claro

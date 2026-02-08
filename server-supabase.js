@@ -303,11 +303,22 @@ app.post("/api/auth/trocar-senha", verificarToken, async (req, res) => {
   }
 });
 
+// ========== HELPER FUNCTIONS ==========
+function calcularIdadeServer(dataNascimento) {
+  if (!dataNascimento) return null;
+  const hoje = new Date();
+  const nasc = new Date(dataNascimento);
+  let idade = hoje.getFullYear() - nasc.getFullYear();
+  const m = hoje.getMonth() - nasc.getMonth();
+  if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idade--;
+  return idade;
+}
+
 // ========== ROTAS DE MEMBROS (PROTEGIDAS) ==========
 
 // Listar todos os membros
 app.get("/api/membros", verificarToken, async (req, res) => {
-  const { tipo, search, cargo } = req.query;
+  const { tipo, search, cargo, departamento } = req.query;
 
   try {
     let query = "SELECT * FROM membros WHERE 1=1";
@@ -332,10 +343,41 @@ app.get("/api/membros", verificarToken, async (req, res) => {
       paramCount++;
     }
 
+    if (departamento) {
+      query += ` AND id IN (SELECT membro_id FROM membro_departamentos WHERE departamento_id = $${paramCount})`;
+      params.push(departamento);
+      paramCount++;
+    }
+
     query += " ORDER BY nome";
 
     const result = await pool.query(query, params);
-    res.json(result.rows);
+
+    // Buscar departamentos de cada membro (com cargo)
+    let deptData = [];
+    try {
+      const deptResult = await pool.query(
+        `SELECT md.membro_id, d.nome as dept_nome, md.cargo_departamento
+         FROM membro_departamentos md
+         INNER JOIN departamentos d ON md.departamento_id = d.id`
+      );
+      deptData = deptResult.rows;
+    } catch (e) {
+      // tabela pode nao existir ainda
+    }
+
+    const deptMap = {};
+    deptData.forEach((d) => {
+      if (!deptMap[d.membro_id]) deptMap[d.membro_id] = [];
+      deptMap[d.membro_id].push({ dept_nome: d.dept_nome, cargo_departamento: d.cargo_departamento });
+    });
+
+    const membrosComDept = result.rows.map((m) => ({
+      ...m,
+      departamentos_info: deptMap[m.id] || [],
+    }));
+
+    res.json(membrosComDept);
   } catch (error) {
     console.error("Erro ao listar membros:", error);
     res.status(500).json({ error: error.message });
@@ -590,12 +632,61 @@ app.post("/api/membros", verificarToken, async (req, res) => {
       );
     }
 
-    // Inserir familiares
+    // Inserir familiares e auto-criar perfis para Cônjuge e Filho(a)
     for (const f of familiares) {
-      await client.query(
-        "INSERT INTO familiares (membro_id, parentesco, nome, data_nascimento, observacoes) VALUES ($1, $2, $3, $4, $5)",
-        [membroId, f.parentesco, f.nome, f.data_nascimento, f.observacoes]
+      const familiarResult = await client.query(
+        "INSERT INTO familiares (membro_id, parentesco, nome, data_nascimento, observacoes) VALUES ($1, $2, $3, $4, $5) RETURNING id",
+        [membroId, f.parentesco, f.nome, toNull(f.data_nascimento), f.observacoes]
       );
+      const familiarId = familiarResult.rows[0].id;
+
+      // Auto-criar perfil de membro para Cônjuge e Filho(a)
+      if (f.parentesco === "Cônjuge" || f.parentesco === "Filho(a)") {
+        // Determinar tipo_participante
+        let tipoAutoMembro = "Membro";
+        if (f.parentesco === "Filho(a)" && f.data_nascimento) {
+          const idadeFamiliar = calcularIdadeServer(f.data_nascimento);
+          if (idadeFamiliar !== null && idadeFamiliar < 10) {
+            tipoAutoMembro = "Congregado";
+          }
+        }
+
+        // Determinar sexo baseado no parentesco
+        let sexoAuto = null;
+        if (f.parentesco === "Cônjuge") {
+          sexoAuto = (sexo === "Masculino") ? "Feminino" : (sexo === "Feminino") ? "Masculino" : null;
+        }
+
+        // Criar perfil do membro
+        const novoMembroResult = await client.query(
+          `INSERT INTO membros (nome, data_nascimento, tipo_participante, sexo,
+           cep, logradouro, numero, complemento, bairro, cidade, estado)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
+          [f.nome, toNull(f.data_nascimento), tipoAutoMembro, sexoAuto,
+           toNull(cep), toNull(logradouro), toNull(numero), toNull(complemento),
+           toNull(bairro), toNull(cidade), toNull(estado)]
+        );
+        const novoMembroId = novoMembroResult.rows[0].id;
+
+        // Vincular familiar ao perfil criado
+        await client.query(
+          "UPDATE familiares SET membro_vinculado_id = $1 WHERE id = $2",
+          [novoMembroId, familiarId]
+        );
+
+        // Criar vinculo reverso
+        let parentescoReverso = "Outro";
+        if (f.parentesco === "Cônjuge") {
+          parentescoReverso = "Cônjuge";
+        } else if (f.parentesco === "Filho(a)") {
+          parentescoReverso = (sexo === "Masculino") ? "Pai" : (sexo === "Feminino") ? "Mãe" : "Outro";
+        }
+
+        await client.query(
+          "INSERT INTO familiares (membro_id, parentesco, nome, data_nascimento, membro_vinculado_id) VALUES ($1, $2, $3, $4, $5)",
+          [novoMembroId, parentescoReverso, nome, toNull(data_nascimento), membroId]
+        );
+      }
     }
 
     await client.query("COMMIT");
@@ -762,6 +853,166 @@ app.delete("/api/membros/:id", verificarToken, async (req, res) => {
   }
 });
 
+// ========== ROTAS DE DEPARTAMENTOS ==========
+
+// Listar departamentos
+app.get("/api/departamentos", verificarToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT d.*,
+        (SELECT COUNT(*) FROM membro_departamentos md WHERE md.departamento_id = d.id) as total_membros
+       FROM departamentos d ORDER BY d.nome`
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Erro ao listar departamentos:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Criar departamento
+app.post("/api/departamentos", verificarToken, verificarAdmin, async (req, res) => {
+  const { nome, descricao } = req.body;
+  if (!nome) {
+    return res.status(400).json({ error: "Nome é obrigatório" });
+  }
+  try {
+    const result = await pool.query(
+      "INSERT INTO departamentos (nome, descricao) VALUES ($1, $2) RETURNING id",
+      [nome, descricao || null]
+    );
+    res.json({ id: result.rows[0].id, message: "Departamento criado com sucesso" });
+  } catch (error) {
+    if (error.code === "23505") {
+      res.status(400).json({ error: "Departamento já existe" });
+    } else {
+      console.error("Erro ao criar departamento:", error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+});
+
+// Atualizar departamento
+app.put("/api/departamentos/:id", verificarToken, verificarAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { nome, descricao } = req.body;
+  try {
+    await pool.query(
+      "UPDATE departamentos SET nome = $1, descricao = $2 WHERE id = $3",
+      [nome, descricao || null, id]
+    );
+    res.json({ message: "Departamento atualizado com sucesso" });
+  } catch (error) {
+    if (error.code === "23505") {
+      res.status(400).json({ error: "Nome já existe" });
+    } else {
+      console.error("Erro ao atualizar departamento:", error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+});
+
+// Deletar departamento
+app.delete("/api/departamentos/:id", verificarToken, verificarAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query("DELETE FROM departamentos WHERE id = $1", [id]);
+    res.json({ message: "Departamento deletado com sucesso" });
+  } catch (error) {
+    console.error("Erro ao deletar departamento:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Listar membros de um departamento
+app.get("/api/departamentos/:id/membros", verificarToken, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      `SELECT m.id, m.nome, m.conhecido_como, m.cargo, m.tipo_participante, m.telefone_principal, m.sexo, m.data_nascimento, md.cargo_departamento
+       FROM membros m
+       INNER JOIN membro_departamentos md ON m.id = md.membro_id
+       WHERE md.departamento_id = $1
+       ORDER BY md.cargo_departamento IS NULL, md.cargo_departamento, m.nome`,
+      [id]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Erro ao listar membros do departamento:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Adicionar membro a departamento
+app.post("/api/departamentos/:id/membros", verificarToken, verificarAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { membro_id, cargo_departamento } = req.body;
+  try {
+    await pool.query(
+      "INSERT INTO membro_departamentos (membro_id, departamento_id, cargo_departamento) VALUES ($1, $2, $3)",
+      [membro_id, id, cargo_departamento || null]
+    );
+    res.json({ message: "Membro adicionado ao departamento" });
+  } catch (error) {
+    if (error.code === "23505") {
+      res.status(400).json({ error: "Membro já está neste departamento" });
+    } else {
+      console.error("Erro ao adicionar membro ao departamento:", error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+});
+
+// Atualizar cargo do membro no departamento
+app.put("/api/departamentos/:departId/membros/:membroId", verificarToken, verificarAdmin, async (req, res) => {
+  const { departId, membroId } = req.params;
+  const { cargo_departamento } = req.body;
+  try {
+    await pool.query(
+      "UPDATE membro_departamentos SET cargo_departamento = $1 WHERE departamento_id = $2 AND membro_id = $3",
+      [cargo_departamento || null, departId, membroId]
+    );
+    res.json({ message: "Cargo atualizado com sucesso" });
+  } catch (error) {
+    console.error("Erro ao atualizar cargo no departamento:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Remover membro de departamento
+app.delete("/api/departamentos/:departId/membros/:membroId", verificarToken, verificarAdmin, async (req, res) => {
+  const { departId, membroId } = req.params;
+  try {
+    await pool.query(
+      "DELETE FROM membro_departamentos WHERE departamento_id = $1 AND membro_id = $2",
+      [departId, membroId]
+    );
+    res.json({ message: "Membro removido do departamento" });
+  } catch (error) {
+    console.error("Erro ao remover membro do departamento:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Departamentos de um membro
+app.get("/api/membros/:id/departamentos", verificarToken, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      `SELECT d.id, d.nome, d.descricao, md.cargo_departamento
+       FROM departamentos d
+       INNER JOIN membro_departamentos md ON d.id = md.departamento_id
+       WHERE md.membro_id = $1
+       ORDER BY d.nome`,
+      [id]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Erro ao buscar departamentos do membro:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ========== ESTATÍSTICAS (PROTEGIDAS) ==========
 
 app.get("/api/dashboard", verificarToken, async (req, res) => {
@@ -826,6 +1077,22 @@ app.get("/api/dashboard", verificarToken, async (req, res) => {
             WHERE data_nascimento IS NOT NULL
         `);
 
+    // Distribuição por Departamento (com "Sem Departamento")
+    let porDepartamento = [];
+    try {
+      const deptResult = await pool.query(`
+        SELECT COALESCE(d.nome, 'Sem Departamento') as departamento, COUNT(DISTINCT m.id) as total
+        FROM membros m
+        LEFT JOIN membro_departamentos md ON m.id = md.membro_id
+        LEFT JOIN departamentos d ON md.departamento_id = d.id
+        GROUP BY d.nome
+        ORDER BY total DESC
+      `);
+      porDepartamento = deptResult.rows;
+    } catch (e) {
+      console.log("Tabela departamentos ainda não existe, ignorando...");
+    }
+
     res.json({
       total_membros: parseInt(totalMembros.rows[0].total),
       total_congregados: parseInt(totalCongregados.rows[0].total),
@@ -834,6 +1101,7 @@ app.get("/api/dashboard", verificarToken, async (req, res) => {
       por_tipo: porTipo.rows,
       por_cargo: porCargo.rows,
       por_faixa_etaria: porFaixaEtaria.rows,
+      por_departamento: porDepartamento,
       estatisticas_idade: {
         idade_media: parseInt(estatisticasIdade.rows[0].idade_media) || 0,
         total_com_idade:
