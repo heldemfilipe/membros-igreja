@@ -1,57 +1,61 @@
-# Dependencies
+# ─── Dependências ────────────────────────────────────────────────────────────
 node_modules/
-package-lock.json
 
-# Environment variables
+# ─── Next.js ─────────────────────────────────────────────────────────────────
+.next/
+out/
+
+# ─── TypeScript ──────────────────────────────────────────────────────────────
+tsconfig.tsbuildinfo
+
+# ─── Variáveis de ambiente ───────────────────────────────────────────────────
+# Nunca commitar segredos — apenas o .env.example deve ser versionado
 .env
 .env.local
+.env.*.local
 .env.production
+.env.staging
 
-# Logs
+# ─── Vercel ──────────────────────────────────────────────────────────────────
+.vercel
+
+# ─── Logs ────────────────────────────────────────────────────────────────────
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 logs/
 
-# OS files
+# ─── Sistema operacional ─────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# IDE
+# ─── Editores e IDEs ─────────────────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# Vercel
-.vercel
+# ─── Claude Code (configurações locais) ──────────────────────────────────────
+.claude/
 
-# Database
-database/*.db
-database/*.sqlite
-*.sqlite
+# ─── Banco de dados local ────────────────────────────────────────────────────
 *.db
+*.sqlite
+*.sqlite3
+database/
 data/
-
-# Backups
 backups/
-*.backup
 
-# Temporary files
+# ─── Arquivos temporários e cache ────────────────────────────────────────────
 *.tmp
-temp/
+*.temp
 .cache/
+temp/
 
-# Build
-dist/
-build/
-
-# Old/test files
-*.old
-*-old.*
+# ─── Scripts de teste avulsos ────────────────────────────────────────────────
 test-connection.js
 verificar-admin.js
-testar-login.js
-testar-endpoint-login.js
+testar-*.js
