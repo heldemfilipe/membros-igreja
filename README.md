@@ -1,213 +1,242 @@
-# Sistema de Membros — Igreja
+<div align="center">
 
-Sistema web para gestão de membros, departamentos, visitantes e aniversariantes de uma congregação, construído com **Next.js 14**, **TypeScript** e **Tailwind CSS**.
+# ⛪ Sistema de Membros — Igreja
+
+**Plataforma web completa para gestão de membros, departamentos e visitantes de uma congregação.**
+
+[![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat-square&logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.3-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38BDF8?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Supabase-336791?style=flat-square&logo=postgresql&logoColor=white)](https://supabase.com/)
+[![Deploy](https://img.shields.io/badge/Deploy-Vercel-black?style=flat-square&logo=vercel)](https://vercel.com/)
+
+</div>
 
 ---
 
-## Tecnologias
+## 📋 Sobre o Projeto
+
+Sistema interno desenvolvido para a **Assembleia de Deus de Rio Claro**, com foco em simplicidade e praticidade para secretaria e liderança.
+
+Permite cadastrar e gerenciar membros, congregados e visitantes; acompanhar visitas, aniversariantes da semana; organizar departamentos; controlar permissões de usuários e exportar dados para planilha Excel.
+
+---
+
+## ✨ Funcionalidades
+
+### 🏠 Dashboard
+- Cards de totais: membros, congregados e geral
+- Gráficos interativos: tipo de participante, sexo, faixa etária, estado civil, cargo eclesiástico e departamento
+- Donut chart com total no centro + lista de valores ao lado (legível no modo escuro)
+- **Banner de aniversariantes** com filtros semanais coloridos — verde para esta semana, violeta para a anterior
+- **Visitantes frequentes** — alerta quando um visitante atinge 3+ visitas em 28 dias, com botão para promover a membro
+- Feed de **últimas visitas** e **membros recentes**
+
+### 👥 Membros
+- CRUD completo com **38+ campos** (dados pessoais, endereço, contato, dados eclesiásticos)
+- Busca em tempo real com debounce (300 ms) e filtros por tipo, cargo e departamento
+- **Cadastro rápido de visitante** via modal com data da visita e botão "Hoje"
+- Modal de visualização com badges coloridos por departamento e cargo
+- **Histórico de visitas** para visitantes: registrar e listar diretamente no modal
+- Histórico eclesiástico e familiares com linhas dinâmicas no formulário
+- Auto-criação de perfil para cônjuge/filhos vinculados
+- **Exportação Excel** (`.xlsx`) com todos os campos
+
+### 🏢 Departamentos
+- CRUD com cards expansíveis por departamento
+- Cores únicas e determinísticas por departamento (via hash do ID)
+- Vínculo N:N membros ↔ departamentos com cargo no departamento
+- **Editar cargo** de qualquer membro diretamente na listagem (botão de lápis inline)
+- Badges coloridos por departamento em toda a aplicação
+
+### 🎂 Aniversariantes
+- Listagem por mês com página dedicada
+- Filtros semanais com cores distintas: **verde** (esta semana), **violeta** (semana anterior), cinza (ambas)
+- Cada nome exibe a cor da semana correspondente, independente do filtro selecionado
+
+### 🔐 Usuários & Permissões
+- Gestão de usuários (somente admin)
+- **Perfis de acesso RBAC**: criação de perfis com permissões granulares por seção
+- Permissões: Dashboard, Membros, Departamentos, Aniversariantes, Exportar, Visitantes, Histórico, Usuários
+- Restrição por departamento: perfis podem limitar acesso a departamentos específicos
+- Usuários sem perfil mantêm acesso total (compatibilidade retroativa)
+
+### 🎨 UX
+- **Modo escuro** com toggle persistente e sem flash ao carregar
+- **Totalmente responsivo** — mobile, tablet e desktop
+- Sidebar com itens condicionais baseados nas permissões do usuário logado
+
+---
+
+## 🛠️ Tecnologias
 
 | Camada | Tecnologia |
 |--------|-----------|
-| Framework | Next.js 14 (App Router) |
-| Linguagem | TypeScript |
-| Estilo | Tailwind CSS 3.4 + CSS Variables |
-| UI | Shadcn/Radix UI (Button, Dialog, Badge, Select, Toast…) |
-| Banco de Dados | Supabase PostgreSQL (via `pg` direto) |
+| Framework | [Next.js 14](https://nextjs.org/) (App Router) |
+| Linguagem | [TypeScript 5.3](https://www.typescriptlang.org/) |
+| Estilo | [Tailwind CSS 3.4](https://tailwindcss.com/) + CSS Variables |
+| Componentes UI | [Shadcn/Radix UI](https://ui.shadcn.com/) |
+| Banco de dados | [Supabase](https://supabase.com/) PostgreSQL via [`pg`](https://node-postgres.com/) |
 | Autenticação | Custom (tabelas `usuarios` + `sessoes`) |
-| Gráficos | Recharts (PieChart, BarChart com donut + listas) |
-| Exportação | xlsx (planilha Excel) |
-| Ícones | Lucide React |
-| Deploy | Vercel |
+| Gráficos | [Recharts](https://recharts.org/) |
+| Exportação | [xlsx](https://sheetjs.com/) |
+| Ícones | [Lucide React](https://lucide.dev/) |
+| Deploy | [Vercel](https://vercel.com/) |
 
 ---
 
-## Funcionalidades
-
-### Dashboard
-- Totais gerais (membros, congregados, total)
-- Gráficos interativos: por tipo, sexo, faixa etária, estado civil, cargo eclesiástico e departamento
-- **Donut chart** com total no centro + lista de valores ao lado
-- **Banner de aniversariantes** da semana com filtros coloridos (esta semana = verde, semana anterior = violeta)
-- **Visitantes frequentes** — card de alerta quando um visitante atinge 3+ visitas em 28 dias, com botão para promover a membro
-- **Últimas visitas** — feed das visitas mais recentes com nome, telefone e data formatada
-- **Membros recentes** — últimos cadastros com tipo de participante
-
-### Membros
-- CRUD completo com 38+ campos, busca com debounce (300 ms), filtros por tipo/cargo/departamento
-- **Cadastro rápido de visitante** — modal com data da visita e botão "Hoje"
-- **Visualização detalhada** — modal com todos os dados, badges coloridos por departamento e cargo
-- **Histórico de visitas** no modal de visualização (para visitantes): registrar, listar e navegar
-- Histórico eclesiástico e familiares (linhas dinâmicas no formulário)
-- Auto-criação de perfil para cônjuge/filhos vinculados
-- Exportação Excel (`.xlsx`) com todos os campos
-
-### Departamentos
-- CRUD com cards expansíveis
-- Cores únicas por departamento (determinístico por ID)
-- Vínculo N:N membros ↔ departamentos com cargo no departamento
-- **Editar cargo** de um membro no departamento via botão inline (Pencil)
-- Badges coloridos de cargo na listagem de membros
-
-### Aniversariantes
-- Listagem por mês com filtros semanais
-- **Coloração por semana**: nomes da semana atual em verde, semana anterior em violeta (independente do filtro ativo)
-- Filtros com cores distintas: Esta semana (verde), Semana anterior (violeta), Ambas as semanas (cinza)
-- Botão "Ver todos os aniversariantes" destacado no dashboard
-
-### Usuários & Permissões
-- Gestão de usuários (admin only)
-- **Perfis de acesso** (RBAC): criação de perfis com permissões granulares por seção
-- Permissões disponíveis: Dashboard, Membros, Departamentos, Aniversariantes, Exportar, Visitantes, Histórico, Usuários
-- **Restrição por departamento**: perfis podem limitar acesso a departamentos específicos
-- Usuários sem perfil mantêm acesso total (compatibilidade retroativa)
-
-### UX Geral
-- **Modo escuro** — toggle persistente (sem flash de tema)
-- **Totalmente responsivo** — mobile, tablet e desktop
-- Sidebar com itens condicionais baseados em permissões do usuário
-
----
-
-## Estrutura do Projeto
+## 📁 Estrutura do Projeto
 
 ```
 src/
 ├── app/
-│   ├── api/                        # API Routes (Next.js)
-│   │   ├── auth/                   # login, logout, verify, trocar-senha
-│   │   ├── membros/                # CRUD + exportar
-│   │   ├── departamentos/          # CRUD + membros do depto (GET/POST/PUT/DELETE)
-│   │   ├── visitas/                # Registro de visitas (GET/POST, criação automática de tabela)
-│   │   ├── perfis/                 # Perfis de acesso RBAC (GET/POST/PUT/DELETE)
-│   │   ├── usuarios/               # CRUD (admin)
-│   │   ├── dashboard/              # Estatísticas agregadas
-│   │   └── aniversariantes/        # Listagem por mês
-│   ├── (dashboard)/                # Páginas protegidas (layout com Sidebar)
+│   ├── api/                          # API Routes
+│   │   ├── auth/                     # login, logout, verify, trocar-senha
+│   │   ├── membros/                  # CRUD + exportar
+│   │   ├── departamentos/            # CRUD + membros (GET/POST/PUT/DELETE)
+│   │   ├── visitas/                  # Registro de visitas (tabela auto-criada)
+│   │   ├── perfis/                   # Perfis RBAC (tabela auto-criada)
+│   │   ├── usuarios/                 # CRUD de usuários (admin)
+│   │   ├── dashboard/                # Estatísticas agregadas
+│   │   └── aniversariantes/          # Listagem por mês
+│   ├── (dashboard)/                  # Páginas protegidas (layout com Sidebar)
 │   │   ├── dashboard/page.tsx
 │   │   ├── membros/page.tsx
 │   │   ├── departamentos/page.tsx
 │   │   ├── usuarios/page.tsx
 │   │   └── aniversariantes/page.tsx
 │   ├── login/page.tsx
-│   ├── layout.tsx                  # Root layout (anti-flash script, Providers)
-│   ├── globals.css                 # Tailwind + CSS Variables (light/dark)
-│   └── page.tsx                    # Redirect → /dashboard
+│   ├── layout.tsx                    # Root layout (anti-flash, Providers)
+│   ├── globals.css                   # Tailwind + CSS Variables (light/dark)
+│   └── page.tsx                      # Redirect → /dashboard
 ├── components/
 │   ├── layout/
-│   │   ├── Sidebar.tsx             # Navegação lateral responsiva + permissões
-│   │   └── DashboardLayout.tsx     # Wrapper com proteção de rota
+│   │   ├── Sidebar.tsx               # Navegação lateral + permissões
+│   │   └── DashboardLayout.tsx       # Wrapper com proteção de rota
 │   ├── membros/
-│   │   ├── MemberForm.tsx          # Formulário completo (38+ campos)
-│   │   ├── MemberModal.tsx         # Modal wrapper do formulário
-│   │   ├── VisitorModal.tsx        # Cadastro rápido de visitante + data da visita
-│   │   └── MemberViewModal.tsx     # Modal de visualização + histórico de visitas
+│   │   ├── MemberForm.tsx            # Formulário completo (38+ campos)
+│   │   ├── MemberModal.tsx           # Modal wrapper do formulário
+│   │   ├── VisitorModal.tsx          # Cadastro rápido de visitante
+│   │   └── MemberViewModal.tsx       # Visualização + histórico de visitas
 │   ├── dashboard/
-│   │   └── StatCard.tsx            # Card de estatística reutilizável
-│   └── ui/                         # Componentes Shadcn/Radix
+│   │   └── StatCard.tsx              # Card de estatística reutilizável
+│   └── ui/                           # Componentes Shadcn/Radix
 ├── contexts/
-│   └── AuthContext.tsx             # Custom auth + permissões (temPermissao)
+│   └── AuthContext.tsx               # Auth custom + temPermissao()
 ├── lib/
-│   ├── db.ts                       # Pool pg (DATABASE_URL)
-│   ├── auth.ts                     # verificarToken helper (com permissões)
-│   ├── constants.ts                # Cores de cargo/departamento, listas de opções, permissões
-│   └── utils.ts                    # cn, calcularIdade, formatarData, toNull, getDiaDoMes
+│   ├── db.ts                         # Pool pg (DATABASE_URL)
+│   ├── auth.ts                       # verificarToken + permissões
+│   ├── constants.ts                  # Cores, cargos, permissões disponíveis
+│   └── utils.ts                      # cn, calcularIdade, formatarData, toNull
 └── types/
-    └── index.ts                    # TypeScript types (Membro, Departamento, Visita…)
+    └── index.ts                      # Tipos TypeScript (Membro, Visita, Perfil…)
 ```
 
 ---
 
-## Variáveis de Ambiente
+## ⚙️ Configuração Local
 
-Crie um arquivo `.env.local` na raiz do projeto:
+### Pré-requisitos
 
-```env
-DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require
-```
+- Node.js 18+
+- Banco PostgreSQL (recomendado: [Supabase](https://supabase.com/) — free tier)
 
-> O projeto usa `pg` (node-postgres) diretamente. Não é necessário o Supabase JS client nem a ANON_KEY.
-
----
-
-## Executar Localmente
+### Instalação
 
 ```bash
-# 1. Instalar dependências
+# 1. Clone o repositório
+git clone https://github.com/heldemfilipe/membros-igreja.git
+cd membros-igreja
+
+# 2. Instale as dependências
 npm install
 
-# 2. Criar .env.local com DATABASE_URL
+# 3. Configure as variáveis de ambiente
+cp .env.example .env.local
+# Edite .env.local e preencha DATABASE_URL
 
-# 3. Iniciar em modo desenvolvimento
+# 4. Inicie o servidor de desenvolvimento
 npm run dev
 ```
 
 Acesse [http://localhost:3000](http://localhost:3000).
 
+### Variáveis de Ambiente
+
+Crie o arquivo `.env.local` na raiz do projeto:
+
+```env
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require
+```
+
+> O projeto usa `pg` (node-postgres) diretamente — **não é necessário** Supabase JS client nem `ANON_KEY`.
+
 ---
 
-## Build de Produção
+## 🗄️ Banco de Dados
+
+As tabelas principais precisam ser criadas manualmente no PostgreSQL. As tabelas `visitas` e `perfis_acesso` são **criadas automaticamente** na primeira chamada à API (`CREATE TABLE IF NOT EXISTS`).
+
+| Tabela | Criação | Descrição |
+|--------|:-------:|-----------|
+| `membros` | Manual | Dados completos dos membros (38+ campos) |
+| `historicos` | Manual | Histórico eclesiástico (`FK membro_id`) |
+| `familiares` | Manual | Familiares (`FK membro_id`, `membro_vinculado_id`) |
+| `departamentos` | Manual | Departamentos da igreja |
+| `membro_departamentos` | Manual | Vínculo N:N membros ↔ departamentos |
+| `usuarios` | Manual | Usuários do sistema (senhas bcrypt) |
+| `sessoes` | Manual | Tokens de autenticação (UUID, `expira_em`) |
+| `visitas` | ✅ Auto | Histórico de visitas dos visitantes |
+| `perfis_acesso` | ✅ Auto | Perfis de permissão RBAC (JSONB) |
+
+---
+
+## 🔑 Autenticação
+
+- Autenticação **100% customizada** — sem Supabase Auth
+- Login via `POST /api/auth/login` → retorna token UUID
+- Token salvo no `localStorage`, enviado como `Authorization: Bearer <token>`
+- Sessões expiram em **7 dias** (tabela `sessoes`)
+- Usuários com `is_admin = true` têm acesso irrestrito
+
+### Permissões (RBAC)
+
+```
+Admin → acesso total (ignora perfil)
+Usuário com perfil → acesso apenas às seções permitidas no perfil
+Usuário sem perfil → acesso total (compatibilidade retroativa)
+```
+
+Os perfis armazenam permissões em uma coluna `JSONB` e são gerenciados pela tela de **Usuários** (somente admin).
+
+---
+
+## 🚀 Deploy no Vercel
+
+1. Importe o repositório em [vercel.com/new](https://vercel.com/new)
+2. Adicione a variável de ambiente `DATABASE_URL` no painel do projeto
+3. Clique em **Deploy** — pronto!
+
+O `vercel.json` já está configurado com:
+- Região **`gru1`** (São Paulo) — menor latência para usuários brasileiros
+- **`maxDuration: 30s`** nas API routes (evita timeout em queries pesadas)
+- Headers de segurança (CSP, X-Frame-Options, Referrer-Policy)
+
+---
+
+## 📜 Scripts
 
 ```bash
-npm run build
-npm run start
+npm run dev      # Servidor de desenvolvimento (http://localhost:3000)
+npm run build    # Build de produção
+npm run start    # Servidor de produção (após build)
+npm run lint     # Verificação de lint (ESLint)
 ```
 
 ---
 
-## Deploy no Vercel
+<div align="center">
 
-1. Importe o repositório no [Vercel](https://vercel.com)
-2. Configure a variável de ambiente `DATABASE_URL` no painel do projeto
-3. Deploy automático a cada `git push`
+Desenvolvido com ❤️ para a **Assembleia de Deus de Rio Claro**
 
-O arquivo `vercel.json` já está configurado com `"framework": "nextjs"`.
-
----
-
-## Banco de Dados
-
-As tabelas principais devem existir no PostgreSQL. As tabelas `visitas` e `perfis_acesso` são criadas automaticamente na primeira chamada à API correspondente (`CREATE TABLE IF NOT EXISTS`).
-
-| Tabela | Criação | Descrição |
-|--------|---------|-----------|
-| `membros` | Manual | Dados completos dos membros (38+ campos) |
-| `historicos` | Manual | Histórico eclesiástico (FK `membro_id`) |
-| `familiares` | Manual | Familiares (FK `membro_id`, `membro_vinculado_id`) |
-| `departamentos` | Manual | Departamentos da igreja |
-| `membro_departamentos` | Manual | Vínculo N:N membros ↔ departamentos (com `cargo_departamento`) |
-| `usuarios` | Manual | Usuários do sistema (senhas bcrypt) |
-| `sessoes` | Manual | Tokens de autenticação (UUID, `expira_em`) |
-| `visitas` | **Automática** | Histórico de visitas dos visitantes |
-| `perfis_acesso` | **Automática** | Perfis de permissão RBAC (JSONB) |
-
----
-
-## Autenticação
-
-- Autenticação **customizada** — sem Supabase Auth
-- Login via `/api/auth/login` (POST) → retorna `token` UUID
-- Token armazenado no `localStorage`, enviado como `Authorization: Bearer <token>`
-- Sessões salvas na tabela `sessoes` com expiração de 7 dias
-- Verificação via `/api/auth/verify` (GET)
-- Usuários com `is_admin = true` têm acesso total e gerenciam usuários/perfis
-
-### Sistema de Permissões (RBAC)
-
-- **Perfis de acesso** definem quais seções um usuário pode acessar
-- Perfis armazenam permissões em coluna JSONB na tabela `perfis_acesso`
-- Usuários sem `perfil_id` mantêm acesso irrestrito (compatibilidade com contas existentes)
-- Função `temPermissao(chave)` no `AuthContext` verifica permissão em tempo real
-- Admins sempre têm acesso total, independente de perfil
-
----
-
-## Modo Escuro
-
-- Estratégia: classe `dark` no `<html>` (`darkMode: ['class']` no Tailwind)
-- Script anti-flash embutido inline no `<head>` (sem piscar ao carregar)
-- Preferência salva em `localStorage` (`theme: 'dark' | 'light'`)
-- Toggle no rodapé da Sidebar (ícone Sol/Lua)
-
----
-
-Desenvolvido para a Assembleia de Deus de Rio Claro
+</div>
