@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import pool from '@/lib/db'
 import { verificarToken, unauthorized } from '@/lib/auth'
 import { toNull } from '@/lib/utils'
+import { inferirRelacoesFamiliares } from '@/lib/familyInference'
 
 function calcularIdade(dataNascimento: string | null): number | null {
   if (!dataNascimento) return null
@@ -108,10 +109,18 @@ export async function POST(req: NextRequest) {
   try {
     await client.query('BEGIN')
 
-    // Lazy migration: adiciona funcao_igreja se não existir
+    // Lazy migration: colunas e constraints
     try {
       await client.query('ALTER TABLE membros ADD COLUMN IF NOT EXISTS funcao_igreja TEXT')
-    } catch { /* ignora se já existir */ }
+    } catch { /* ignora */ }
+    try {
+      await client.query(`ALTER TABLE historicos DROP CONSTRAINT IF EXISTS historicos_tipo_check`)
+      await client.query(`ALTER TABLE historicos ADD CONSTRAINT historicos_tipo_check CHECK (tipo IN ('Batismo','Admissão','Exclusão','Transferência','Reconciliação','Ordenação','Afastamento'))`)
+    } catch { /* ignora */ }
+    try {
+      await client.query(`ALTER TABLE familiares DROP CONSTRAINT IF EXISTS familiares_parentesco_check`)
+      await client.query(`ALTER TABLE familiares ADD CONSTRAINT familiares_parentesco_check CHECK (parentesco IN ('Pai','Mãe','Cônjuge','Filho(a)','Irmão(ã)','Avô/Avó','Neto(a)','Outro'))`)
+    } catch { /* ignora */ }
 
     const membroResult = await client.query(
       `INSERT INTO membros (
@@ -205,6 +214,9 @@ export async function POST(req: NextRequest) {
     } catch {
       // tabela pode não existir
     }
+
+    // Inferência automática de relações familiares derivadas
+    await inferirRelacoesFamiliares(membroId, toNull(sexo), client)
 
     await client.query('COMMIT')
     return Response.json({ id: membroId, message: 'Membro cadastrado com sucesso!' })

@@ -624,7 +624,15 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
                   className="w-full h-9 px-2 rounded-md border border-input bg-background text-sm"
                 >
                   <option value="">Selecione</option>
-                  {['Batismo', 'Admissão', 'Exclusão', 'Transferência', 'Reconciliação', 'Ordenação', 'Afastamento'].map(t => (
+                  {[
+                    'Admissão',
+                    'Batismo',
+                    'Transferência',
+                    'Reconciliação',
+                    'Ordenação',
+                    'Afastamento',
+                    'Exclusão',
+                  ].map(t => (
                     <option key={t} value={t}>{t}</option>
                   ))}
                 </select>

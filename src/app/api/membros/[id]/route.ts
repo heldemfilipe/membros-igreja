@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import pool from '@/lib/db'
 import { verificarToken, unauthorized } from '@/lib/auth'
 import { toNull } from '@/lib/utils'
+import { inferirRelacoesFamiliares } from '@/lib/familyInference'
 
 function parentescoReverso(parentesco: string, sexoDoMembro: string | null): string {
   switch (parentesco) {
@@ -75,10 +76,18 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   try {
     await client.query('BEGIN')
 
-    // Lazy migration: adiciona funcao_igreja se não existir
+    // Lazy migration: colunas e constraints
     try {
       await client.query('ALTER TABLE membros ADD COLUMN IF NOT EXISTS funcao_igreja TEXT')
-    } catch { /* ignora se já existir */ }
+    } catch { /* ignora */ }
+    try {
+      await client.query(`ALTER TABLE historicos DROP CONSTRAINT IF EXISTS historicos_tipo_check`)
+      await client.query(`ALTER TABLE historicos ADD CONSTRAINT historicos_tipo_check CHECK (tipo IN ('Batismo','Admissão','Exclusão','Transferência','Reconciliação','Ordenação','Afastamento'))`)
+    } catch { /* ignora */ }
+    try {
+      await client.query(`ALTER TABLE familiares DROP CONSTRAINT IF EXISTS familiares_parentesco_check`)
+      await client.query(`ALTER TABLE familiares ADD CONSTRAINT familiares_parentesco_check CHECK (parentesco IN ('Pai','Mãe','Cônjuge','Filho(a)','Irmão(ã)','Avô/Avó','Neto(a)','Outro'))`)
+    } catch { /* ignora */ }
 
     await client.query(
       `UPDATE membros SET
@@ -131,6 +140,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         )
       }
     }
+
+    // Inferência automática de relações familiares derivadas
+    await inferirRelacoesFamiliares(Number(id), toNull(sexo), client)
 
     // Atualiza departamentos
     try {
