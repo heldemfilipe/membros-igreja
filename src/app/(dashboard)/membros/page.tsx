@@ -11,13 +11,13 @@ import { VisitorModal } from '@/components/membros/VisitorModal'
 import { MemberViewModal } from '@/components/membros/MemberViewModal'
 import { MemberModal } from '@/components/membros/MemberModal'
 import { Loader2, Plus, Search, Pencil, Trash2, Eye, UserPlus, Download, Phone, MapPin } from 'lucide-react'
-import { calcularIdade } from '@/lib/utils'
+import { calcularIdade, cn } from '@/lib/utils'
 import { getCargoStyle, getDeptBadgeStyle, CARGOS_ECLESIASTICOS } from '@/lib/constants'
 
-const TIPO_VARIANT: Record<string, 'default' | 'secondary' | 'outline'> = {
-  Membro: 'default',
-  Congregado: 'secondary',
-  Visitante: 'outline',
+const TIPO_STYLE: Record<string, { card: string; avatar: string }> = {
+  Membro:     { card: 'border-l-4 border-l-blue-500',    avatar: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' },
+  Congregado: { card: 'border-l-4 border-l-emerald-500', avatar: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' },
+  Visitante:  { card: 'border-l-4 border-l-amber-500',   avatar: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' },
 }
 
 export default function MembrosPage() {
@@ -179,6 +179,13 @@ export default function MembrosPage() {
         </select>
       </div>
 
+      {/* Legenda de cores */}
+      <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-blue-500 inline-block" />Membro</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-emerald-500 inline-block" />Congregado</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-amber-500 inline-block" />Visitante</span>
+      </div>
+
       {/* Lista */}
       {loading ? (
         <div className="flex justify-center py-16">
@@ -197,12 +204,16 @@ export default function MembrosPage() {
         <div className="grid gap-2">
           {membros.map(m => {
             const idade = calcularIdade(m.data_nascimento || null)
+            const tipoStyle = TIPO_STYLE[m.tipo_participante] || { card: '', avatar: 'bg-primary/10 dark:bg-primary/20 text-primary' }
             return (
-              <Card key={m.id} className="hover:shadow-sm transition-shadow">
+              <Card key={m.id} className={cn('hover:shadow-sm transition-shadow', tipoStyle.card)}>
                 <CardContent className="p-3 sm:p-4">
                   <div className="flex items-center gap-3">
-                    {/* Avatar */}
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center font-semibold text-primary text-sm select-none">
+                    {/* Avatar colorido por tipo */}
+                    <div className={cn(
+                      'flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm select-none',
+                      tipoStyle.avatar
+                    )}>
                       {m.nome.slice(0, 2).toUpperCase()}
                     </div>
 
@@ -217,13 +228,11 @@ export default function MembrosPage() {
                         )}
                       </div>
 
+                      {m.funcao_igreja && (
+                        <p className="text-xs text-muted-foreground leading-tight mt-0.5">{m.funcao_igreja}</p>
+                      )}
+
                       <div className="flex flex-wrap gap-1 mt-1">
-                        <Badge
-                          variant={TIPO_VARIANT[m.tipo_participante] ?? 'outline'}
-                          className="text-xs h-5"
-                        >
-                          {m.tipo_participante}
-                        </Badge>
                         {m.cargo && (
                           <Badge
                             className="text-xs h-5"

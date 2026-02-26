@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
     titulo_eleitor, titulo_eleitor_zona, titulo_eleitor_secao, tipo_sanguineo,
     cert_nascimento_casamento, reservista, carteira_motorista, chefe_familiar,
     data_casamento, naturalidade, uf_naturalidade, nacionalidade, origem_religiosa,
-    tipo_participante, informacoes_complementares,
+    tipo_participante, informacoes_complementares, funcao_igreja,
     historicos = [], familiares = [], departamentos = [],
   } = body
 
@@ -107,6 +107,11 @@ export async function POST(req: NextRequest) {
 
   try {
     await client.query('BEGIN')
+
+    // Lazy migration: adiciona funcao_igreja se não existir
+    try {
+      await client.query('ALTER TABLE membros ADD COLUMN IF NOT EXISTS funcao_igreja TEXT')
+    } catch { /* ignora se já existir */ }
 
     const membroResult = await client.query(
       `INSERT INTO membros (
@@ -117,8 +122,8 @@ export async function POST(req: NextRequest) {
         grau_instrucao, titulo_eleitor, titulo_eleitor_zona, titulo_eleitor_secao,
         tipo_sanguineo, cert_nascimento_casamento, reservista, carteira_motorista,
         chefe_familiar, data_casamento, naturalidade, uf_naturalidade, nacionalidade,
-        origem_religiosa, tipo_participante, informacoes_complementares
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38)
+        origem_religiosa, tipo_participante, informacoes_complementares, funcao_igreja
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39)
       RETURNING id`,
       [
         nome, toNull(conhecido_como), toNull(igreja), toNull(cargo), toNull(sexo), toNull(data_nascimento),
@@ -128,7 +133,7 @@ export async function POST(req: NextRequest) {
         toNull(grau_instrucao), toNull(titulo_eleitor), toNull(titulo_eleitor_zona), toNull(titulo_eleitor_secao),
         toNull(tipo_sanguineo), toNull(cert_nascimento_casamento), toNull(reservista), toNull(carteira_motorista),
         chefe_familiar || false, toNull(data_casamento), toNull(naturalidade), toNull(uf_naturalidade), toNull(nacionalidade),
-        toNull(origem_religiosa), tipo_participante || 'Membro', toNull(informacoes_complementares),
+        toNull(origem_religiosa), tipo_participante || 'Membro', toNull(informacoes_complementares), toNull(funcao_igreja),
       ]
     )
 

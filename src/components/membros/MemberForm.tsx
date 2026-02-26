@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Loader2, Plus, Trash2, Search } from 'lucide-react'
+import { Loader2, Plus, Trash2, Search, X, AlertTriangle, UserPlus } from 'lucide-react'
 import { CARGOS_ECLESIASTICOS, CARGOS_DEPARTAMENTO } from '@/lib/constants'
 
 type DeptSelecao = { id: number; nome: string; cargo_departamento: string }
@@ -30,26 +30,40 @@ const defaultForm: MemberFormData = {
   cert_nascimento_casamento: '', reservista: '', carteira_motorista: '',
   chefe_familiar: false, data_casamento: '', naturalidade: '', uf_naturalidade: '',
   nacionalidade: 'Brasileira', origem_religiosa: '', tipo_participante: 'Membro',
-  informacoes_complementares: '',
+  informacoes_complementares: '', funcao_igreja: '',
   historicos: [], familiares: [],
 }
 
 interface Props {
   membroId?: number
+  initialNome?: string
   onSuccess?: () => void
   onCancel?: () => void
 }
 
-export function MemberForm({ membroId, onSuccess, onCancel }: Props) {
+export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props) {
   const router = useRouter()
   const { token } = useAuth()
   const { toast } = useToast()
-  const [form, setForm] = useState<MemberFormData>(defaultForm)
+  const [form, setForm] = useState<MemberFormData>({ ...defaultForm, nome: initialNome || '' })
   const [loading, setLoading] = useState(!!membroId)
   const [saving, setSaving] = useState(false)
   const [buscandoCep, setBuscandoCep] = useState(false)
   const [departamentosDisponiveis, setDepartamentosDisponiveis] = useState<Departamento[]>([])
   const [deptosSelecionados, setDeptosSelecionados] = useState<DeptSelecao[]>([])
+  const [todosMembros, setTodosMembros] = useState<{ id: number; nome: string }[]>([])
+  const [familiarDropdownIdx, setFamiliarDropdownIdx] = useState<number | null>(null)
+
+  // Carregar lista de membros para busca de familiares e verificação de duplicados
+  useEffect(() => {
+    if (!token) return
+    fetch('/api/membros', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then((data: { id: number; nome: string }[]) => {
+        if (Array.isArray(data)) setTodosMembros(data.map(m => ({ id: m.id, nome: m.nome })))
+      })
+      .catch(() => {})
+  }, [token])
 
   // Carregar departamentos disponíveis
   useEffect(() => {
@@ -117,6 +131,8 @@ export function MemberForm({ membroId, onSuccess, onCancel }: Props) {
     }
   }
 
+  // ─── Histórico ────────────────────────────────────────────────────────────
+
   const addHistorico = () => {
     setForm(f => ({ ...f, historicos: [...f.historicos, { tipo: '', data: '', localidade: '', observacoes: '' }] }))
   }
@@ -132,12 +148,15 @@ export function MemberForm({ membroId, onSuccess, onCancel }: Props) {
     }))
   }
 
+  // ─── Familiares ───────────────────────────────────────────────────────────
+
   const addFamiliar = () => {
     setForm(f => ({ ...f, familiares: [...f.familiares, { parentesco: '', nome: '', data_nascimento: '', observacoes: '' }] }))
   }
 
   const removeFamiliar = (i: number) => {
     setForm(f => ({ ...f, familiares: f.familiares.filter((_, idx) => idx !== i) }))
+    if (familiarDropdownIdx === i) setFamiliarDropdownIdx(null)
   }
 
   const setFamiliar = (i: number, field: keyof Familiar, value: string) => {
@@ -146,6 +165,29 @@ export function MemberForm({ membroId, onSuccess, onCancel }: Props) {
       familiares: f.familiares.map((fam, idx) => idx === i ? { ...fam, [field]: value } : fam),
     }))
   }
+
+  const vincularFamiliar = (i: number, membro: { id: number; nome: string }) => {
+    setForm(f => ({
+      ...f,
+      familiares: f.familiares.map((fam, idx) => idx === i
+        ? { ...fam, nome: membro.nome, membro_vinculado_id: membro.id }
+        : fam
+      ),
+    }))
+    setFamiliarDropdownIdx(null)
+  }
+
+  const desvincularFamiliar = (i: number) => {
+    setForm(f => ({
+      ...f,
+      familiares: f.familiares.map((fam, idx) => idx === i
+        ? { ...fam, membro_vinculado_id: undefined }
+        : fam
+      ),
+    }))
+  }
+
+  // ─── Departamentos ────────────────────────────────────────────────────────
 
   const toggleDepartamento = (d: Departamento, checked: boolean) => {
     if (checked) {
@@ -158,6 +200,15 @@ export function MemberForm({ membroId, onSuccess, onCancel }: Props) {
   const setCargoDept = (id: number, cargo: string) => {
     setDeptosSelecionados(prev => prev.map(s => s.id === id ? { ...s, cargo_departamento: cargo } : s))
   }
+
+  // ─── Verificação de duplicados ────────────────────────────────────────────
+
+  const nomeTrimmed = form.nome.trim().toLowerCase()
+  const duplicados = nomeTrimmed.length > 2
+    ? todosMembros.filter(m => m.id !== membroId && m.nome.trim().toLowerCase() === nomeTrimmed)
+    : []
+
+  // ─── Submit ───────────────────────────────────────────────────────────────
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -250,6 +301,12 @@ export function MemberForm({ membroId, onSuccess, onCancel }: Props) {
           <div className="space-y-2 sm:col-span-2">
             <Label>Nome Completo *</Label>
             <Input value={form.nome} onChange={e => set('nome', e.target.value)} placeholder="Nome completo" required />
+            {duplicados.length > 0 && (
+              <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 text-xs bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-md px-3 py-2">
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                <span>Já existe um membro com este nome: <strong>{duplicados[0].nome}</strong></span>
+              </div>
+            )}
           </div>
           {field('Conhecido Como', 'conhecido_como')}
           {selectField('Tipo de Participante', 'tipo_participante', ['Membro', 'Congregado', 'Visitante'])}
@@ -276,6 +333,7 @@ export function MemberForm({ membroId, onSuccess, onCancel }: Props) {
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {field('Igreja', 'igreja')}
           {selectField('Cargo', 'cargo', CARGOS_ECLESIASTICOS)}
+          {field('Função na Igreja', 'funcao_igreja')}
           {field('Origem Religiosa', 'origem_religiosa')}
         </CardContent>
       </Card>
@@ -474,40 +532,116 @@ export function MemberForm({ membroId, onSuccess, onCancel }: Props) {
           {form.familiares.length === 0 && (
             <p className="text-sm text-muted-foreground">Nenhum familiar adicionado.</p>
           )}
-          {form.familiares.map((f, i) => (
-            <div key={i} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-3 border rounded-lg">
-              <div className="space-y-1">
-                <Label className="text-xs">Parentesco</Label>
-                <select
-                  value={f.parentesco}
-                  onChange={e => setFamiliar(i, 'parentesco', e.target.value)}
-                  className="w-full h-9 px-2 rounded-md border border-input bg-background text-sm"
-                >
-                  <option value="">Selecione</option>
-                  {['Cônjuge', 'Filho(a)', 'Pai', 'Mãe', 'Irmão(ã)', 'Avô/Avó', 'Neto(a)', 'Outro'].map(p => (
-                    <option key={p} value={p}>{p}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Nome</Label>
-                <Input value={f.nome} onChange={e => setFamiliar(i, 'nome', e.target.value)} placeholder="Nome" className="h-9" />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Data Nascimento</Label>
-                <Input type="date" value={f.data_nascimento || ''} onChange={e => setFamiliar(i, 'data_nascimento', e.target.value)} className="h-9" />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Observações</Label>
-                <div className="flex gap-2">
-                  <Input value={f.observacoes || ''} onChange={e => setFamiliar(i, 'observacoes', e.target.value)} placeholder="Obs." className="h-9" />
-                  <Button type="button" variant="ghost" size="icon" onClick={() => removeFamiliar(i)} className="h-9 w-9 text-destructive hover:text-destructive">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+          {form.familiares.map((f, i) => {
+            const resultados = familiarDropdownIdx === i && f.nome.trim().length > 1
+              ? todosMembros
+                  .filter(m => m.id !== membroId && m.nome.toLowerCase().includes(f.nome.toLowerCase()))
+                  .slice(0, 6)
+              : []
+            const hasExactMatch = resultados.some(m => m.nome.toLowerCase() === f.nome.toLowerCase().trim())
+            const showCadastrar = f.nome.trim().length > 2 && !hasExactMatch
+            const showDropdown = familiarDropdownIdx === i && (resultados.length > 0 || showCadastrar)
+
+            return (
+              <div key={i} className="p-3 border rounded-lg space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Parentesco */}
+                  <div className="space-y-1">
+                    <Label className="text-xs">Parentesco</Label>
+                    <select
+                      value={f.parentesco}
+                      onChange={e => setFamiliar(i, 'parentesco', e.target.value)}
+                      className="w-full h-9 px-2 rounded-md border border-input bg-background text-sm"
+                    >
+                      <option value="">Selecione</option>
+                      {['Cônjuge', 'Filho(a)', 'Pai', 'Mãe', 'Irmão(ã)', 'Avô/Avó', 'Neto(a)', 'Outro'].map(p => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Nome — vinculado ou busca */}
+                  <div className="space-y-1">
+                    <Label className="text-xs">Nome</Label>
+                    {f.membro_vinculado_id ? (
+                      <div className="h-9 flex items-center gap-2 px-3 rounded-md border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20">
+                        <span className="flex-1 text-sm text-emerald-800 dark:text-emerald-200 truncate">{f.nome}</span>
+                        <button
+                          type="button"
+                          onClick={() => desvincularFamiliar(i)}
+                          className="text-emerald-600 hover:text-emerald-900 dark:text-emerald-400 dark:hover:text-emerald-100 shrink-0"
+                          title="Desvincular membro"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <Input
+                          value={f.nome}
+                          onChange={e => {
+                            setFamiliar(i, 'nome', e.target.value)
+                            setFamiliarDropdownIdx(e.target.value.trim().length > 1 ? i : null)
+                          }}
+                          onFocus={() => { if (f.nome.trim().length > 1) setFamiliarDropdownIdx(i) }}
+                          onBlur={() => setFamiliarDropdownIdx(null)}
+                          placeholder="Nome ou buscar membro cadastrado"
+                          className="h-9"
+                        />
+                        {showDropdown && (
+                          <div
+                            className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg overflow-hidden"
+                            onMouseDown={e => e.preventDefault()}
+                          >
+                            {resultados.map(m => (
+                              <button
+                                key={m.id}
+                                type="button"
+                                onClick={() => vincularFamiliar(i, m)}
+                                className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
+                              >
+                                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary shrink-0">
+                                  {m.nome[0]}
+                                </div>
+                                <span className="truncate">{m.nome}</span>
+                              </button>
+                            ))}
+                            {showCadastrar && (
+                              <button
+                                type="button"
+                                onClick={() => router.push(`/membros/novo?nome=${encodeURIComponent(f.nome.trim())}`)}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-primary hover:bg-accent border-t border-border"
+                              >
+                                <UserPlus className="h-3.5 w-3.5 shrink-0" />
+                                <span className="truncate">Cadastrar &quot;{f.nome.trim()}&quot; como novo membro</span>
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Data de nascimento + Obs + Remover */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Data Nascimento</Label>
+                    <Input type="date" value={f.data_nascimento || ''} onChange={e => setFamiliar(i, 'data_nascimento', e.target.value)} className="h-9" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Observações</Label>
+                    <div className="flex gap-2">
+                      <Input value={f.observacoes || ''} onChange={e => setFamiliar(i, 'observacoes', e.target.value)} placeholder="Obs." className="h-9" />
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removeFamiliar(i)} className="h-9 w-9 text-destructive hover:text-destructive">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </CardContent>
       </Card>
 

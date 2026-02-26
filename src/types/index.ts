@@ -38,6 +38,7 @@ export interface Membro {
   origem_religiosa?: string
   tipo_participante: 'Membro' | 'Congregado' | 'Visitante'
   informacoes_complementares?: string
+  funcao_igreja?: string
   created_at?: string
   updated_at?: string
   // join fields
