@@ -51,7 +51,7 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
   const [buscandoCep, setBuscandoCep] = useState(false)
   const [departamentosDisponiveis, setDepartamentosDisponiveis] = useState<Departamento[]>([])
   const [deptosSelecionados, setDeptosSelecionados] = useState<DeptSelecao[]>([])
-  const [todosMembros, setTodosMembros] = useState<{ id: number; nome: string }[]>([])
+  const [todosMembros, setTodosMembros] = useState<{ id: number; nome: string; data_nascimento?: string }[]>([])
   const [familiarDropdownIdx, setFamiliarDropdownIdx] = useState<number | null>(null)
 
   // Carregar lista de membros para busca de familiares e verificação de duplicados
@@ -59,8 +59,8 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
     if (!token) return
     fetch('/api/membros', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
-      .then((data: { id: number; nome: string }[]) => {
-        if (Array.isArray(data)) setTodosMembros(data.map(m => ({ id: m.id, nome: m.nome })))
+      .then((data: { id: number; nome: string; data_nascimento?: string }[]) => {
+        if (Array.isArray(data)) setTodosMembros(data.map(m => ({ id: m.id, nome: m.nome, data_nascimento: m.data_nascimento })))
       })
       .catch(() => {})
   }, [token])
@@ -166,11 +166,11 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
     }))
   }
 
-  const vincularFamiliar = (i: number, membro: { id: number; nome: string }) => {
+  const vincularFamiliar = (i: number, membro: { id: number; nome: string; data_nascimento?: string }) => {
     setForm(f => ({
       ...f,
       familiares: f.familiares.map((fam, idx) => idx === i
-        ? { ...fam, nome: membro.nome, membro_vinculado_id: membro.id }
+        ? { ...fam, nome: membro.nome, membro_vinculado_id: membro.id, data_nascimento: membro.data_nascimento || fam.data_nascimento }
         : fam
       ),
     }))
