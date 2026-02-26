@@ -87,11 +87,16 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
           departamentos_info?: unknown; departamentos?: DeptSelecao[]
         }
         void id; void created_at; void updated_at; void departamentos_info
+        // Normaliza datas para o formato YYYY-MM-DD esperado pelo <input type="date">
+        const d = (v: unknown): string => v ? String(v).split('T')[0] : ''
         setForm({
           ...defaultForm,
           ...rest,
-          historicos: data.historicos || [],
-          familiares: data.familiares || [],
+          data_nascimento: d(rest.data_nascimento),
+          data_casamento: d(rest.data_casamento),
+          data_expedicao: d(rest.data_expedicao),
+          historicos: (data.historicos || []).map((h: Historico) => ({ ...h, data: d(h.data) })),
+          familiares: (data.familiares || []).map((f: Familiar) => ({ ...f, data_nascimento: d(f.data_nascimento) })),
         })
         setDeptosSelecionados(
           (depts || []).map(d => ({

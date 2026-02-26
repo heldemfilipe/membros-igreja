@@ -3,6 +3,19 @@ import pool from '@/lib/db'
 import { verificarToken, unauthorized } from '@/lib/auth'
 import { toNull } from '@/lib/utils'
 
+function parentescoReverso(parentesco: string, sexoDoMembro: string | null): string {
+  switch (parentesco) {
+    case 'Cônjuge':  return 'Cônjuge'
+    case 'Filho(a)': return sexoDoMembro === 'Feminino' ? 'Mãe' : 'Pai'
+    case 'Pai':      return 'Filho(a)'
+    case 'Mãe':      return 'Filho(a)'
+    case 'Irmão(ã)': return 'Irmão(ã)'
+    case 'Avô/Avó':  return 'Neto(a)'
+    case 'Neto(a)':  return 'Avô/Avó'
+    default:         return 'Outro'
+  }
+}
+
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const user = await verificarToken(req)
   if (!user) return unauthorized()
@@ -93,6 +106,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
     await client.query('DELETE FROM historicos WHERE membro_id = $1', [id])
     await client.query('DELETE FROM familiares WHERE membro_id = $1', [id])
+    // Remove registros reversos auto-criados que apontam para este membro
+    await client.query('DELETE FROM familiares WHERE membro_vinculado_id = $1', [id])
 
     for (const h of historicos) {
       await client.query(
@@ -103,9 +118,17 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
     for (const f of familiares) {
       await client.query(
-        'INSERT INTO familiares (membro_id, parentesco, nome, data_nascimento, observacoes) VALUES ($1,$2,$3,$4,$5)',
-        [id, f.parentesco, f.nome, f.data_nascimento, f.observacoes]
+        'INSERT INTO familiares (membro_id, parentesco, nome, data_nascimento, observacoes, membro_vinculado_id) VALUES ($1,$2,$3,$4,$5,$6)',
+        [id, f.parentesco, f.nome, toNull(f.data_nascimento), toNull(f.observacoes), f.membro_vinculado_id || null]
       )
+      // Cria parentesco reverso automaticamente no membro vinculado
+      if (f.membro_vinculado_id) {
+        const reverso = parentescoReverso(f.parentesco, toNull(sexo))
+        await client.query(
+          'INSERT INTO familiares (membro_id, parentesco, nome, data_nascimento, membro_vinculado_id) VALUES ($1,$2,$3,$4,$5)',
+          [f.membro_vinculado_id, reverso, nome, toNull(data_nascimento), id]
+        )
+      }
     }
 
     // Atualiza departamentos
