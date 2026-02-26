@@ -869,7 +869,20 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
                 <Input
                   type="date"
                   value={quickReg.data_nascimento}
-                  onChange={e => setQuickReg(q => q ? { ...q, data_nascimento: e.target.value } : null)}
+                  onChange={e => {
+                    const dn = e.target.value
+                    // Menores de 12 anos → Congregado automaticamente
+                    let tipoAuto = quickReg?.tipo_participante
+                    if (dn) {
+                      const [y, m, d] = dn.split('-').map(Number)
+                      const nasc = new Date(y, m - 1, d)
+                      const hoje = new Date()
+                      let age = hoje.getFullYear() - nasc.getFullYear()
+                      if (hoje.getMonth() < nasc.getMonth() || (hoje.getMonth() === nasc.getMonth() && hoje.getDate() < nasc.getDate())) age--
+                      if (age < 12) tipoAuto = 'Congregado'
+                    }
+                    setQuickReg(q => q ? { ...q, data_nascimento: dn, tipo_participante: tipoAuto ?? q.tipo_participante } : null)
+                  }}
                 />
               </div>
 
