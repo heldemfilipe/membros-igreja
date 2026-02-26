@@ -27,7 +27,9 @@
       "Bash(del /f server.js server-auth.js server-supabase.js DEPLOY.md VERCEL-SETUP.md)",
       "Bash(powershell -Command \"Remove-Item ''D:\\\\Nova pasta\\\\membros-igreja\\\\server.js'' -Force -ErrorAction SilentlyContinue; if \\(Test-Path ''D:\\\\Nova pasta\\\\membros-igreja\\\\server.js''\\) { Write-Output ''FAILED: server.js'' } else { Write-Output ''OK: server.js'' }\")",
       "Bash(powershell -Command \"Remove-Item ''D:\\\\Nova pasta\\\\membros-igreja\\\\server-auth.js'' -Force -ErrorAction SilentlyContinue; if \\(Test-Path ''D:\\\\Nova pasta\\\\membros-igreja\\\\server-auth.js''\\) { Write-Output ''FAILED: server-auth.js'' } else { Write-Output ''OK: server-auth.js'' }\")",
-      "Bash(powershell -Command:*)"
+      "Bash(powershell -Command:*)",
+      "Bash(test:*)",
+      "Bash(git restore:*)"
     ]
   }
 }

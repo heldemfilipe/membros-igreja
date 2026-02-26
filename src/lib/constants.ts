@@ -1,6 +1,6 @@
 // Cargos eclesiásticos disponíveis
 export const CARGOS_ECLESIASTICOS = [
-  'Pastor', 'Evangelista', 'Presbítero', 'Diácono', 'Diaconisa',
+  'Pastor', 'Evangelista', 'Presbítero', 'Diácono',
   'Cooperador', 'Obreiro', 'Missionário', 'Auxiliar', 'Membro',
 ]
 
@@ -16,7 +16,6 @@ export const CARGO_COLORS: Record<string, { bg: string; text: string }> = {
   'Evangelista':  { bg: '#162786', text: '#fff' },
   'Presbítero':   { bg: '#1881a1', text: '#fff' },
   'Diácono':      { bg: '#38a038', text: '#fff' },
-  'Diaconisa':    { bg: '#2e9e5b', text: '#fff' },
   'Cooperador':   { bg: '#8d8400', text: '#fff' },
   'Membro':       { bg: '#8f5a1e', text: '#fff' },
   'Obreiro':      { bg: '#5b6e8f', text: '#fff' },
