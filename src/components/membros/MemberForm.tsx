@@ -650,7 +650,11 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
         <Button type="button" variant="outline" onClick={handleCancel}>
           Cancelar
         </Button>
-        <Button type="submit" disabled={saving}>
+        <Button
+          type="submit"
+          disabled={saving || duplicados.length > 0}
+          title={duplicados.length > 0 ? 'Corrija o nome duplicado antes de salvar' : undefined}
+        >
           {saving && <Loader2 className="h-4 w-4 animate-spin" />}
           {membroId ? 'Salvar Alterações' : 'Cadastrar Membro'}
         </Button>

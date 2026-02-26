@@ -6,7 +6,7 @@ import { AniversarianteItem } from '@/types'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Loader2, Cake, Phone } from 'lucide-react'
-import { calcularIdade, getDiaDoMes } from '@/lib/utils'
+import { calcularIdade, getDiaDoMes, cn } from '@/lib/utils'
 import { getCargoStyle } from '@/lib/constants'
 
 const MESES = [
@@ -14,10 +14,10 @@ const MESES = [
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
 ]
 
-const TIPO_VARIANT: Record<string, 'default' | 'secondary' | 'outline'> = {
-  Membro: 'default',
-  Congregado: 'secondary',
-  Visitante: 'outline',
+const TIPO_STYLE: Record<string, { card: string; avatar: string }> = {
+  Membro:     { card: 'border-l-4 border-l-blue-500',    avatar: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' },
+  Congregado: { card: 'border-l-4 border-l-emerald-500', avatar: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' },
+  Visitante:  { card: 'border-l-4 border-l-amber-500',   avatar: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' },
 }
 
 export default function AniversariantesPage() {
@@ -83,11 +83,12 @@ export default function AniversariantesPage() {
             const dia = getDiaDoMes(a.data_nascimento)
             const idade = calcularIdade(a.data_nascimento)
 
+            const tipoStyle = TIPO_STYLE[a.tipo_participante] || { card: '', avatar: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300' }
             return (
-              <Card key={a.id} className="hover:shadow-md transition-shadow">
+              <Card key={a.id} className={cn('hover:shadow-md transition-shadow', tipoStyle.card)}>
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center text-xl select-none">
+                    <div className={cn('flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-xl select-none', tipoStyle.avatar)}>
                       🎂
                     </div>
                     <div className="flex-1 min-w-0">
@@ -99,12 +100,6 @@ export default function AniversariantesPage() {
                       <div className="flex flex-wrap gap-1 mt-1.5">
                         <Badge variant="outline" className="text-xs">
                           Dia {dia}{idade !== null ? ` · ${idade} anos` : ''}
-                        </Badge>
-                        <Badge
-                          variant={TIPO_VARIANT[a.tipo_participante] ?? 'outline'}
-                          className="text-xs"
-                        >
-                          {a.tipo_participante}
                         </Badge>
                         {a.cargo && (
                           <Badge className="text-xs" style={getCargoStyle(a.cargo)}>
