@@ -38,3 +38,16 @@ export function getDiaDoMes(dateStr: string): number {
 export function toNull(value: string | undefined | null): string | null {
   return value === '' || value === undefined ? null : value ?? null
 }
+
+/** Retorna a idade que a pessoa irá completar no aniversário do ano corrente (para o card de aniversariantes). */
+export function idadeFara(dataNascimento: string | null): number | null {
+  if (!dataNascimento) return null
+  const nasc = parseLocalDate(dataNascimento)
+  if (isNaN(nasc.getTime())) return null
+  return new Date().getFullYear() - nasc.getFullYear()
+}
+
+/** Converte string para title case (primeira letra de cada palavra em maiúscula). */
+export function toTitleCase(str: string): string {
+  return str.trim().replace(/\b\w+/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+}

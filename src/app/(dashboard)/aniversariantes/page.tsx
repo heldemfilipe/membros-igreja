@@ -6,7 +6,7 @@ import { AniversarianteItem } from '@/types'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Loader2, Cake, Phone } from 'lucide-react'
-import { calcularIdade, getDiaDoMes, cn } from '@/lib/utils'
+import { idadeFara, getDiaDoMes, cn } from '@/lib/utils'
 import { getCargoStyle } from '@/lib/constants'
 
 const MESES = [
@@ -81,7 +81,7 @@ export default function AniversariantesPage() {
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {aniversariantes.map(a => {
             const dia = getDiaDoMes(a.data_nascimento)
-            const idade = calcularIdade(a.data_nascimento)
+            const idadeQ = idadeFara(a.data_nascimento)
 
             const tipoStyle = TIPO_STYLE[a.tipo_participante] || { card: '', avatar: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300' }
             return (
@@ -98,8 +98,8 @@ export default function AniversariantesPage() {
                       )}
 
                       <div className="flex flex-wrap gap-1 mt-1.5">
-                        <Badge variant="outline" className="text-xs">
-                          Dia {dia}{idade !== null ? ` · ${idade} anos` : ''}
+                        <Badge variant="outline" className="text-xs font-medium">
+                          Dia {dia}{idadeQ !== null ? ` · Fará ${idadeQ} anos` : ''}
                         </Badge>
                         {a.cargo && (
                           <Badge className="text-xs" style={getCargoStyle(a.cargo)}>

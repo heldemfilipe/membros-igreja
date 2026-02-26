@@ -29,7 +29,8 @@
       "Bash(powershell -Command \"Remove-Item ''D:\\\\Nova pasta\\\\membros-igreja\\\\server-auth.js'' -Force -ErrorAction SilentlyContinue; if \\(Test-Path ''D:\\\\Nova pasta\\\\membros-igreja\\\\server-auth.js''\\) { Write-Output ''FAILED: server-auth.js'' } else { Write-Output ''OK: server-auth.js'' }\")",
       "Bash(powershell -Command:*)",
       "Bash(test:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(familiar\" abre um modal inline \\(sem mudar de página\\) com::*)"
     ]
   }
 }

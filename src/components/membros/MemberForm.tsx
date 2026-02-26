@@ -51,6 +51,7 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
   const [buscandoCep, setBuscandoCep] = useState(false)
   const [departamentosDisponiveis, setDepartamentosDisponiveis] = useState<Departamento[]>([])
   const [deptosSelecionados, setDeptosSelecionados] = useState<DeptSelecao[]>([])
+  const [congregacoes, setCongregacoes] = useState<{ id: number; nome: string }[]>([])
   const [todosMembros, setTodosMembros] = useState<{ id: number; nome: string; data_nascimento?: string }[]>([])
   const [familiarDropdownIdx, setFamiliarDropdownIdx] = useState<number | null>(null)
   const [quickReg, setQuickReg] = useState<{
@@ -76,6 +77,15 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
     fetch('/api/departamentos', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(data => Array.isArray(data) ? setDepartamentosDisponiveis(data) : [])
+      .catch(() => {})
+  }, [token])
+
+  // Carregar congregações disponíveis
+  useEffect(() => {
+    if (!token) return
+    fetch('/api/congregacoes', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(data => Array.isArray(data) ? setCongregacoes(data.map((c: { id: number; nome: string }) => ({ id: c.id, nome: c.nome }))) : [])
       .catch(() => {})
   }, [token])
 
@@ -347,13 +357,20 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
     )
   }
 
-  const field = (label: string, fieldName: keyof MemberFormData, type = 'text', col?: string) => (
+  const titleCase = (v: string) =>
+    v.trim().replace(/\b\w+/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+
+  const field = (label: string, fieldName: keyof MemberFormData, type = 'text', col?: string, cap?: boolean) => (
     <div className={`space-y-2 ${col || ''}`}>
       <Label>{label}</Label>
       <Input
         type={type}
         value={String(form[fieldName] ?? '')}
         onChange={e => set(fieldName, e.target.value)}
+        onBlur={cap ? (e: React.FocusEvent<HTMLInputElement>) => {
+          const v = e.target.value.trim()
+          if (v) set(fieldName, titleCase(v))
+        } : undefined}
         placeholder={label}
       />
     </div>
@@ -381,7 +398,13 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="space-y-2 sm:col-span-2">
             <Label>Nome Completo *</Label>
-            <Input value={form.nome} onChange={e => set('nome', e.target.value)} placeholder="Nome completo" required />
+            <Input
+              value={form.nome}
+              onChange={e => set('nome', e.target.value)}
+              onBlur={e => { const v = e.target.value.trim(); if (v) set('nome', titleCase(v)) }}
+              placeholder="Nome completo"
+              required
+            />
             {duplicados.length > 0 && (
               <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 text-xs bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-md px-3 py-2">
                 <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
@@ -389,7 +412,7 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
               </div>
             )}
           </div>
-          {field('Conhecido Como', 'conhecido_como')}
+          {field('Conhecido Como', 'conhecido_como', 'text', undefined, true)}
           {selectField('Tipo de Participante', 'tipo_participante', ['Membro', 'Congregado', 'Visitante'])}
           {selectField('Sexo', 'sexo', ['Masculino', 'Feminino'])}
           {field('Data de Nascimento', 'data_nascimento', 'date')}
@@ -412,7 +435,28 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
       <Card>
         <CardHeader><CardTitle className="text-base">Dados Eclesiásticos</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {field('Igreja', 'igreja')}
+          {/* Congregação — select se houver cadastradas, input livre caso contrário */}
+          <div className="space-y-2">
+            <Label>Congregação</Label>
+            {congregacoes.length > 0 ? (
+              <select
+                value={form.igreja || ''}
+                onChange={e => set('igreja', e.target.value)}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">Selecione...</option>
+                {congregacoes.map(c => (
+                  <option key={c.id} value={c.nome}>{c.nome}</option>
+                ))}
+              </select>
+            ) : (
+              <Input
+                value={form.igreja || ''}
+                onChange={e => set('igreja', e.target.value)}
+                placeholder="Congregação"
+              />
+            )}
+          </div>
           {selectField('Cargo', 'cargo', CARGOS_ECLESIASTICOS)}
           {field('Função na Igreja', 'funcao_igreja')}
           {field('Origem Religiosa', 'origem_religiosa')}
@@ -450,12 +494,17 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
           </div>
           <div className="space-y-2 sm:col-span-2">
             <Label>Logradouro</Label>
-            <Input value={form.logradouro || ''} onChange={e => set('logradouro', e.target.value)} placeholder="Rua, Av..." />
+            <Input
+              value={form.logradouro || ''}
+              onChange={e => set('logradouro', e.target.value)}
+              onBlur={e => { const v = e.target.value.trim(); if (v) set('logradouro', titleCase(v)) }}
+              placeholder="Rua, Av..."
+            />
           </div>
           {field('Número', 'numero')}
-          {field('Complemento', 'complemento')}
-          {field('Bairro', 'bairro')}
-          {field('Cidade', 'cidade')}
+          {field('Complemento', 'complemento', 'text', undefined, true)}
+          {field('Bairro', 'bairro', 'text', undefined, true)}
+          {field('Cidade', 'cidade', 'text', undefined, true)}
           {field('Estado (UF)', 'estado')}
         </CardContent>
       </Card>
@@ -475,6 +524,9 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
           {field('Reservista', 'reservista')}
           {field('CNH', 'carteira_motorista')}
           {selectField('Tipo Sanguíneo', 'tipo_sanguineo', ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'])}
+          {field('Naturalidade', 'naturalidade', 'text', undefined, true)}
+          {field('UF Naturalidade', 'uf_naturalidade')}
+          {field('Nacionalidade', 'nacionalidade', 'text', undefined, true)}
         </CardContent>
       </Card>
 
@@ -482,14 +534,11 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
       <Card>
         <CardHeader><CardTitle className="text-base">Dados Complementares</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {field('Profissão', 'profissao')}
+          {field('Profissão', 'profissao', 'text', undefined, true)}
           {selectField('Grau de Instrução', 'grau_instrucao', [
             'Fundamental Incompleto', 'Fundamental Completo', 'Médio Incompleto', 'Médio Completo',
             'Superior Incompleto', 'Superior Completo', 'Pós-graduação', 'Mestrado', 'Doutorado',
           ])}
-          {field('Naturalidade', 'naturalidade')}
-          {field('UF Naturalidade', 'uf_naturalidade')}
-          {field('Nacionalidade', 'nacionalidade')}
           <div className="space-y-2 sm:col-span-2 lg:col-span-3">
             <Label>Informações Complementares</Label>
             <Textarea

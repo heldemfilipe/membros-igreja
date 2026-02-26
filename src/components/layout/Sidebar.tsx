@@ -7,6 +7,7 @@ import {
   LayoutDashboard, Users, Building2, UserCog, Cake,
   Menu, X, Church, LogOut, Shield, Loader2, Lock,
 } from 'lucide-react'
+
 import { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
@@ -16,6 +17,7 @@ const menuItems = [
   { title: 'Membros',         icon: Users,            href: '/membros',         permissao: 'membros_ver' },
   { title: 'Aniversariantes', icon: Cake,             href: '/aniversariantes', permissao: 'aniversariantes_ver' },
   { title: 'Departamentos',   icon: Building2,        href: '/departamentos',   permissao: 'departamentos_ver' },
+  { title: 'Congregações',    icon: Church,           href: '/congregacoes',    permissao: 'departamentos_ver' },
 ]
 
 const adminItems = [

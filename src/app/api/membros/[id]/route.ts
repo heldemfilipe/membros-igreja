@@ -110,9 +110,10 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     await client.query('DELETE FROM familiares WHERE membro_vinculado_id = $1', [id])
 
     for (const h of historicos) {
+      if (!h.tipo) continue // tipo é obrigatório pelo constraint do banco
       await client.query(
         'INSERT INTO historicos (membro_id, tipo, data, localidade, observacoes) VALUES ($1,$2,$3,$4,$5)',
-        [id, h.tipo, h.data, h.localidade, h.observacoes]
+        [id, h.tipo, toNull(h.data), toNull(h.localidade), toNull(h.observacoes)]
       )
     }
 
