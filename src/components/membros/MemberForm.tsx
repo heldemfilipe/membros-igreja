@@ -53,6 +53,11 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
   const [deptosSelecionados, setDeptosSelecionados] = useState<DeptSelecao[]>([])
   const [todosMembros, setTodosMembros] = useState<{ id: number; nome: string; data_nascimento?: string }[]>([])
   const [familiarDropdownIdx, setFamiliarDropdownIdx] = useState<number | null>(null)
+  const [quickReg, setQuickReg] = useState<{
+    idx: number; nome: string; parentesco: string
+    sexo: string; tipo_participante: string; data_nascimento: string
+  } | null>(null)
+  const [quickRegSaving, setQuickRegSaving] = useState(false)
 
   // Carregar lista de membros para busca de familiares e verificação de duplicados
   useEffect(() => {
@@ -190,6 +195,77 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
         : fam
       ),
     }))
+  }
+
+  // ─── Pré-cadastro rápido de familiar ──────────────────────────────────────
+
+  const sexoPorParentesco = (parentesco: string, sexoPrincipal: string): string => {
+    if (parentesco === 'Cônjuge') return sexoPrincipal === 'Masculino' ? 'Feminino' : sexoPrincipal === 'Feminino' ? 'Masculino' : ''
+    if (parentesco === 'Pai') return 'Masculino'
+    if (parentesco === 'Mãe') return 'Feminino'
+    return ''
+  }
+
+  const abrirQuickReg = (idx: number) => {
+    const fam = form.familiares[idx]
+    setQuickReg({
+      idx,
+      nome: fam.nome.trim(),
+      parentesco: fam.parentesco,
+      sexo: sexoPorParentesco(fam.parentesco, form.sexo || ''),
+      tipo_participante: form.tipo_participante || 'Congregado',
+      data_nascimento: '',
+    })
+    setFamiliarDropdownIdx(null)
+  }
+
+  const salvarQuickReg = async () => {
+    if (!quickReg || !quickReg.nome.trim()) return
+    setQuickRegSaving(true)
+    try {
+      const payload = {
+        nome: quickReg.nome.trim(),
+        tipo_participante: quickReg.tipo_participante,
+        sexo: quickReg.sexo || null,
+        data_nascimento: quickReg.data_nascimento || null,
+        // Herança do membro principal
+        telefone_principal: form.telefone_principal || null,
+        logradouro: form.logradouro || null,
+        numero: form.numero || null,
+        complemento: form.complemento || null,
+        bairro: form.bairro || null,
+        cidade: form.cidade || null,
+        estado: form.estado || null,
+        cep: form.cep || null,
+        igreja: form.igreja || null,
+        historicos: [],
+        familiares: [],
+      }
+      const res = await fetch('/api/membros', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast({ title: data.error || 'Erro ao cadastrar familiar.', variant: 'destructive' })
+        return
+      }
+      vincularFamiliar(quickReg.idx, {
+        id: data.id,
+        nome: quickReg.nome.trim(),
+        data_nascimento: quickReg.data_nascimento || undefined,
+      })
+      setTodosMembros(prev => [...prev, {
+        id: data.id,
+        nome: quickReg.nome.trim(),
+        data_nascimento: quickReg.data_nascimento || undefined,
+      }])
+      toast({ title: `${quickReg.nome} cadastrado(a) e vinculado(a)!` })
+      setQuickReg(null)
+    } finally {
+      setQuickRegSaving(false)
+    }
   }
 
   // ─── Departamentos ────────────────────────────────────────────────────────
@@ -614,11 +690,11 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
                             {showCadastrar && (
                               <button
                                 type="button"
-                                onClick={() => router.push(`/membros/novo?nome=${encodeURIComponent(f.nome.trim())}`)}
+                                onClick={() => abrirQuickReg(i)}
                                 className="w-full flex items-center gap-2 px-3 py-2 text-sm text-primary hover:bg-accent border-t border-border"
                               >
                                 <UserPlus className="h-3.5 w-3.5 shrink-0" />
-                                <span className="truncate">Cadastrar &quot;{f.nome.trim()}&quot; como novo membro</span>
+                                <span className="truncate">Cadastrar &quot;{f.nome.trim()}&quot; como familiar</span>
                               </button>
                             )}
                           </div>
@@ -664,6 +740,116 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
           {membroId ? 'Salvar Alterações' : 'Cadastrar Membro'}
         </Button>
       </div>
+
+      {/* ── Modal de pré-cadastro rápido de familiar ── */}
+      {quickReg && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+          onClick={() => { if (!quickRegSaving) setQuickReg(null) }}
+        >
+          <div
+            className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-md p-6 space-y-4"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div>
+              <h2 className="text-lg font-semibold">Pré-cadastro de Familiar</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Cadastro rápido — telefone, endereço e igreja serão herdados automaticamente.
+              </p>
+            </div>
+
+            {/* Campos editáveis */}
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Nome Completo *</Label>
+                <Input
+                  value={quickReg.nome}
+                  onChange={e => setQuickReg(q => q ? { ...q, nome: e.target.value } : null)}
+                  placeholder="Nome completo"
+                  autoFocus
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Tipo de Participante</Label>
+                  <select
+                    value={quickReg.tipo_participante}
+                    onChange={e => setQuickReg(q => q ? { ...q, tipo_participante: e.target.value } : null)}
+                    className="w-full h-9 px-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    {['Membro', 'Congregado', 'Visitante'].map(t => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Sexo</Label>
+                  <select
+                    value={quickReg.sexo}
+                    onChange={e => setQuickReg(q => q ? { ...q, sexo: e.target.value } : null)}
+                    className="w-full h-9 px-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="">Selecione</option>
+                    <option value="Masculino">Masculino</option>
+                    <option value="Feminino">Feminino</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs">Data de Nascimento (opcional)</Label>
+                <Input
+                  type="date"
+                  value={quickReg.data_nascimento}
+                  onChange={e => setQuickReg(q => q ? { ...q, data_nascimento: e.target.value } : null)}
+                />
+              </div>
+
+              {/* Preview dos dados herdados */}
+              {(form.telefone_principal || form.logradouro || form.igreja) && (
+                <div className="rounded-lg bg-muted/40 border border-border/50 px-3 py-2.5 space-y-1.5">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    Herdado automaticamente
+                  </p>
+                  {form.telefone_principal && (
+                    <p className="text-xs text-muted-foreground">📱 {form.telefone_principal}</p>
+                  )}
+                  {form.logradouro && (
+                    <p className="text-xs text-muted-foreground">
+                      📍 {[form.logradouro, form.numero, form.bairro, form.cidade, form.estado].filter(Boolean).join(', ')}
+                    </p>
+                  )}
+                  {form.igreja && (
+                    <p className="text-xs text-muted-foreground">⛪ {form.igreja}</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Ações */}
+            <div className="flex justify-end gap-3 pt-1">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setQuickReg(null)}
+                disabled={quickRegSaving}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                onClick={salvarQuickReg}
+                disabled={quickRegSaving || !quickReg.nome.trim()}
+              >
+                {quickRegSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+                Cadastrar e Vincular
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   )
 }
