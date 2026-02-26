@@ -56,7 +56,7 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
   const [familiarDropdownIdx, setFamiliarDropdownIdx] = useState<number | null>(null)
   const [quickReg, setQuickReg] = useState<{
     idx: number; nome: string; parentesco: string
-    sexo: string; tipo_participante: string; data_nascimento: string
+    sexo: string; tipo_participante: string; data_nascimento: string; cargo: string
   } | null>(null)
   const [quickRegSaving, setQuickRegSaving] = useState(false)
 
@@ -225,6 +225,7 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
       sexo: sexoPorParentesco(fam.parentesco, form.sexo || ''),
       tipo_participante: form.tipo_participante || 'Congregado',
       data_nascimento: '',
+      cargo: '',
     })
     setFamiliarDropdownIdx(null)
   }
@@ -237,6 +238,7 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
         nome: quickReg.nome.trim(),
         tipo_participante: quickReg.tipo_participante,
         sexo: quickReg.sexo || null,
+        cargo: quickReg.cargo || null,
         data_nascimento: quickReg.data_nascimento || null,
         // Herança do membro principal
         telefone_principal: form.telefone_principal || null,
@@ -295,8 +297,9 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
   // ─── Verificação de duplicados ────────────────────────────────────────────
 
   const nomeTrimmed = form.nome.trim().toLowerCase()
-  const duplicados = nomeTrimmed.length > 2
-    ? todosMembros.filter(m => m.id !== membroId && m.nome.trim().toLowerCase() === nomeTrimmed)
+  // Só verifica duplicado ao criar novo membro — não faz sentido ao editar
+  const duplicados = !membroId && nomeTrimmed.length > 2
+    ? todosMembros.filter(m => m.nome.trim().toLowerCase() === nomeTrimmed)
     : []
 
   // ─── Submit ───────────────────────────────────────────────────────────────
@@ -845,6 +848,20 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
                     <option value="Feminino">Feminino</option>
                   </select>
                 </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs">Cargo (opcional)</Label>
+                <select
+                  value={quickReg.cargo}
+                  onChange={e => setQuickReg(q => q ? { ...q, cargo: e.target.value } : null)}
+                  className="w-full h-9 px-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="">Sem cargo</option>
+                  {CARGOS_ECLESIASTICOS.map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="space-y-1">

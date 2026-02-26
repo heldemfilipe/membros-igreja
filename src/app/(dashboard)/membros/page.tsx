@@ -221,11 +221,6 @@ export default function MembrosPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline gap-1.5 flex-wrap">
                         <p className="font-semibold text-sm leading-tight">{m.nome}</p>
-                        {idade !== null && (
-                          <span className="text-xs font-semibold text-blue-500 dark:text-blue-400 shrink-0">
-                            {idade}a
-                          </span>
-                        )}
                         {m.conhecido_como && (
                           <span className="text-xs text-muted-foreground hidden sm:inline">
                             &quot;{m.conhecido_como}&quot;
@@ -247,7 +242,20 @@ export default function MembrosPage() {
                           </Badge>
                         )}
                         {m.sexo && (
-                          <Badge variant="outline" className="text-xs h-5">{m.sexo[0]}</Badge>
+                          <Badge
+                            variant="outline"
+                            className={`text-xs h-5 font-medium ${m.sexo === 'Masculino'
+                              ? 'border-blue-300 text-blue-600 dark:border-blue-700 dark:text-blue-400'
+                              : 'border-pink-300 text-pink-600 dark:border-pink-700 dark:text-pink-400'
+                            }`}
+                          >
+                            {m.sexo[0]}
+                          </Badge>
+                        )}
+                        {idade !== null && (
+                          <Badge variant="outline" className="text-xs h-5 font-semibold text-blue-500 dark:text-blue-400 border-blue-300 dark:border-blue-700">
+                            {idade}a
+                          </Badge>
                         )}
                         {m.departamentos_info?.map((d, i) => (
                           <Badge
