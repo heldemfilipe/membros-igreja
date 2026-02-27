@@ -371,10 +371,14 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
     )
   }
 
+  // TitleCase seguro para português: divide por espaços (não usa \b\w que
+  // quebra em caracteres acentuados como ã, ç, é, tornando "Produção" → "ProduçãO")
   const titleCase = (v: string) =>
-    v.trim().replace(/\b\w+/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    v.trim().split(/\s+/).map(w =>
+      w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : w
+    ).join(' ')
 
-  // ─── Máscaras de CPF e RG ─────────────────────────────────────────────────
+  // ─── Máscaras de documentos e contato ────────────────────────────────────
 
   const maskCPF = (v: string) => {
     const d = v.replace(/\D/g, '').slice(0, 11)
@@ -391,6 +395,22 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
     if (d.length <= 5) return `${d.slice(0,2)}.${d.slice(2)}`
     if (d.length <= 8) return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5)}`
     return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}-${d.slice(8)}`
+  }
+
+  // CEP: 00000-000
+  const maskCEP = (v: string) => {
+    const d = v.replace(/\D/g, '').slice(0, 8)
+    if (d.length <= 5) return d
+    return `${d.slice(0,5)}-${d.slice(5)}`
+  }
+
+  // Telefone: (00) 0000-0000 ou (00) 00000-0000 (celular com 9º dígito)
+  const maskPhone = (v: string) => {
+    const d = v.replace(/\D/g, '').slice(0, 11)
+    if (d.length <= 2)  return d.length ? `(${d}` : ''
+    if (d.length <= 6)  return `(${d.slice(0,2)}) ${d.slice(2)}`
+    if (d.length <= 10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`
+    return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`
   }
 
   const field = (label: string, fieldName: keyof MemberFormData, type = 'text', col?: string, cap?: boolean) => (
@@ -500,8 +520,26 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
       <Card>
         <CardHeader><CardTitle className="text-base">Contato</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {field('Telefone Principal', 'telefone_principal', 'tel')}
-          {field('Telefone Secundário', 'telefone_secundario', 'tel')}
+          <div className="space-y-2">
+            <Label>Telefone Principal</Label>
+            <Input
+              value={form.telefone_principal || ''}
+              onChange={e => set('telefone_principal', maskPhone(e.target.value))}
+              placeholder="(00) 00000-0000"
+              maxLength={15}
+              inputMode="tel"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Telefone Secundário</Label>
+            <Input
+              value={form.telefone_secundario || ''}
+              onChange={e => set('telefone_secundario', maskPhone(e.target.value))}
+              placeholder="(00) 00000-0000"
+              maxLength={15}
+              inputMode="tel"
+            />
+          </div>
           {field('E-mail', 'email', 'email')}
         </CardContent>
       </Card>
@@ -515,7 +553,7 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
             <div className="flex gap-2">
               <Input
                 value={form.cep || ''}
-                onChange={e => set('cep', e.target.value)}
+                onChange={e => set('cep', maskCEP(e.target.value))}
                 onBlur={buscarCep}
                 placeholder="00000-000"
                 maxLength={9}
