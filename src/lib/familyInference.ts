@@ -112,11 +112,14 @@ export async function inferirRelacoesFamiliares(
 
   // ────────────────────────────────────────────────────────────────
   // REGRA 3: Meus pais → avós de todos os meus filhos
+  // parentesco descreve "o que a outra pessoa É para mim":
+  //   avô/avó → no registro do avô: 'Neto(a)': neto  ("neto é meu neto")
+  //   avô/avó → no registro do neto: 'Avô/Avó': avô  ("avô é meu avô")
   // ────────────────────────────────────────────────────────────────
   for (const paiId of paisIds) {
-    for (const filhoId of todosFilhosIds) {
-      await ensureLink(client, paiId, 'Avô/Avó', filhoId)
-      await ensureLink(client, filhoId, 'Neto(a)', paiId)
+    for (const netoId of todosFilhosIds) {
+      await ensureLink(client, paiId,  'Neto(a)',  netoId)  // avô → "netoId é meu neto"
+      await ensureLink(client, netoId, 'Avô/Avó', paiId)   // neto → "paiId é meu avô"
     }
   }
 
@@ -131,9 +134,9 @@ export async function inferirRelacoesFamiliares(
     )
     for (const pc of paisConjuge) {
       const avoId = Number(pc.membro_vinculado_id)
-      for (const filhoId of todosFilhosIds) {
-        await ensureLink(client, avoId, 'Avô/Avó', filhoId)
-        await ensureLink(client, filhoId, 'Neto(a)', avoId)
+      for (const netoId of todosFilhosIds) {
+        await ensureLink(client, avoId,  'Neto(a)',  netoId)  // avô → "netoId é meu neto"
+        await ensureLink(client, netoId, 'Avô/Avó', avoId)   // neto → "avoId é meu avô"
       }
     }
   }
@@ -150,8 +153,8 @@ export async function inferirRelacoesFamiliares(
     )
     for (const nr of netosRows) {
       const netoId = Number(nr.membro_vinculado_id)
-      await ensureLink(client, membroId, 'Avô/Avó', netoId)
-      await ensureLink(client, netoId, 'Neto(a)', membroId)
+      await ensureLink(client, membroId, 'Neto(a)',  netoId)  // avô → "netoId é meu neto"
+      await ensureLink(client, netoId,   'Avô/Avó', membroId) // neto → "membroId é meu avô"
     }
   }
 }
