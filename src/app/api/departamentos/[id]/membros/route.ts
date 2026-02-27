@@ -8,6 +8,13 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   const { id } = params
 
+  // Verificar se o usuário tem acesso a este departamento
+  const deptoAcesso = user.departamentos_acesso && user.departamentos_acesso.length > 0
+    ? user.departamentos_acesso : null
+  if (deptoAcesso && !deptoAcesso.includes(parseInt(id))) {
+    return forbidden()
+  }
+
   try {
     const result = await pool.query(
       `SELECT m.id, m.nome, m.conhecido_como, m.cargo, m.tipo_participante, m.telefone_principal, m.sexo, m.data_nascimento, md.cargo_departamento

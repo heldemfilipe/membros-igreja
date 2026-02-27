@@ -26,9 +26,13 @@ export async function GET(req: NextRequest) {
   const cargo = searchParams.get('cargo')
   const departamento = searchParams.get('departamento')
 
+  // Restrição de departamentos: se o usuário tiver acesso limitado a departamentos específicos
+  const deptoAcesso = user.departamentos_acesso && user.departamentos_acesso.length > 0
+    ? user.departamentos_acesso : null
+
   try {
     let query = 'SELECT * FROM membros WHERE 1=1'
-    const params: (string | number)[] = []
+    const params: (string | number | number[])[] = []
     let paramCount = 1
 
     if (tipo) {
@@ -46,7 +50,20 @@ export async function GET(req: NextRequest) {
       params.push(`%${search}%`)
       paramCount++
     }
-    if (departamento) {
+
+    // Filtro de departamento: combina restrição de acesso + filtro explícito do usuário
+    if (deptoAcesso) {
+      const requestedDept = departamento ? parseInt(departamento) : null
+      const effectiveDepts = requestedDept !== null
+        ? deptoAcesso.filter(id => id === requestedDept)
+        : deptoAcesso
+      if (effectiveDepts.length === 0) {
+        return Response.json([])
+      }
+      query += ` AND id IN (SELECT membro_id FROM membro_departamentos WHERE departamento_id = ANY($${paramCount}::int[]))`
+      params.push(effectiveDepts)
+      paramCount++
+    } else if (departamento) {
       query += ` AND id IN (SELECT membro_id FROM membro_departamentos WHERE departamento_id = $${paramCount})`
       params.push(departamento)
       paramCount++

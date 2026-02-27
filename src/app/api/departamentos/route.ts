@@ -6,10 +6,22 @@ export async function GET(req: NextRequest) {
   const user = await verificarToken(req)
   if (!user) return unauthorized()
 
+  // Restrição por departamentos
+  const deptoAcesso = user.departamentos_acesso && user.departamentos_acesso.length > 0
+    ? user.departamentos_acesso : null
+
   try {
+    const deptParams: (number[])[] = []
+    let deptWhere = ''
+    if (deptoAcesso) {
+      deptWhere = ` WHERE d.id = ANY($1::int[])`
+      deptParams.push(deptoAcesso)
+    }
+
     const result = await pool.query(
       `SELECT d.*, (SELECT COUNT(*) FROM membro_departamentos md WHERE md.departamento_id = d.id) as total_membros
-       FROM departamentos d ORDER BY d.nome`
+       FROM departamentos d${deptWhere} ORDER BY d.nome`,
+      deptParams
     )
     return Response.json(result.rows)
   } catch (error: unknown) {
