@@ -7,7 +7,7 @@ export const CARGOS_ECLESIASTICOS = [
 // Cargos dentro dos departamentos
 export const CARGOS_DEPARTAMENTO = [
   'Líder', 'Vice-Líder', 'Regente', 'Secretário(a)', 'Tesoureiro(a)',
-  'Professor(a)', 'Coordenador(a)', 'Membro',
+  'Professor(a)', 'Coordenador(a)', 'Auxiliar', 'Membro',
 ]
 
 // Cores dos cargos eclesiásticos (igual ao sistema original)
