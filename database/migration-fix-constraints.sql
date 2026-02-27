@@ -4,18 +4,18 @@
 -- ============================================================
 
 -- 1. Corrige o constraint de tipo do histórico eclesiástico
---    (O frontend usava: Batismo, Admissão, Exclusão, etc.)
+--    (Valores conforme ficha padrão da igreja)
 ALTER TABLE historicos DROP CONSTRAINT IF EXISTS historicos_tipo_check;
 ALTER TABLE historicos
   ADD CONSTRAINT historicos_tipo_check
   CHECK (tipo IN (
-    'Batismo',
-    'Admissão',
-    'Exclusão',
-    'Transferência',
-    'Reconciliação',
-    'Ordenação',
-    'Afastamento'
+    'Conversão',
+    'Batismo nas Águas',
+    'Batismo no Espírito Santo',
+    'Consagração a Diácono(isa)',
+    'Consagração a Presbítero',
+    'Ordenação a Evangelista',
+    'Ordenação a Pastor(a)'
   ));
 
 -- 2. Corrige o constraint de parentesco dos familiares

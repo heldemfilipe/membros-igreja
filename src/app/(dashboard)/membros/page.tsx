@@ -10,9 +10,18 @@ import { Card, CardContent } from '@/components/ui/card'
 import { VisitorModal } from '@/components/membros/VisitorModal'
 import { MemberViewModal } from '@/components/membros/MemberViewModal'
 import { MemberModal } from '@/components/membros/MemberModal'
-import { Loader2, Plus, Search, Pencil, Trash2, Eye, UserPlus, Download, Phone, MapPin } from 'lucide-react'
+import { Loader2, Plus, Search, Pencil, Trash2, Eye, UserPlus, Download, Phone } from 'lucide-react'
 import { calcularIdade, cn } from '@/lib/utils'
 import { getCargoStyle, getDeptBadgeStyle, CARGOS_ECLESIASTICOS } from '@/lib/constants'
+
+const ESTADO_CIVIL_ABREV: Record<string, string> = {
+  'Solteiro(a)':  'Solt.',
+  'Casado(a)':    'Cas.',
+  'Divorciado(a)':'Div.',
+  'Viúvo(a)':     'Viúvo',
+  'Separado(a)':  'Sep.',
+  'União Estável':'U.E.',
+}
 
 const TIPO_STYLE: Record<string, { card: string; avatar: string }> = {
   Membro:     { card: 'border-l-4 border-l-blue-500',    avatar: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' },
@@ -36,9 +45,9 @@ export default function MembrosPage() {
   const [exporting, setExporting] = useState(false)
   const searchTimer = useRef<ReturnType<typeof setTimeout>>()
 
-  const loadMembros = useCallback(async () => {
+  const loadMembros = useCallback(async (silent = false) => {
     if (!token) return
-    setLoading(true)
+    if (!silent) setLoading(true)
     try {
       const params = new URLSearchParams()
       if (search) params.set('search', search)
@@ -51,9 +60,12 @@ export default function MembrosPage() {
       })
       if (res.ok) setMembros(await res.json())
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }, [token, search, filterTipo, filterCargo, filterDept])
+
+  // Atualiza lista sem mostrar spinner (preserva posição de scroll)
+  const refreshSilent = useCallback(() => loadMembros(true), [loadMembros])
 
   useEffect(() => {
     clearTimeout(searchTimer.current)
@@ -257,6 +269,11 @@ export default function MembrosPage() {
                             {idade}a
                           </Badge>
                         )}
+                        {(m.estado_civil || true) && (
+                          <Badge variant="outline" className="text-xs h-5 text-muted-foreground">
+                            {ESTADO_CIVIL_ABREV[m.estado_civil || ''] ?? (m.estado_civil || 'Solt.')}
+                          </Badge>
+                        )}
                         {m.departamentos_info?.map((d, i) => (
                           <Badge
                             key={i}
@@ -269,21 +286,13 @@ export default function MembrosPage() {
                         ))}
                       </div>
 
-                      {/* Contato / Localização — visível em sm+ */}
-                      {(m.telefone_principal || m.cidade) && (
+                      {/* Telefone — visível em sm+ */}
+                      {m.telefone_principal && (
                         <p className="text-xs text-muted-foreground mt-0.5 hidden sm:block truncate">
-                          {m.telefone_principal && (
-                            <span className="inline-flex items-center gap-1 mr-2">
-                              <Phone className="h-3 w-3" />
-                              {m.telefone_principal}
-                            </span>
-                          )}
-                          {m.cidade && (
-                            <span className="inline-flex items-center gap-1">
-                              <MapPin className="h-3 w-3" />
-                              {m.cidade}{m.estado ? `/${m.estado}` : ''}
-                            </span>
-                          )}
+                          <span className="inline-flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            {m.telefone_principal}
+                          </span>
                         </p>
                       )}
                     </div>
@@ -326,7 +335,7 @@ export default function MembrosPage() {
       <VisitorModal
         open={visitorModal}
         onClose={() => setVisitorModal(false)}
-        onSuccess={loadMembros}
+        onSuccess={refreshSilent}
         token={token}
       />
 
@@ -335,14 +344,14 @@ export default function MembrosPage() {
         open={!!viewMembro}
         onClose={() => setViewMembro(null)}
         onEdit={id => { setViewMembro(null); setMemberModal({ open: true, id }) }}
-        onVisitaRegistrada={loadMembros}
+        onVisitaRegistrada={refreshSilent}
       />
 
       <MemberModal
         open={memberModal.open}
         membroId={memberModal.id}
         onClose={() => setMemberModal({ open: false })}
-        onSuccess={loadMembros}
+        onSuccess={refreshSilent}
       />
     </div>
   )

@@ -24,7 +24,7 @@ const defaultForm: MemberFormData = {
   nome: '', conhecido_como: '', igreja: '', cargo: '', sexo: '',
   data_nascimento: '', cep: '', logradouro: '', numero: '', complemento: '',
   bairro: '', cidade: '', estado: '', telefone_principal: '', telefone_secundario: '',
-  email: '', cpf: '', estado_civil: '', profissao: '', identidade: '',
+  email: '', cpf: '', estado_civil: 'Solteiro(a)', profissao: '', identidade: '',
   orgao_expedidor: '', data_expedicao: '', grau_instrucao: '', titulo_eleitor: '',
   titulo_eleitor_zona: '', titulo_eleitor_secao: '', tipo_sanguineo: '',
   cert_nascimento_casamento: '', reservista: '', carteira_motorista: '',
@@ -180,20 +180,31 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
   }
 
   const setFamiliar = (i: number, field: keyof Familiar, value: string) => {
-    setForm(f => ({
-      ...f,
-      familiares: f.familiares.map((fam, idx) => idx === i ? { ...fam, [field]: value } : fam),
-    }))
+    setForm(f => {
+      const newFamiliares = f.familiares.map((fam, idx) => idx === i ? { ...fam, [field]: value } : fam)
+      // Se mudou o parentesco para Cônjuge, auto-define estado civil como Casado(a)
+      const autoCivil = field === 'parentesco' && value === 'Cônjuge'
+        && (!f.estado_civil || f.estado_civil === 'Solteiro(a)')
+        ? 'Casado(a)' : f.estado_civil
+      return { ...f, familiares: newFamiliares, estado_civil: autoCivil }
+    })
   }
 
   const vincularFamiliar = (i: number, membro: { id: number; nome: string; data_nascimento?: string }) => {
-    setForm(f => ({
-      ...f,
-      familiares: f.familiares.map((fam, idx) => idx === i
-        ? { ...fam, nome: membro.nome, membro_vinculado_id: membro.id, data_nascimento: membro.data_nascimento || fam.data_nascimento }
-        : fam
-      ),
-    }))
+    setForm(f => {
+      const parentescoAtual = f.familiares[i]?.parentesco
+      const autoCivil = parentescoAtual === 'Cônjuge'
+        && (!f.estado_civil || f.estado_civil === 'Solteiro(a)')
+        ? 'Casado(a)' : f.estado_civil
+      return {
+        ...f,
+        familiares: f.familiares.map((fam, idx) => idx === i
+          ? { ...fam, nome: membro.nome, membro_vinculado_id: membro.id, data_nascimento: membro.data_nascimento || fam.data_nascimento }
+          : fam
+        ),
+        estado_civil: autoCivil,
+      }
+    })
     setFamiliarDropdownIdx(null)
   }
 
@@ -625,13 +636,13 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
                 >
                   <option value="">Selecione</option>
                   {[
-                    'Admissão',
-                    'Batismo',
-                    'Transferência',
-                    'Reconciliação',
-                    'Ordenação',
-                    'Afastamento',
-                    'Exclusão',
+                    'Conversão',
+                    'Batismo nas Águas',
+                    'Batismo no Espírito Santo',
+                    'Consagração a Diácono(isa)',
+                    'Consagração a Presbítero',
+                    'Ordenação a Evangelista',
+                    'Ordenação a Pastor(a)',
                   ].map(t => (
                     <option key={t} value={t}>{t}</option>
                   ))}

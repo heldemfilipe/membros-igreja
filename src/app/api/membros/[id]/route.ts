@@ -82,7 +82,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     } catch { /* ignora */ }
     try {
       await client.query(`ALTER TABLE historicos DROP CONSTRAINT IF EXISTS historicos_tipo_check`)
-      await client.query(`ALTER TABLE historicos ADD CONSTRAINT historicos_tipo_check CHECK (tipo IN ('Batismo','Admissão','Exclusão','Transferência','Reconciliação','Ordenação','Afastamento'))`)
+      await client.query(`ALTER TABLE historicos ADD CONSTRAINT historicos_tipo_check CHECK (tipo IN ('Conversão','Batismo nas Águas','Batismo no Espírito Santo','Consagração a Diácono(isa)','Consagração a Presbítero','Ordenação a Evangelista','Ordenação a Pastor(a)'))`)
     } catch { /* ignora */ }
     try {
       await client.query(`ALTER TABLE familiares DROP CONSTRAINT IF EXISTS familiares_parentesco_check`)
