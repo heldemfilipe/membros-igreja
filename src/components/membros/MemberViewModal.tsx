@@ -251,9 +251,14 @@ export function MemberViewModal({ membro, open, onClose, onEdit, onVisitaRegistr
                     <Heart className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                     <span className="text-muted-foreground text-xs w-[5.5rem] shrink-0">{f.parentesco}:</span>
                     <span className="font-medium truncate">{f.nome}</span>
-                    {f.data_nascimento && (
-                      <span className="text-xs text-muted-foreground shrink-0">· {formatarData(f.data_nascimento)}</span>
-                    )}
+                    {f.data_nascimento && (() => {
+                      const idadeFam = calcularIdade(f.data_nascimento!)
+                      return (
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          · {formatarData(f.data_nascimento!)}{idadeFam !== null ? ` (${idadeFam}a)` : ''}
+                        </span>
+                      )
+                    })()}
                     {f.membro_vinculado_id && (
                       <span className="ml-auto text-xs text-emerald-600 dark:text-emerald-400 shrink-0">cadastrado</span>
                     )}
