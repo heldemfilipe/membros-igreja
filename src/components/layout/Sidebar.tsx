@@ -17,7 +17,7 @@ const menuItems = [
   { title: 'Membros',         icon: Users,            href: '/membros',         permissao: 'membros_ver' },
   { title: 'Aniversariantes', icon: Cake,             href: '/aniversariantes', permissao: 'aniversariantes_ver' },
   { title: 'Departamentos',   icon: Building2,        href: '/departamentos',   permissao: 'departamentos_ver' },
-  { title: 'Congregações',    icon: Church,           href: '/congregacoes',    permissao: 'departamentos_ver' },
+  { title: 'Congregações',    icon: Church,           href: '/congregacoes',    permissao: 'congregacoes_ver' },
 ]
 
 const adminItems = [

@@ -78,6 +78,7 @@ export const PERMISSOES_DISPONIVEIS = [
   { key: 'departamentos_ver',   label: 'Departamentos — Ver',     descricao: 'Visualizar departamentos' },
   { key: 'departamentos_editar', label: 'Departamentos — Editar', descricao: 'Criar e editar departamentos' },
   { key: 'aniversariantes_ver', label: 'Aniversariantes',         descricao: 'Ver aniversariantes' },
+  { key: 'congregacoes_ver',    label: 'Congregações',            descricao: 'Ver aba de congregações' },
 ] as const
 
 export type PermissaoKey = (typeof PERMISSOES_DISPONIVEIS)[number]['key']

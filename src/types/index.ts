@@ -93,6 +93,7 @@ export interface Permissoes {
   departamentos_ver?: boolean
   departamentos_editar?: boolean
   aniversariantes_ver?: boolean
+  congregacoes_ver?: boolean
   [key: string]: boolean | undefined
 }
 
