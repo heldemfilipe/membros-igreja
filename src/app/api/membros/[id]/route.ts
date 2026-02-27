@@ -73,21 +73,20 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
   const client = await pool.connect()
 
+  // Lazy migrations FORA da transação — DDL que falha dentro do BEGIN
+  // aborta toda a transação e impede as queries seguintes de executar.
+  try { await client.query('ALTER TABLE membros ADD COLUMN IF NOT EXISTS funcao_igreja TEXT') } catch { }
+  try {
+    await client.query(`ALTER TABLE historicos DROP CONSTRAINT IF EXISTS historicos_tipo_check`)
+    await client.query(`ALTER TABLE historicos ADD CONSTRAINT historicos_tipo_check CHECK (tipo IN ('Conversão','Batismo nas Águas','Batismo no Espírito Santo','Consagração a Diácono(isa)','Consagração a Presbítero','Ordenação a Evangelista','Ordenação a Pastor(a)'))`)
+  } catch { }
+  try {
+    await client.query(`ALTER TABLE familiares DROP CONSTRAINT IF EXISTS familiares_parentesco_check`)
+    await client.query(`ALTER TABLE familiares ADD CONSTRAINT familiares_parentesco_check CHECK (parentesco IN ('Pai','Mãe','Cônjuge','Filho(a)','Irmão(ã)','Avô/Avó','Neto(a)','Outro'))`)
+  } catch { }
+
   try {
     await client.query('BEGIN')
-
-    // Lazy migration: colunas e constraints
-    try {
-      await client.query('ALTER TABLE membros ADD COLUMN IF NOT EXISTS funcao_igreja TEXT')
-    } catch { /* ignora */ }
-    try {
-      await client.query(`ALTER TABLE historicos DROP CONSTRAINT IF EXISTS historicos_tipo_check`)
-      await client.query(`ALTER TABLE historicos ADD CONSTRAINT historicos_tipo_check CHECK (tipo IN ('Conversão','Batismo nas Águas','Batismo no Espírito Santo','Consagração a Diácono(isa)','Consagração a Presbítero','Ordenação a Evangelista','Ordenação a Pastor(a)'))`)
-    } catch { /* ignora */ }
-    try {
-      await client.query(`ALTER TABLE familiares DROP CONSTRAINT IF EXISTS familiares_parentesco_check`)
-      await client.query(`ALTER TABLE familiares ADD CONSTRAINT familiares_parentesco_check CHECK (parentesco IN ('Pai','Mãe','Cônjuge','Filho(a)','Irmão(ã)','Avô/Avó','Neto(a)','Outro'))`)
-    } catch { /* ignora */ }
 
     await client.query(
       `UPDATE membros SET

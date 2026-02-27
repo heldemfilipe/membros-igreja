@@ -374,6 +374,25 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
   const titleCase = (v: string) =>
     v.trim().replace(/\b\w+/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
 
+  // ─── Máscaras de CPF e RG ─────────────────────────────────────────────────
+
+  const maskCPF = (v: string) => {
+    const d = v.replace(/\D/g, '').slice(0, 11)
+    if (d.length <= 3) return d
+    if (d.length <= 6) return `${d.slice(0,3)}.${d.slice(3)}`
+    if (d.length <= 9) return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6)}`
+    return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}`
+  }
+
+  const maskRG = (v: string) => {
+    // Permite dígitos e X (dígito verificador pode ser X)
+    const d = v.replace(/[^0-9Xx]/g, '').toUpperCase().slice(0, 9)
+    if (d.length <= 2) return d
+    if (d.length <= 5) return `${d.slice(0,2)}.${d.slice(2)}`
+    if (d.length <= 8) return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5)}`
+    return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}-${d.slice(8)}`
+  }
+
   const field = (label: string, fieldName: keyof MemberFormData, type = 'text', col?: string, cap?: boolean) => (
     <div className={`space-y-2 ${col || ''}`}>
       <Label>{label}</Label>
@@ -527,8 +546,24 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
       <Card>
         <CardHeader><CardTitle className="text-base">Documentos</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {field('CPF', 'cpf')}
-          {field('RG / Identidade', 'identidade')}
+          <div className="space-y-2">
+            <Label>CPF</Label>
+            <Input
+              value={form.cpf || ''}
+              onChange={e => set('cpf', maskCPF(e.target.value))}
+              placeholder="000.000.000-00"
+              maxLength={14}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>RG / Identidade</Label>
+            <Input
+              value={form.identidade || ''}
+              onChange={e => set('identidade', maskRG(e.target.value))}
+              placeholder="00.000.000-0"
+              maxLength={12}
+            />
+          </div>
           {field('Órgão Expedidor', 'orgao_expedidor')}
           {field('Data de Expedição', 'data_expedicao', 'date')}
           {field('Título de Eleitor', 'titulo_eleitor')}
