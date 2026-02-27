@@ -27,7 +27,16 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const [membroResult, historicosResult, familiaresResult, deptResult] = await Promise.all([
       pool.query('SELECT * FROM membros WHERE id = $1', [id]),
       pool.query('SELECT * FROM historicos WHERE membro_id = $1 ORDER BY data', [id]),
-      pool.query('SELECT * FROM familiares WHERE membro_id = $1', [id]),
+      // COALESCE: usa data_nascimento do registro do familiar; se nulo,
+      // usa a data do membro vinculado (membro já cadastrado no sistema)
+      pool.query(
+        `SELECT f.id, f.membro_id, f.parentesco, f.nome, f.observacoes, f.membro_vinculado_id,
+                COALESCE(f.data_nascimento, m.data_nascimento) AS data_nascimento
+         FROM familiares f
+         LEFT JOIN membros m ON m.id = f.membro_vinculado_id
+         WHERE f.membro_id = $1`,
+        [id]
+      ),
       pool.query(
         `SELECT md.departamento_id as id, d.nome, md.cargo_departamento
          FROM membro_departamentos md
