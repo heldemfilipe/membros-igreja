@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Usuario, PerfilAcesso, Departamento, Permissoes } from '@/types'
+
+type Congregacao = { id: number; nome: string; cidade?: string; estado?: string }
 import { useToast } from '@/components/ui/use-toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,6 +26,7 @@ const defaultUserForm = {
   ativo: true,
   perfil_id: '' as string | number,
   departamentos_acesso: [] as number[],
+  congregacoes_acesso: [] as number[],
 }
 
 const defaultPerfilForm = {
@@ -58,6 +61,9 @@ export default function UsuariosPage() {
   // Departamentos
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
 
+  // Congregações
+  const [congregacoes, setCongregacoes] = useState<Congregacao[]>([])
+
   // ─── Loaders ──────────────────────────────────────────────────────────────
 
   const loadUsuarios = useCallback(async () => {
@@ -91,6 +97,10 @@ export default function UsuariosPage() {
       .then(r => r.json())
       .then(setDepartamentos)
       .catch(() => {})
+    fetch('/api/congregacoes', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(setCongregacoes)
+      .catch(() => {})
   }, [token])
 
   // ─── Guard ────────────────────────────────────────────────────────────────
@@ -121,6 +131,7 @@ export default function UsuariosPage() {
       ativo: u.ativo,
       perfil_id: u.perfil_id ?? '',
       departamentos_acesso: u.departamentos_acesso || [],
+      congregacoes_acesso: u.congregacoes_acesso || [],
     })
     setUserDialog(true)
   }
@@ -143,6 +154,7 @@ export default function UsuariosPage() {
         ...userForm,
         perfil_id: userForm.perfil_id !== '' ? Number(userForm.perfil_id) : null,
         departamentos_acesso: userForm.departamentos_acesso.length > 0 ? userForm.departamentos_acesso : null,
+        congregacoes_acesso: userForm.congregacoes_acesso.length > 0 ? userForm.congregacoes_acesso : null,
       }
       const res = await fetch(url, {
         method,
@@ -183,6 +195,15 @@ export default function UsuariosPage() {
       departamentos_acesso: f.departamentos_acesso.includes(id)
         ? f.departamentos_acesso.filter(x => x !== id)
         : [...f.departamentos_acesso, id],
+    }))
+  }
+
+  const toggleCongAcesso = (id: number) => {
+    setUserForm(f => ({
+      ...f,
+      congregacoes_acesso: f.congregacoes_acesso.includes(id)
+        ? f.congregacoes_acesso.filter(x => x !== id)
+        : [...f.congregacoes_acesso, id],
     }))
   }
 
@@ -395,6 +416,11 @@ export default function UsuariosPage() {
                         Acesso restrito a {u.departamentos_acesso.length} departamento{u.departamentos_acesso.length !== 1 ? 's' : ''}
                       </p>
                     )}
+                    {u.congregacoes_acesso && u.congregacoes_acesso.length > 0 && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Acesso restrito a {u.congregacoes_acesso.length} congregação{u.congregacoes_acesso.length !== 1 ? 'ões' : ''}
+                      </p>
+                    )}
                     {u.ultimo_acesso && (
                       <p className="text-xs text-muted-foreground mt-0.5">
                         Último acesso: {formatarData(u.ultimo_acesso)}
@@ -490,6 +516,35 @@ export default function UsuariosPage() {
                             )}
                           </div>
                           <span className="text-sm" onClick={() => toggleDeptAcesso(d.id)}>{d.nome}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Restrição de congregações */}
+                {congregacoes.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Congregações com Acesso</Label>
+                    <p className="text-xs text-muted-foreground">Deixe vazio para permitir acesso a todas as congregações.</p>
+                    <div className="max-h-40 overflow-y-auto border rounded-md p-2 space-y-1">
+                      {congregacoes.map(c => (
+                        <label key={c.id} className="flex items-center gap-2.5 cursor-pointer rounded px-1 py-1 hover:bg-accent/50 transition-colors">
+                          <div
+                            className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                              userForm.congregacoes_acesso.includes(c.id)
+                                ? 'bg-primary border-primary'
+                                : 'border-muted-foreground/40'
+                            }`}
+                            onClick={() => toggleCongAcesso(c.id)}
+                          >
+                            {userForm.congregacoes_acesso.includes(c.id) && (
+                              <Check className="h-2.5 w-2.5 text-primary-foreground" />
+                            )}
+                          </div>
+                          <span className="text-sm" onClick={() => toggleCongAcesso(c.id)}>
+                            {c.nome}{c.cidade ? ` — ${c.cidade}${c.estado ? `/${c.estado}` : ''}` : ''}
+                          </span>
                         </label>
                       ))}
                     </div>

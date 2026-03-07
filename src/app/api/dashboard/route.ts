@@ -6,28 +6,42 @@ export async function GET(req: NextRequest) {
   const user = await verificarToken(req)
   if (!user) return unauthorized()
 
-  // Restrição por departamentos: filtrar stats apenas pelos membros dos depts acessíveis
+  // Restrições por departamento e congregação
   const deptoAcesso = user.departamentos_acesso && user.departamentos_acesso.length > 0
     ? user.departamentos_acesso : null
+  const congAcesso = user.congregacoes_acesso && user.congregacoes_acesso.length > 0
+    ? user.congregacoes_acesso : null
 
-  // Cada query usa $1::int[] quando há restrição — independentes, então $1 em cada
-  const dw = deptoAcesso
-    ? ` AND id IN (SELECT membro_id FROM membro_departamentos WHERE departamento_id = ANY($1::int[]))`
-    : ''
+  // Monta filtro combinado para cada query (cada pool.query é independente, usa $1/$2 próprios)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const dp: any[] = deptoAcesso ? [deptoAcesso] : []
+  function buildFilter(): { where: string; params: any[] } {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const p: any[] = []
+    let w = ''
+    if (deptoAcesso) {
+      p.push(deptoAcesso)
+      w += ` AND id IN (SELECT membro_id FROM membro_departamentos WHERE departamento_id = ANY($${p.length}::int[]))`
+    }
+    if (congAcesso) {
+      p.push(congAcesso)
+      w += ` AND igreja IN (SELECT nome FROM congregacoes WHERE id = ANY($${p.length}::int[]))`
+    }
+    return { where: w, params: p }
+  }
+
+  const f = buildFilter()
 
   try {
     const [
       totalMembros, totalCongregados, totalGeral,
       porSexo, porTipo, porCargo, porFaixaEtaria, estatisticasIdade, porEstadoCivil,
     ] = await Promise.all([
-      pool.query(`SELECT COUNT(*) as total FROM membros WHERE tipo_participante = 'Membro'${dw}`, dp),
-      pool.query(`SELECT COUNT(*) as total FROM membros WHERE tipo_participante = 'Congregado'${dw}`, dp),
-      pool.query(`SELECT COUNT(*) as total FROM membros WHERE 1=1${dw}`, dp),
-      pool.query(`SELECT sexo, COUNT(*) as total FROM membros WHERE sexo IS NOT NULL AND sexo != ''${dw} GROUP BY sexo ORDER BY total DESC`, dp),
-      pool.query(`SELECT tipo_participante, COUNT(*) as total FROM membros WHERE 1=1${dw} GROUP BY tipo_participante ORDER BY total DESC`, dp),
-      pool.query(`SELECT cargo, COUNT(*) as total FROM membros WHERE cargo IS NOT NULL AND cargo != ''${dw} GROUP BY cargo ORDER BY total DESC`, dp),
+      pool.query(`SELECT COUNT(*) as total FROM membros WHERE tipo_participante = 'Membro'${f.where}`, f.params),
+      pool.query(`SELECT COUNT(*) as total FROM membros WHERE tipo_participante = 'Congregado'${f.where}`, f.params),
+      pool.query(`SELECT COUNT(*) as total FROM membros WHERE 1=1${f.where}`, f.params),
+      pool.query(`SELECT sexo, COUNT(*) as total FROM membros WHERE sexo IS NOT NULL AND sexo != ''${f.where} GROUP BY sexo ORDER BY total DESC`, f.params),
+      pool.query(`SELECT tipo_participante, COUNT(*) as total FROM membros WHERE 1=1${f.where} GROUP BY tipo_participante ORDER BY total DESC`, f.params),
+      pool.query(`SELECT cargo, COUNT(*) as total FROM membros WHERE cargo IS NOT NULL AND cargo != ''${f.where} GROUP BY cargo ORDER BY total DESC`, f.params),
       pool.query(`
         SELECT faixa, COUNT(*) AS total FROM (
           SELECT CASE
@@ -38,36 +52,41 @@ export async function GET(req: NextRequest) {
             WHEN EXTRACT(YEAR FROM AGE(data_nascimento)) BETWEEN 46 AND 60 THEN '46-60 anos'
             WHEN EXTRACT(YEAR FROM AGE(data_nascimento)) > 60 THEN 'Acima de 60 anos'
             ELSE 'Não informado'
-          END AS faixa FROM membros WHERE data_nascimento IS NOT NULL${dw}
+          END AS faixa FROM membros WHERE data_nascimento IS NOT NULL${f.where}
         ) t GROUP BY faixa
         ORDER BY CASE faixa
           WHEN '0-17 anos' THEN 1 WHEN '18-25 anos' THEN 2 WHEN '26-35 anos' THEN 3
           WHEN '36-45 anos' THEN 4 WHEN '46-60 anos' THEN 5 WHEN 'Acima de 60 anos' THEN 6 ELSE 7 END
-      `, dp),
+      `, f.params),
       pool.query(`
         SELECT ROUND(AVG(EXTRACT(YEAR FROM AGE(data_nascimento)))) as idade_media,
                COUNT(*) as total_com_idade
-        FROM membros WHERE data_nascimento IS NOT NULL${dw}
-      `, dp),
-      pool.query(`SELECT estado_civil, COUNT(*) as total FROM membros WHERE estado_civil IS NOT NULL AND estado_civil != ''${dw} GROUP BY estado_civil ORDER BY total DESC`, dp),
+        FROM membros WHERE data_nascimento IS NOT NULL${f.where}
+      `, f.params),
+      pool.query(`SELECT estado_civil, COUNT(*) as total FROM membros WHERE estado_civil IS NOT NULL AND estado_civil != ''${f.where} GROUP BY estado_civil ORDER BY total DESC`, f.params),
     ])
 
     let porDepartamento: { departamento: string; total: string }[] = []
     try {
-      // Se há restrição, mostrar apenas os departamentos acessíveis
-      const deptDw = deptoAcesso
-        ? ` AND md.departamento_id = ANY($1::int[])`
+      const fd = buildFilter()
+      // Adapta o filtro de dept para usar alias de join
+      const deptExtraWhere = congAcesso
+        ? ` AND m.igreja IN (SELECT nome FROM congregacoes WHERE id = ANY($${fd.params.length + 1}::int[]))`
         : ''
+      const deptDw = deptoAcesso ? ` AND md.departamento_id = ANY($1::int[])` : ''
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const deptDp: any[] = deptoAcesso ? [deptoAcesso] : []
+      const deptParams: any[] = []
+      if (deptoAcesso) deptParams.push(deptoAcesso)
+      if (congAcesso) deptParams.push(congAcesso)
+
       const deptResult = await pool.query(`
         SELECT COALESCE(d.nome, 'Sem Departamento') as departamento, COUNT(DISTINCT m.id) as total
         FROM membros m
         LEFT JOIN membro_departamentos md ON m.id = md.membro_id
         LEFT JOIN departamentos d ON md.departamento_id = d.id
-        WHERE 1=1${deptDw}
+        WHERE 1=1${deptDw}${deptExtraWhere}
         GROUP BY d.nome ORDER BY total DESC
-      `, deptDp)
+      `, deptParams)
       porDepartamento = deptResult.rows
     } catch {
       // ignore

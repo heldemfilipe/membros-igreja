@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   try {
     const result = await pool.query(
       `SELECT u.id, u.nome, u.email, u.tipo, u.ativo, u.created_at, u.ultimo_acesso,
-              u.perfil_id, u.departamentos_acesso, pa.nome as perfil_nome
+              u.perfil_id, u.departamentos_acesso, u.congregacoes_acesso, pa.nome as perfil_nome
        FROM usuarios u
        LEFT JOIN perfis_acesso pa ON u.perfil_id = pa.id
        ORDER BY u.nome`

@@ -11,6 +11,7 @@ interface UsuarioBasico {
   ativo: boolean
   perfil_id?: number | null
   departamentos_acesso?: number[] | null
+  congregacoes_acesso?: number[] | null
   permissoes?: Permissoes
 }
 
@@ -21,6 +22,7 @@ interface AuthContextType {
   loading: boolean
   permissoes: Permissoes
   departamentosAcesso: number[] | null
+  congregacoesAcesso: number[] | null
   temPermissao: (chave: string) => boolean
   login: (token: string, usuario: UsuarioBasico) => void
   logout: () => Promise<void>
@@ -33,6 +35,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   permissoes: {},
   departamentosAcesso: null,
+  congregacoesAcesso: null,
   temPermissao: () => false,
   login: () => {},
   logout: async () => {},
@@ -96,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAdmin = user?.tipo === 'admin'
   const permissoes: Permissoes = user?.permissoes || {}
   const departamentosAcesso: number[] | null = user?.departamentos_acesso || null
+  const congregacoesAcesso: number[] | null = user?.congregacoes_acesso || null
 
   const temPermissao = useCallback((chave: string): boolean => {
     if (!user) return false
@@ -108,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, permissoes])
 
   return (
-    <AuthContext.Provider value={{ user, token, isAdmin, loading, permissoes, departamentosAcesso, temPermissao, login, logout }}>
+    <AuthContext.Provider value={{ user, token, isAdmin, loading, permissoes, departamentosAcesso, congregacoesAcesso, temPermissao, login, logout }}>
       {children}
     </AuthContext.Provider>
   )

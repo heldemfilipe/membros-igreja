@@ -9,22 +9,30 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const mes = searchParams.get('mes') || String(new Date().getMonth() + 1)
 
-  // Restrição por departamentos
+  // Restrições por departamento e congregação
   const deptoAcesso = user.departamentos_acesso && user.departamentos_acesso.length > 0
     ? user.departamentos_acesso : null
+  const congAcesso = user.congregacoes_acesso && user.congregacoes_acesso.length > 0
+    ? user.congregacoes_acesso : null
 
   try {
-    const params: (string | number[])[] = [mes]
-    let deptWhere = ''
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const params: any[] = [mes]
+    let extraWhere = ''
+
     if (deptoAcesso) {
-      deptWhere = ` AND id IN (SELECT membro_id FROM membro_departamentos WHERE departamento_id = ANY($2::int[]))`
+      extraWhere += ` AND id IN (SELECT membro_id FROM membro_departamentos WHERE departamento_id = ANY($${params.length + 1}::int[]))`
       params.push(deptoAcesso)
+    }
+    if (congAcesso) {
+      extraWhere += ` AND igreja IN (SELECT nome FROM congregacoes WHERE id = ANY($${params.length + 1}::int[]))`
+      params.push(congAcesso)
     }
 
     const result = await pool.query(
       `SELECT id, nome, conhecido_como, data_nascimento, telefone_principal, tipo_participante, cargo
        FROM membros
-       WHERE EXTRACT(MONTH FROM data_nascimento) = $1${deptWhere}
+       WHERE EXTRACT(MONTH FROM data_nascimento) = $1${extraWhere}
        ORDER BY EXTRACT(DAY FROM data_nascimento)`,
       params
     )

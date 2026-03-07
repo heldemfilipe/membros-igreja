@@ -26,9 +26,11 @@ export async function GET(req: NextRequest) {
   const cargo = searchParams.get('cargo')
   const departamento = searchParams.get('departamento')
 
-  // Restrição de departamentos: se o usuário tiver acesso limitado a departamentos específicos
+  // Restrições de acesso por departamento e congregação
   const deptoAcesso = user.departamentos_acesso && user.departamentos_acesso.length > 0
     ? user.departamentos_acesso : null
+  const congAcesso = user.congregacoes_acesso && user.congregacoes_acesso.length > 0
+    ? user.congregacoes_acesso : null
 
   try {
     let query = 'SELECT * FROM membros WHERE 1=1'
@@ -66,6 +68,13 @@ export async function GET(req: NextRequest) {
     } else if (departamento) {
       query += ` AND id IN (SELECT membro_id FROM membro_departamentos WHERE departamento_id = $${paramCount})`
       params.push(departamento)
+      paramCount++
+    }
+
+    // Filtro de congregação
+    if (congAcesso) {
+      query += ` AND igreja IN (SELECT nome FROM congregacoes WHERE id = ANY($${paramCount}::int[]))`
+      params.push(congAcesso)
       paramCount++
     }
 

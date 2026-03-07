@@ -9,25 +9,29 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (user.tipo !== 'admin') return forbidden()
 
   const { id } = params
-  const { nome, email, senha, tipo, ativo, perfil_id, departamentos_acesso } = await req.json()
+  const { nome, email, senha, tipo, ativo, perfil_id, departamentos_acesso, congregacoes_acesso } = await req.json()
 
   try {
     let query: string
     let queryParams: (string | boolean | number | null | number[])[]
 
     const deptAcesso = Array.isArray(departamentos_acesso) && departamentos_acesso.length > 0
-      ? departamentos_acesso
-      : null
+      ? departamentos_acesso : null
+    const congAcesso = Array.isArray(congregacoes_acesso) && congregacoes_acesso.length > 0
+      ? congregacoes_acesso : null
+
+    // Lazy migration: garante que a coluna existe
+    try { await pool.query('ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS congregacoes_acesso INTEGER[]') } catch { }
 
     try {
-      // Tenta atualizar com perfil e departamentos
+      // Tenta atualizar com perfil, departamentos e congregacoes
       if (senha) {
         const senhaCriptografada = await bcrypt.hash(senha, 10)
-        query = 'UPDATE usuarios SET nome=$1, email=$2, senha=$3, tipo=$4, ativo=$5, perfil_id=$6, departamentos_acesso=$7 WHERE id=$8'
-        queryParams = [nome, email, senhaCriptografada, tipo, ativo, perfil_id || null, deptAcesso, id]
+        query = 'UPDATE usuarios SET nome=$1, email=$2, senha=$3, tipo=$4, ativo=$5, perfil_id=$6, departamentos_acesso=$7, congregacoes_acesso=$8 WHERE id=$9'
+        queryParams = [nome, email, senhaCriptografada, tipo, ativo, perfil_id || null, deptAcesso, congAcesso, id]
       } else {
-        query = 'UPDATE usuarios SET nome=$1, email=$2, tipo=$3, ativo=$4, perfil_id=$5, departamentos_acesso=$6 WHERE id=$7'
-        queryParams = [nome, email, tipo, ativo, perfil_id || null, deptAcesso, id]
+        query = 'UPDATE usuarios SET nome=$1, email=$2, tipo=$3, ativo=$4, perfil_id=$5, departamentos_acesso=$6, congregacoes_acesso=$7 WHERE id=$8'
+        queryParams = [nome, email, tipo, ativo, perfil_id || null, deptAcesso, congAcesso, id]
       }
       await pool.query(query, queryParams)
     } catch {

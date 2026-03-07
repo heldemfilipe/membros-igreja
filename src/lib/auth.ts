@@ -10,6 +10,7 @@ export interface AuthUser {
   ativo?: boolean
   permissoes: Permissoes
   departamentos_acesso: number[] | null
+  congregacoes_acesso: number[] | null
   perfil_id?: number | null
 }
 
@@ -20,10 +21,10 @@ export async function verificarToken(req: NextRequest): Promise<AuthUser | null>
   const token = authHeader.replace('Bearer ', '')
 
   try {
-    // Tenta query completa com join em perfis_acesso
+    // Tenta query completa com join em perfis_acesso (inclui congregacoes_acesso)
     const result = await pool.query(
       `SELECT s.*, u.id as user_id, u.nome, u.email, u.tipo, u.ativo,
-              u.perfil_id, u.departamentos_acesso,
+              u.perfil_id, u.departamentos_acesso, u.congregacoes_acesso,
               pa.permissoes
        FROM sessoes s
        JOIN usuarios u ON s.usuario_id = u.id
@@ -44,10 +45,11 @@ export async function verificarToken(req: NextRequest): Promise<AuthUser | null>
       ativo: sessao.ativo,
       permissoes: sessao.permissoes || {},
       departamentos_acesso: sessao.departamentos_acesso || null,
+      congregacoes_acesso: sessao.congregacoes_acesso || null,
       perfil_id: sessao.perfil_id || null,
     }
   } catch {
-    // Fallback sem colunas de perfil (antes da migração)
+    // Fallback sem colunas de perfil/acesso (antes da migração)
     try {
       const result = await pool.query(
         `SELECT s.*, u.id as user_id, u.nome, u.email, u.tipo, u.ativo
@@ -67,6 +69,7 @@ export async function verificarToken(req: NextRequest): Promise<AuthUser | null>
         ativo: sessao.ativo,
         permissoes: {},
         departamentos_acesso: null,
+        congregacoes_acesso: null,
         perfil_id: null,
       }
     } catch {

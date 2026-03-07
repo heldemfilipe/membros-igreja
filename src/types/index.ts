@@ -94,6 +94,7 @@ export interface Permissoes {
   departamentos_editar?: boolean
   aniversariantes_ver?: boolean
   congregacoes_ver?: boolean
+  congregacoes_editar?: boolean
   [key: string]: boolean | undefined
 }
 
@@ -116,6 +117,7 @@ export interface Usuario {
   perfil_id?: number | null
   perfil_nome?: string | null
   departamentos_acesso?: number[] | null
+  congregacoes_acesso?: number[] | null
 }
 
 export interface DashboardData {

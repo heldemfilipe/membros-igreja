@@ -1,10 +1,13 @@
 import { NextRequest } from 'next/server'
 import pool from '@/lib/db'
-import { verificarToken, unauthorized } from '@/lib/auth'
+import { verificarToken, unauthorized, forbidden } from '@/lib/auth'
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   const user = await verificarToken(req)
   if (!user) return unauthorized()
+  if (user.tipo !== 'admin' && !user.permissoes.congregacoes_editar) {
+    return forbidden('Sem permissão para editar congregações.')
+  }
 
   const { id } = params
   const { nome, cidade, estado, observacoes } = await req.json()
@@ -37,6 +40,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const user = await verificarToken(req)
   if (!user) return unauthorized()
+  if (user.tipo !== 'admin' && !user.permissoes.congregacoes_editar) {
+    return forbidden('Sem permissão para excluir congregações.')
+  }
 
   const { id } = params
 
