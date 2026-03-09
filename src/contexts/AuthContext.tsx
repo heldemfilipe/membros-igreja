@@ -23,6 +23,9 @@ interface AuthContextType {
   permissoes: Permissoes
   departamentosAcesso: number[] | null
   congregacoesAcesso: number[] | null
+  filtroCongregacao: number | null
+  filtroCongregacaoNome: string | null
+  setFiltroCongregacao: (id: number | null, nome?: string | null) => void
   temPermissao: (chave: string) => boolean
   login: (token: string, usuario: UsuarioBasico) => void
   logout: () => Promise<void>
@@ -36,6 +39,9 @@ const AuthContext = createContext<AuthContextType>({
   permissoes: {},
   departamentosAcesso: null,
   congregacoesAcesso: null,
+  filtroCongregacao: null,
+  filtroCongregacaoNome: null,
+  setFiltroCongregacao: () => {},
   temPermissao: () => false,
   login: () => {},
   logout: async () => {},
@@ -45,6 +51,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UsuarioBasico | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [filtroCongregacao, setFiltroCongregacaoState] = useState<number | null>(null)
+  const [filtroCongregacaoNome, setFiltroCongregacaoNome] = useState<string | null>(null)
 
   useEffect(() => {
     const storedToken = localStorage.getItem('token')
@@ -76,6 +84,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('usuario', JSON.stringify(usuario))
     setToken(newToken)
     setUser(usuario)
+    // Resetar filtro ao trocar de usuário
+    setFiltroCongregacaoState(null)
+    setFiltroCongregacaoNome(null)
   }
 
   const logout = async () => {
@@ -93,8 +104,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('usuario')
       setToken(null)
       setUser(null)
+      setFiltroCongregacaoState(null)
+      setFiltroCongregacaoNome(null)
     }
   }
+
+  const setFiltroCongregacao = useCallback((id: number | null, nome?: string | null) => {
+    setFiltroCongregacaoState(id)
+    setFiltroCongregacaoNome(nome ?? null)
+  }, [])
 
   const isAdmin = user?.tipo === 'admin'
   const permissoes: Permissoes = user?.permissoes || {}
@@ -112,7 +130,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, permissoes])
 
   return (
-    <AuthContext.Provider value={{ user, token, isAdmin, loading, permissoes, departamentosAcesso, congregacoesAcesso, temPermissao, login, logout }}>
+    <AuthContext.Provider value={{
+      user, token, isAdmin, loading, permissoes,
+      departamentosAcesso, congregacoesAcesso,
+      filtroCongregacao, filtroCongregacaoNome, setFiltroCongregacao,
+      temPermissao, login, logout,
+    }}>
       {children}
     </AuthContext.Provider>
   )

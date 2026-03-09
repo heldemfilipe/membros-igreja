@@ -123,7 +123,7 @@ function fmtDataVisita(iso: string): string {
 // ─── Página ──────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const { token, congregacoesAcesso } = useAuth()
+  const { token, congregacoesAcesso, filtroCongregacao, filtroCongregacaoNome } = useAuth()
   const [data, setData] = useState<DashboardData | null>(null)
   const [todosAniv, setTodosAniv] = useState<AniversarianteItem[]>([])
   const [filtroSemana, setFiltroSemana] = useState<FiltroSemana>('esta')
@@ -142,12 +142,15 @@ export default function DashboardPage() {
   const loadData = useCallback(async () => {
     if (!token) return
     try {
-      const res = await fetch('/api/dashboard', { headers: { Authorization: `Bearer ${token}` } })
+      const params = new URLSearchParams()
+      if (filtroCongregacao) params.set('congregacao', String(filtroCongregacao))
+      const url = `/api/dashboard${params.toString() ? `?${params}` : ''}`
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       if (res.ok) setData(await res.json())
     } finally {
       setLoading(false)
     }
-  }, [token])
+  }, [token, filtroCongregacao])
 
   useEffect(() => { loadData() }, [loadData])
 
@@ -166,15 +169,16 @@ export default function DashboardPage() {
     const hoje = new Date()
     const mes = hoje.getMonth() + 1
     const mesAnterior = mes === 1 ? 12 : mes - 1
+    const congSuffix = filtroCongregacao ? `&congregacao=${filtroCongregacao}` : ''
     Promise.all([
-      fetch(`/api/aniversariantes?mes=${mes}`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
-      fetch(`/api/aniversariantes?mes=${mesAnterior}`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+      fetch(`/api/aniversariantes?mes=${mes}${congSuffix}`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+      fetch(`/api/aniversariantes?mes=${mesAnterior}${congSuffix}`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
     ])
       .then(([listaMes, listaMesAnt]: [AniversarianteItem[], AniversarianteItem[]]) => {
         setTodosAniv([...(listaMesAnt || []), ...(listaMes || [])])
       })
       .catch(() => {})
-  }, [token])
+  }, [token, filtroCongregacao])
 
   // Visitas recentes + frequentes
   const loadVisitas = useCallback(async () => {
@@ -264,16 +268,18 @@ export default function DashboardPage() {
   _sabado.setDate(_domingo.getDate() + 6)
   _sabado.setHours(23, 59, 59, 999)
 
-  const nomesCongsVisiveis = congregacoes.length > 0 ? congregacoes.map(c => c.nome).join(', ') : null
+  const nomesCongsRestritas = congregacoes.length > 0 ? congregacoes.map(c => c.nome).join(', ') : null
+  // Prioridade: filtro manual > restrição do usuário > visão geral
+  const tituloCongreagacao = filtroCongregacaoNome ?? nomesCongsRestritas ?? null
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">
-          {nomesCongsVisiveis ? `Dashboard — ${nomesCongsVisiveis}` : 'Dashboard'}
+          {tituloCongreagacao ? `Dashboard — ${tituloCongreagacao}` : 'Dashboard'}
         </h1>
         <p className="text-sm text-muted-foreground">
-          {nomesCongsVisiveis ?? 'Visão geral da congregação'}
+          {tituloCongreagacao ?? 'Visão geral da congregação'}
         </p>
       </div>
 

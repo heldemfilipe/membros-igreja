@@ -16,7 +16,7 @@ import { Loader2, Plus, Pencil, Trash2, Building2, Users, ChevronDown, ChevronUp
 import { getDeptColor, getDeptBadgeStyle, getCargoStyle, CARGOS_DEPARTAMENTO } from '@/lib/constants'
 
 export default function DepartamentosPage() {
-  const { token, isAdmin, temPermissao } = useAuth()
+  const { token, isAdmin, temPermissao, filtroCongregacao } = useAuth()
   const podeEditar = isAdmin || temPermissao('departamentos_editar')
   const { toast } = useToast()
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
@@ -51,12 +51,15 @@ export default function DepartamentosPage() {
     if (!token) return
     setLoading(true)
     try {
-      const res = await fetch('/api/departamentos', { headers: { Authorization: `Bearer ${token}` } })
+      const params = new URLSearchParams()
+      if (filtroCongregacao) params.set('congregacao', String(filtroCongregacao))
+      const url = `/api/departamentos${params.toString() ? `?${params}` : ''}`
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       if (res.ok) setDepartamentos(await res.json())
     } finally {
       setLoading(false)
     }
-  }, [token])
+  }, [token, filtroCongregacao])
 
   useEffect(() => { loadDepartamentos() }, [loadDepartamentos])
 

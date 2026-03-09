@@ -21,7 +21,7 @@ const TIPO_STYLE: Record<string, { card: string; avatar: string }> = {
 }
 
 export default function AniversariantesPage() {
-  const { token } = useAuth()
+  const { token, filtroCongregacao } = useAuth()
   const [mes, setMes] = useState(new Date().getMonth() + 1)
   const [aniversariantes, setAniversariantes] = useState<AniversarianteItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -30,14 +30,16 @@ export default function AniversariantesPage() {
     if (!token) return
     setLoading(true)
     try {
-      const res = await fetch(`/api/aniversariantes?mes=${mes}`, {
+      const params = new URLSearchParams({ mes: String(mes) })
+      if (filtroCongregacao) params.set('congregacao', String(filtroCongregacao))
+      const res = await fetch(`/api/aniversariantes?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (res.ok) setAniversariantes(await res.json())
     } finally {
       setLoading(false)
     }
-  }, [token, mes])
+  }, [token, mes, filtroCongregacao])
 
   useEffect(() => { load() }, [load])
 

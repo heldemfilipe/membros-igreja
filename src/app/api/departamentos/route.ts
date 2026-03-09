@@ -6,11 +6,19 @@ export async function GET(req: NextRequest) {
   const user = await verificarToken(req)
   if (!user) return unauthorized()
 
+  const { searchParams } = new URL(req.url)
+  const congregacaoParam = searchParams.get('congregacao')
+
   // Restrições de acesso
   const deptoAcesso = user.departamentos_acesso && user.departamentos_acesso.length > 0
     ? user.departamentos_acesso : null
   const congAcesso = user.congregacoes_acesso && user.congregacoes_acesso.length > 0
     ? user.congregacoes_acesso : null
+
+  // Congregações efetivas (restrição + filtro voluntário)
+  const effectiveCong = congAcesso
+    ? (congregacaoParam ? congAcesso.filter(id => id === parseInt(congregacaoParam)) : congAcesso)
+    : (congregacaoParam ? [parseInt(congregacaoParam)] : null)
 
   // Lazy migration: garante que a coluna congregacao_id existe
   try { await pool.query('ALTER TABLE departamentos ADD COLUMN IF NOT EXISTS congregacao_id INTEGER') } catch { }
@@ -24,8 +32,8 @@ export async function GET(req: NextRequest) {
       params.push(deptoAcesso)
       conditions.push(`d.id = ANY($${params.length}::int[])`)
     }
-    if (congAcesso) {
-      params.push(congAcesso)
+    if (effectiveCong) {
+      params.push(effectiveCong)
       // Mostra departamentos da congregação OU departamentos sem congregação atribuída quando não há restrição de dept
       conditions.push(`(d.congregacao_id = ANY($${params.length}::int[]) OR d.congregacao_id IS NULL)`)
     }

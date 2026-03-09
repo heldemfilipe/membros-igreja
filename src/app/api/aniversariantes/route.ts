@@ -8,6 +8,7 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url)
   const mes = searchParams.get('mes') || String(new Date().getMonth() + 1)
+  const congregacaoParam = searchParams.get('congregacao')
 
   // Restrições por departamento e congregação
   const deptoAcesso = user.departamentos_acesso && user.departamentos_acesso.length > 0
@@ -25,8 +26,14 @@ export async function GET(req: NextRequest) {
       params.push(deptoAcesso)
     }
     if (congAcesso) {
+      const effective = congregacaoParam
+        ? congAcesso.filter(id => id === parseInt(congregacaoParam))
+        : congAcesso
       extraWhere += ` AND igreja IN (SELECT nome FROM congregacoes WHERE id = ANY($${params.length + 1}::int[]))`
-      params.push(congAcesso)
+      params.push(effective)
+    } else if (congregacaoParam) {
+      extraWhere += ` AND igreja IN (SELECT nome FROM congregacoes WHERE id = $${params.length + 1})`
+      params.push(parseInt(congregacaoParam))
     }
 
     const result = await pool.query(

@@ -6,11 +6,19 @@ export async function GET(req: NextRequest) {
   const user = await verificarToken(req)
   if (!user) return unauthorized()
 
+  const { searchParams } = new URL(req.url)
+  const congregacaoParam = searchParams.get('congregacao')
+
   // Restrições por departamento e congregação
   const deptoAcesso = user.departamentos_acesso && user.departamentos_acesso.length > 0
     ? user.departamentos_acesso : null
   const congAcesso = user.congregacoes_acesso && user.congregacoes_acesso.length > 0
     ? user.congregacoes_acesso : null
+
+  // Congregações efetivas para filtro (considera restrição + filtro voluntário)
+  const effectiveCong = congAcesso
+    ? (congregacaoParam ? congAcesso.filter(id => id === parseInt(congregacaoParam)) : congAcesso)
+    : (congregacaoParam ? [parseInt(congregacaoParam)] : null)
 
   // Monta filtro combinado para cada query (cada pool.query é independente, usa $1/$2 próprios)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -22,8 +30,8 @@ export async function GET(req: NextRequest) {
       p.push(deptoAcesso)
       w += ` AND id IN (SELECT membro_id FROM membro_departamentos WHERE departamento_id = ANY($${p.length}::int[]))`
     }
-    if (congAcesso) {
-      p.push(congAcesso)
+    if (effectiveCong) {
+      p.push(effectiveCong)
       w += ` AND igreja IN (SELECT nome FROM congregacoes WHERE id = ANY($${p.length}::int[]))`
     }
     return { where: w, params: p }
@@ -70,14 +78,14 @@ export async function GET(req: NextRequest) {
     try {
       const fd = buildFilter()
       // Adapta o filtro de dept para usar alias de join
-      const deptExtraWhere = congAcesso
+      const deptExtraWhere = effectiveCong
         ? ` AND m.igreja IN (SELECT nome FROM congregacoes WHERE id = ANY($${fd.params.length + 1}::int[]))`
         : ''
       const deptDw = deptoAcesso ? ` AND md.departamento_id = ANY($1::int[])` : ''
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const deptParams: any[] = []
       if (deptoAcesso) deptParams.push(deptoAcesso)
-      if (congAcesso) deptParams.push(congAcesso)
+      if (effectiveCong) deptParams.push(effectiveCong)
 
       const deptResult = await pool.query(`
         SELECT COALESCE(d.nome, 'Sem Departamento') as departamento, COUNT(DISTINCT m.id) as total

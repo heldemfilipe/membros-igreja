@@ -5,10 +5,10 @@ import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, Users, Building2, UserCog, Cake,
-  Menu, X, Church, LogOut, Shield, Loader2, Lock,
+  Menu, X, Church, LogOut, Shield, Loader2, Lock, Filter,
 } from 'lucide-react'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 
@@ -29,7 +29,17 @@ export function Sidebar() {
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
-  const { user, isAdmin, loading, logout, temPermissao } = useAuth()
+  const { user, token, isAdmin, loading, logout, temPermissao, filtroCongregacao, setFiltroCongregacao } = useAuth()
+  const [congregacoesDisponiveis, setCongregacoesDisponiveis] = useState<{ id: number; nome: string }[]>([])
+
+  // Carrega lista de congregações disponíveis para o seletor
+  useEffect(() => {
+    if (!token) return
+    fetch('/api/congregacoes', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : [])
+      .then((data: { id: number; nome: string }[]) => setCongregacoesDisponiveis(data || []))
+      .catch(() => {})
+  }, [token])
 
   const handleSignOut = async () => {
     setSigningOut(true)
@@ -44,6 +54,8 @@ export function Sidebar() {
   const perfilNome = user && !isAdmin && user.perfil_id
     ? 'Acesso restrito'
     : null
+
+  const mostraSeletor = congregacoesDisponiveis.length > 1
 
   return (
     <>
@@ -86,6 +98,42 @@ export function Sidebar() {
             <p className="text-[11px] text-muted-foreground leading-tight">Sistema de Membros</p>
           </div>
         </Link>
+
+        {/* Seletor de congregação (visível quando há 2+ disponíveis) */}
+        {mostraSeletor && !loading && (
+          <div className="px-3 pt-3 pb-1 shrink-0">
+            <div className="flex items-center gap-1.5 px-2 pb-1">
+              <Filter className="h-3 w-3 text-muted-foreground" />
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Visualizando
+              </span>
+            </div>
+            <select
+              value={filtroCongregacao ?? ''}
+              onChange={e => {
+                const val = e.target.value
+                if (!val) {
+                  setFiltroCongregacao(null, null)
+                } else {
+                  const cong = congregacoesDisponiveis.find(c => c.id === parseInt(val))
+                  setFiltroCongregacao(parseInt(val), cong?.nome ?? null)
+                }
+              }}
+              className={cn(
+                "w-full h-9 px-3 rounded-lg border text-sm font-medium transition-colors",
+                "focus:outline-none focus:ring-2 focus:ring-ring",
+                filtroCongregacao
+                  ? "bg-primary/10 border-primary/40 text-primary"
+                  : "bg-accent/50 border-border text-foreground"
+              )}
+            >
+              <option value="">Todas as Congregações</option>
+              {congregacoesDisponiveis.map(c => (
+                <option key={c.id} value={c.id}>{c.nome}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Navegação */}
         <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">

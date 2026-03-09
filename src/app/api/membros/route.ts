@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
   const search = searchParams.get('search')
   const cargo = searchParams.get('cargo')
   const departamento = searchParams.get('departamento')
+  const congregacaoParam = searchParams.get('congregacao')
 
   // Restrições de acesso por departamento e congregação
   const deptoAcesso = user.departamentos_acesso && user.departamentos_acesso.length > 0
@@ -71,10 +72,18 @@ export async function GET(req: NextRequest) {
       paramCount++
     }
 
-    // Filtro de congregação
+    // Filtro de congregação: restrição salva + filtro voluntário (admin)
     if (congAcesso) {
+      const effective = congregacaoParam
+        ? congAcesso.filter(id => id === parseInt(congregacaoParam))
+        : congAcesso
+      if (effective.length === 0) return Response.json([])
       query += ` AND igreja IN (SELECT nome FROM congregacoes WHERE id = ANY($${paramCount}::int[]))`
-      params.push(congAcesso)
+      params.push(effective)
+      paramCount++
+    } else if (congregacaoParam) {
+      query += ` AND igreja IN (SELECT nome FROM congregacoes WHERE id = $${paramCount})`
+      params.push(parseInt(congregacaoParam))
       paramCount++
     }
 

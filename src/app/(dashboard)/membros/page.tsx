@@ -30,7 +30,7 @@ const TIPO_STYLE: Record<string, { card: string; avatar: string }> = {
 }
 
 export default function MembrosPage() {
-  const { token, isAdmin } = useAuth()
+  const { token, isAdmin, filtroCongregacao } = useAuth()
   const { toast } = useToast()
   const [membros, setMembros] = useState<Membro[]>([])
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
@@ -54,6 +54,7 @@ export default function MembrosPage() {
       if (filterTipo) params.set('tipo', filterTipo)
       if (filterCargo) params.set('cargo', filterCargo)
       if (filterDept) params.set('departamento', filterDept)
+      if (filtroCongregacao) params.set('congregacao', String(filtroCongregacao))
 
       const res = await fetch(`/api/membros?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -62,7 +63,7 @@ export default function MembrosPage() {
     } finally {
       if (!silent) setLoading(false)
     }
-  }, [token, search, filterTipo, filterCargo, filterDept])
+  }, [token, search, filterTipo, filterCargo, filterDept, filtroCongregacao])
 
   // Atualiza lista sem mostrar spinner (preserva posição de scroll)
   const refreshSilent = useCallback(() => loadMembros(true), [loadMembros])
