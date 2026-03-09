@@ -5,7 +5,7 @@ import { verificarToken, unauthorized, forbidden } from '@/lib/auth'
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   const user = await verificarToken(req)
   if (!user) return unauthorized()
-  if (user.tipo !== 'admin') return forbidden()
+  if (user.tipo !== 'admin' && !user.permissoes.departamentos_editar) return forbidden('Sem permissão para editar departamentos.')
 
   const { id } = params
   const { nome, descricao, congregacao_id } = await req.json()
@@ -28,7 +28,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const user = await verificarToken(req)
   if (!user) return unauthorized()
-  if (user.tipo !== 'admin') return forbidden()
+  if (user.tipo !== 'admin' && !user.permissoes.departamentos_editar) return forbidden('Sem permissão para excluir departamentos.')
 
   const { id } = params
 

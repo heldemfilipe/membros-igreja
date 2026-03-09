@@ -16,7 +16,8 @@ import { Loader2, Plus, Pencil, Trash2, Building2, Users, ChevronDown, ChevronUp
 import { getDeptColor, getDeptBadgeStyle, getCargoStyle, CARGOS_DEPARTAMENTO } from '@/lib/constants'
 
 export default function DepartamentosPage() {
-  const { token, isAdmin } = useAuth()
+  const { token, isAdmin, temPermissao } = useAuth()
+  const podeEditar = isAdmin || temPermissao('departamentos_editar')
   const { toast } = useToast()
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
   const [loading, setLoading] = useState(true)
@@ -223,7 +224,7 @@ export default function DepartamentosPage() {
           </h1>
           <p className="text-muted-foreground text-sm">{departamentos.length} departamento{departamentos.length !== 1 ? 's' : ''}</p>
         </div>
-        {isAdmin && (
+        {podeEditar && (
           <Button onClick={openNewDept}>
             <Plus className="h-4 w-4" />
             Novo Departamento
@@ -270,7 +271,7 @@ export default function DepartamentosPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {isAdmin && (
+                      {podeEditar && (
                         <>
                           <Button variant="ghost" size="icon" className="h-8 w-8"
                             onClick={e => { e.stopPropagation(); openEditDept(d) }}>
@@ -289,7 +290,7 @@ export default function DepartamentosPage() {
                   {/* Lista de membros */}
                   {expandedId === d.id && (
                     <div className="border-t px-4 pb-4">
-                      {isAdmin && (
+                      {podeEditar && (
                         <div className="pt-3 pb-2">
                           <Button variant="outline" size="sm" onClick={() => openAddMembro(d.id)}>
                             <Plus className="h-3 w-3" />
@@ -333,7 +334,7 @@ export default function DepartamentosPage() {
                                   )}
                                 </div>
                               </div>
-                              {isAdmin && (
+                              {podeEditar && (
                                 <div className="flex items-center gap-0.5">
                                   <Button
                                     variant="ghost"

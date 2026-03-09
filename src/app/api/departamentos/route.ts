@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const user = await verificarToken(req)
   if (!user) return unauthorized()
-  if (user.tipo !== 'admin') return forbidden()
+  if (user.tipo !== 'admin' && !user.permissoes.departamentos_editar) return forbidden('Sem permissão para criar departamentos.')
 
   const { nome, descricao, congregacao_id } = await req.json()
 
