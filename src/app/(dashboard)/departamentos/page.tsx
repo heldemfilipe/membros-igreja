@@ -23,11 +23,12 @@ export default function DepartamentosPage() {
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [membrosDepto, setMembrosDepto] = useState<Record<number, MembroDepartamento[]>>({})
   const [loadingMembros, setLoadingMembros] = useState<number | null>(null)
+  const [congregacoes, setCongregacoes] = useState<{ id: number; nome: string }[]>([])
 
   // Modal departamento
   const [deptModal, setDeptModal] = useState(false)
   const [editingDeptId, setEditingDeptId] = useState<number | null>(null)
-  const [deptForm, setDeptForm] = useState({ nome: '', descricao: '' })
+  const [deptForm, setDeptForm] = useState({ nome: '', descricao: '', congregacao_id: '' })
   const [savingDept, setSavingDept] = useState(false)
 
   // Modal adicionar membro
@@ -58,6 +59,14 @@ export default function DepartamentosPage() {
 
   useEffect(() => { loadDepartamentos() }, [loadDepartamentos])
 
+  useEffect(() => {
+    if (!token) return
+    fetch('/api/congregacoes', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : [])
+      .then((d: { id: number; nome: string }[]) => setCongregacoes(d || []))
+      .catch(() => {})
+  }, [token])
+
   const toggleExpand = async (id: number) => {
     if (expandedId === id) { setExpandedId(null); return }
     setExpandedId(id)
@@ -78,13 +87,13 @@ export default function DepartamentosPage() {
 
   const openNewDept = () => {
     setEditingDeptId(null)
-    setDeptForm({ nome: '', descricao: '' })
+    setDeptForm({ nome: '', descricao: '', congregacao_id: '' })
     setDeptModal(true)
   }
 
   const openEditDept = (d: Departamento) => {
     setEditingDeptId(d.id)
-    setDeptForm({ nome: d.nome, descricao: d.descricao || '' })
+    setDeptForm({ nome: d.nome, descricao: d.descricao || '', congregacao_id: d.congregacao_id ? String(d.congregacao_id) : '' })
     setDeptModal(true)
   }
 
@@ -97,7 +106,10 @@ export default function DepartamentosPage() {
       const res = await fetch(url, {
         method,
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(deptForm),
+        body: JSON.stringify({
+          ...deptForm,
+          congregacao_id: deptForm.congregacao_id ? parseInt(deptForm.congregacao_id) : null,
+        }),
       })
       const data = await res.json()
       if (!res.ok) { toast({ title: data.error, variant: 'destructive' }); return }
@@ -243,7 +255,14 @@ export default function DepartamentosPage() {
                       <Building2 className="h-5 w-5" style={{ color: deptColor }} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold">{d.nome}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-semibold">{d.nome}</p>
+                        {d.congregacao_nome && (
+                          <Badge variant="outline" className="text-xs h-5 font-normal">
+                            {d.congregacao_nome}
+                          </Badge>
+                        )}
+                      </div>
                       {d.descricao && <p className="text-sm text-muted-foreground">{d.descricao}</p>}
                       <div className="flex items-center gap-1 mt-0.5">
                         <Users className="h-3 w-3 text-muted-foreground" />
@@ -369,6 +388,21 @@ export default function DepartamentosPage() {
               <Label>Descrição</Label>
               <Input value={deptForm.descricao} onChange={e => setDeptForm(f => ({ ...f, descricao: e.target.value }))} placeholder="Descrição (opcional)" />
             </div>
+            {congregacoes.length > 0 && (
+              <div className="space-y-2">
+                <Label>Congregação</Label>
+                <select
+                  value={deptForm.congregacao_id}
+                  onChange={e => setDeptForm(f => ({ ...f, congregacao_id: e.target.value }))}
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="">Sem congregação específica</option>
+                  {congregacoes.map(c => (
+                    <option key={c.id} value={c.id}>{c.nome}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeptModal(false)}>Cancelar</Button>

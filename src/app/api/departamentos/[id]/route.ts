@@ -8,12 +8,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (user.tipo !== 'admin') return forbidden()
 
   const { id } = params
-  const { nome, descricao } = await req.json()
+  const { nome, descricao, congregacao_id } = await req.json()
 
   try {
     await pool.query(
-      'UPDATE departamentos SET nome = $1, descricao = $2 WHERE id = $3',
-      [nome, descricao || null, id]
+      'UPDATE departamentos SET nome = $1, descricao = $2, congregacao_id = $3 WHERE id = $4',
+      [nome, descricao || null, congregacao_id || null, id]
     )
     return Response.json({ message: 'Departamento atualizado com sucesso' })
   } catch (error: unknown) {

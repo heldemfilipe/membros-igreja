@@ -123,11 +123,12 @@ function fmtDataVisita(iso: string): string {
 // ─── Página ──────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const { token } = useAuth()
+  const { token, congregacoesAcesso } = useAuth()
   const [data, setData] = useState<DashboardData | null>(null)
   const [todosAniv, setTodosAniv] = useState<AniversarianteItem[]>([])
   const [filtroSemana, setFiltroSemana] = useState<FiltroSemana>('esta')
   const [loading, setLoading] = useState(true)
+  const [congregacoes, setCongregacoes] = useState<{ id: number; nome: string }[]>([])
 
   // Visitas
   const [visitasRecentes, setVisitasRecentes] = useState<VisitaRecente[]>([])
@@ -149,6 +150,15 @@ export default function DashboardPage() {
   }, [token])
 
   useEffect(() => { loadData() }, [loadData])
+
+  // Carrega nomes das congregações quando o usuário tem restrição
+  useEffect(() => {
+    if (!token || !congregacoesAcesso?.length) return
+    fetch('/api/congregacoes', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : [])
+      .then((d: { id: number; nome: string }[]) => setCongregacoes(d || []))
+      .catch(() => {})
+  }, [token, congregacoesAcesso])
 
   // Aniversariantes (mês atual + anterior)
   useEffect(() => {
@@ -254,11 +264,17 @@ export default function DashboardPage() {
   _sabado.setDate(_domingo.getDate() + 6)
   _sabado.setHours(23, 59, 59, 999)
 
+  const nomesCongsVisiveis = congregacoes.length > 0 ? congregacoes.map(c => c.nome).join(', ') : null
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Visão geral da congregação</p>
+        <h1 className="text-2xl font-bold">
+          {nomesCongsVisiveis ? `Dashboard — ${nomesCongsVisiveis}` : 'Dashboard'}
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          {nomesCongsVisiveis ?? 'Visão geral da congregação'}
+        </p>
       </div>
 
       {/* ─── Cards de totais ─────────────────────────────────────────────── */}

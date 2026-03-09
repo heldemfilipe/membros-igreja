@@ -69,6 +69,8 @@ export interface Departamento {
   nome: string
   descricao?: string
   total_membros?: number
+  congregacao_id?: number | null
+  congregacao_nome?: string | null
   created_at?: string
 }
 
