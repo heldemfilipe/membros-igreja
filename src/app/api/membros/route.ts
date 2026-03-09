@@ -81,6 +81,9 @@ export async function GET(req: NextRequest) {
       query += ` AND igreja IN (SELECT nome FROM congregacoes WHERE id = ANY($${paramCount}::int[]))`
       params.push(effective)
       paramCount++
+    } else if (congregacaoParam === 'sem') {
+      // Membros sem congregação (campo vazio ou não pertence a nenhuma congregação cadastrada)
+      query += ` AND (igreja IS NULL OR igreja = '' OR igreja NOT IN (SELECT nome FROM congregacoes))`
     } else if (congregacaoParam) {
       query += ` AND igreja IN (SELECT nome FROM congregacoes WHERE id = $${paramCount})`
       params.push(parseInt(congregacaoParam))

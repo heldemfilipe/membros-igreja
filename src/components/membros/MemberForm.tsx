@@ -43,7 +43,7 @@ interface Props {
 
 export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props) {
   const router = useRouter()
-  const { token } = useAuth()
+  const { token, filtroCongregacaoNome } = useAuth()
   const { toast } = useToast()
   const [form, setForm] = useState<MemberFormData>({ ...defaultForm, nome: initialNome || '' })
   const [loading, setLoading] = useState(!!membroId)
@@ -80,14 +80,25 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
       .catch(() => {})
   }, [token])
 
-  // Carregar congregações disponíveis
+  // Carregar congregações disponíveis e pré-preencher quando cabível
   useEffect(() => {
     if (!token) return
     fetch('/api/congregacoes', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
-      .then(data => Array.isArray(data) ? setCongregacoes(data.map((c: { id: number; nome: string }) => ({ id: c.id, nome: c.nome }))) : [])
+      .then((data: { id: number; nome: string }[]) => {
+        if (!Array.isArray(data)) return
+        setCongregacoes(data.map(c => ({ id: c.id, nome: c.nome })))
+        // Pré-preencher automaticamente para novo cadastro
+        if (!membroId) {
+          if (filtroCongregacaoNome) {
+            setForm(f => ({ ...f, igreja: f.igreja || filtroCongregacaoNome }))
+          } else if (data.length === 1) {
+            setForm(f => ({ ...f, igreja: f.igreja || data[0].nome }))
+          }
+        }
+      })
       .catch(() => {})
-  }, [token])
+  }, [token, membroId, filtroCongregacaoNome])
 
   // Carregar dados do membro (edição)
   useEffect(() => {
@@ -321,6 +332,10 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
       toast({ title: 'Nome é obrigatório.', variant: 'destructive' })
       return
     }
+    if (!form.igreja) {
+      toast({ title: 'Congregação é obrigatória.', variant: 'destructive' })
+      return
+    }
 
     setSaving(true)
     try {
@@ -490,7 +505,7 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Congregação — select se houver cadastradas, input livre caso contrário */}
           <div className="space-y-2">
-            <Label>Congregação</Label>
+            <Label>Congregação *</Label>
             {congregacoes.length > 0 ? (
               <select
                 value={form.igreja || ''}

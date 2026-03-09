@@ -34,11 +34,13 @@ export default function MembrosPage() {
   const { toast } = useToast()
   const [membros, setMembros] = useState<Membro[]>([])
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
+  const [congregacoesLista, setCongregacoesLista] = useState<{ id: number; nome: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filterTipo, setFilterTipo] = useState('')
   const [filterCargo, setFilterCargo] = useState('')
   const [filterDept, setFilterDept] = useState('')
+  const [filterCongregacao, setFilterCongregacao] = useState('')
   const [visitorModal, setVisitorModal] = useState(false)
   const [viewMembro, setViewMembro] = useState<Membro | null>(null)
   const [memberModal, setMemberModal] = useState<{ open: boolean; id?: number }>({ open: false })
@@ -55,6 +57,7 @@ export default function MembrosPage() {
       if (filterCargo) params.set('cargo', filterCargo)
       if (filterDept) params.set('departamento', filterDept)
       if (filtroCongregacao) params.set('congregacao', String(filtroCongregacao))
+      else if (filterCongregacao) params.set('congregacao', filterCongregacao)
 
       const res = await fetch(`/api/membros?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -63,7 +66,7 @@ export default function MembrosPage() {
     } finally {
       if (!silent) setLoading(false)
     }
-  }, [token, search, filterTipo, filterCargo, filterDept, filtroCongregacao])
+  }, [token, search, filterTipo, filterCargo, filterDept, filtroCongregacao, filterCongregacao])
 
   // Atualiza lista sem mostrar spinner (preserva posição de scroll)
   const refreshSilent = useCallback(() => loadMembros(true), [loadMembros])
@@ -81,6 +84,19 @@ export default function MembrosPage() {
       .then(setDepartamentos)
       .catch(() => {})
   }, [token])
+
+  useEffect(() => {
+    if (!token) return
+    fetch('/api/congregacoes', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : [])
+      .then((d: { id: number; nome: string }[]) => setCongregacoesLista(d || []))
+      .catch(() => {})
+  }, [token])
+
+  // Resetar filtro local ao ativar filtro global
+  useEffect(() => {
+    if (filtroCongregacao) setFilterCongregacao('')
+  }, [filtroCongregacao])
 
   const handleDelete = async (id: number, nome: string) => {
     if (!confirm(`Excluir o membro "${nome}"?\n\nEsta ação não pode ser desfeita.`)) return
@@ -146,7 +162,7 @@ export default function MembrosPage() {
       </div>
 
       {/* Filtros */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2">
+      <div className={`grid grid-cols-1 sm:grid-cols-2 gap-2 ${isAdmin && !filtroCongregacao && congregacoesLista.length > 1 ? 'xl:grid-cols-5' : 'xl:grid-cols-4'}`}>
         <div className="relative sm:col-span-2 xl:col-span-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <input
@@ -190,6 +206,21 @@ export default function MembrosPage() {
             <option key={d.id} value={String(d.id)}>{d.nome}</option>
           ))}
         </select>
+
+        {/* Filtro de congregação — só para admins sem filtro global ativo */}
+        {isAdmin && !filtroCongregacao && congregacoesLista.length > 1 && (
+          <select
+            value={filterCongregacao}
+            onChange={e => setFilterCongregacao(e.target.value)}
+            className="h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="">Todas as congregações</option>
+            <option value="sem">Sem congregação</option>
+            {congregacoesLista.map(c => (
+              <option key={c.id} value={String(c.id)}>{c.nome}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {/* Legenda de cores */}

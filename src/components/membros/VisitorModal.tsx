@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/components/ui/use-toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -23,24 +24,51 @@ function hoje(): string {
 
 export function VisitorModal({ open, onClose, onSuccess, token }: Props) {
   const { toast } = useToast()
+  const { filtroCongregacaoNome } = useAuth()
+  const [congregacoes, setCongregacoes] = useState<{ id: number; nome: string }[]>([])
   const [form, setForm] = useState({
     nome: '',
     telefone_principal: '',
     informacoes_complementares: '',
     data_visita: hoje(),
+    congregacao_nome: '',
   })
   const [saving, setSaving] = useState(false)
+
+  // Carrega congregações e pré-preenche quando o modal abre
+  useEffect(() => {
+    if (!token || !open) return
+    fetch('/api/congregacoes', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : [])
+      .then((data: { id: number; nome: string }[]) => {
+        const lista = data || []
+        setCongregacoes(lista)
+        // Pré-preencher: filtro global > única disponível
+        setForm(f => {
+          if (f.congregacao_nome) return f // já preenchido
+          if (filtroCongregacaoNome) return { ...f, congregacao_nome: filtroCongregacaoNome }
+          if (lista.length === 1) return { ...f, congregacao_nome: lista[0].nome }
+          return f
+        })
+      })
+      .catch(() => {})
+  }, [token, open, filtroCongregacaoNome])
 
   const reset = () => setForm({
     nome: '',
     telefone_principal: '',
     informacoes_complementares: '',
     data_visita: hoje(),
+    congregacao_nome: '',
   })
 
   const handleSave = async () => {
     if (!form.nome.trim()) {
       toast({ title: 'Nome é obrigatório.', variant: 'destructive' })
+      return
+    }
+    if (!form.congregacao_nome) {
+      toast({ title: 'Congregação é obrigatória.', variant: 'destructive' })
       return
     }
 
@@ -55,6 +83,7 @@ export function VisitorModal({ open, onClose, onSuccess, token }: Props) {
           telefone_principal: form.telefone_principal,
           informacoes_complementares: form.informacoes_complementares,
           tipo_participante: 'Visitante',
+          igreja: form.congregacao_nome,
         }),
       })
       const membroData = await membroRes.json()
@@ -116,6 +145,31 @@ export function VisitorModal({ open, onClose, onSuccess, token }: Props) {
             />
           </div>
 
+          {/* Congregação */}
+          <div className="space-y-2">
+            <Label htmlFor="v-cong">Congregação *</Label>
+            {congregacoes.length > 0 ? (
+              <select
+                id="v-cong"
+                value={form.congregacao_nome}
+                onChange={e => setForm(f => ({ ...f, congregacao_nome: e.target.value }))}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">Selecione...</option>
+                {congregacoes.map(c => (
+                  <option key={c.id} value={c.nome}>{c.nome}</option>
+                ))}
+              </select>
+            ) : (
+              <Input
+                id="v-cong"
+                value={form.congregacao_nome}
+                onChange={e => setForm(f => ({ ...f, congregacao_nome: e.target.value }))}
+                placeholder="Nome da congregação"
+              />
+            )}
+          </div>
+
           {/* Telefone */}
           <div className="space-y-2">
             <Label htmlFor="v-tel">Telefone</Label>
@@ -170,7 +224,7 @@ export function VisitorModal({ open, onClose, onSuccess, token }: Props) {
           </Button>
           <Button onClick={handleSave} disabled={saving}>
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-            Cadastrar Visitante
+            Cadastrar e Vincular
           </Button>
         </DialogFooter>
       </DialogContent>
