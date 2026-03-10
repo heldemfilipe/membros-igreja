@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
     }
 
     const result = await pool.query(
-      `SELECT id, nome, conhecido_como, data_nascimento, telefone_principal, tipo_participante, cargo
+      `SELECT id, nome, conhecido_como, data_nascimento, telefone_principal, tipo_participante, cargo, igreja
        FROM membros
        WHERE EXTRACT(MONTH FROM data_nascimento) = $1${extraWhere}
        ORDER BY EXTRACT(DAY FROM data_nascimento)`,

@@ -13,7 +13,7 @@ import {
 } from 'recharts'
 import {
   Users, UserCheck, UserCircle, Loader2, Cake, CalendarDays,
-  TrendingUp, Activity, UserPlus,
+  TrendingUp, Activity, UserPlus, Church,
 } from 'lucide-react'
 import Link from 'next/link'
 import { getDiaDoMes } from '@/lib/utils'
@@ -469,13 +469,19 @@ export default function DashboardPage() {
                   return (
                     <span
                       key={a.id}
-                      className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                      className={`inline-flex flex-col px-2.5 py-1 rounded-full text-xs font-medium ${
                         isEstaSemana
                           ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-900 dark:text-emerald-300 ring-1 ring-emerald-200 dark:ring-emerald-800'
                           : 'bg-violet-100 dark:bg-violet-900/40 text-violet-900 dark:text-violet-300 ring-1 ring-violet-200 dark:ring-violet-800'
                       }`}
                     >
-                      {a.nome} ({dia}/{mesNum})
+                      <span>{a.nome} ({dia}/{mesNum})</span>
+                      {!filtroCongregacao && a.igreja && (
+                        <span className="text-[10px] opacity-70 leading-tight flex items-center gap-0.5">
+                          <Church className="h-2.5 w-2.5 shrink-0" />
+                          {a.igreja}
+                        </span>
+                      )}
                     </span>
                   )
                 })}

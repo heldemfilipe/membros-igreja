@@ -146,6 +146,7 @@ export interface AniversarianteItem {
   telefone_principal?: string
   tipo_participante: string
   cargo?: string
+  igreja?: string
 }
 
 export interface Visita {

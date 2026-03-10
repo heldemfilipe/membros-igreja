@@ -10,7 +10,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { VisitorModal } from '@/components/membros/VisitorModal'
 import { MemberViewModal } from '@/components/membros/MemberViewModal'
 import { MemberModal } from '@/components/membros/MemberModal'
-import { Loader2, Plus, Search, Pencil, Trash2, Eye, UserPlus, Download, Phone } from 'lucide-react'
+import { Loader2, Plus, Search, Pencil, Trash2, Eye, UserPlus, Download, Phone, Church } from 'lucide-react'
 import { calcularIdade, cn } from '@/lib/utils'
 import { getCargoStyle, getDeptBadgeStyle, CARGOS_ECLESIASTICOS } from '@/lib/constants'
 
@@ -325,6 +325,13 @@ export default function MembrosPage() {
                             <Phone className="h-3 w-3" />
                             {m.telefone_principal}
                           </span>
+                        </p>
+                      )}
+                      {/* Congregação — exibe apenas quando vendo todas */}
+                      {!filtroCongregacao && !filterCongregacao && m.igreja && (
+                        <p className="text-xs text-muted-foreground mt-0.5 hidden sm:flex items-center gap-1">
+                          <Church className="h-3 w-3 shrink-0" />
+                          {m.igreja}
                         </p>
                       )}
                     </div>

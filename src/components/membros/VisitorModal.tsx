@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog'
-import { Loader2, CalendarDays } from 'lucide-react'
+import { Loader2, CalendarDays, Lock } from 'lucide-react'
 
 interface Props {
   open: boolean
@@ -145,29 +145,43 @@ export function VisitorModal({ open, onClose, onSuccess, token }: Props) {
             />
           </div>
 
-          {/* Congregação */}
+          {/* Congregação — bloqueada se filtro global ativo ou só 1 disponível */}
           <div className="space-y-2">
             <Label htmlFor="v-cong">Congregação *</Label>
-            {congregacoes.length > 0 ? (
-              <select
-                id="v-cong"
-                value={form.congregacao_nome}
-                onChange={e => setForm(f => ({ ...f, congregacao_nome: e.target.value }))}
-                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="">Selecione...</option>
-                {congregacoes.map(c => (
-                  <option key={c.id} value={c.nome}>{c.nome}</option>
-                ))}
-              </select>
-            ) : (
-              <Input
-                id="v-cong"
-                value={form.congregacao_nome}
-                onChange={e => setForm(f => ({ ...f, congregacao_nome: e.target.value }))}
-                placeholder="Nome da congregação"
-              />
-            )}
+            {(() => {
+              const cFixa = filtroCongregacaoNome || (congregacoes.length === 1 ? congregacoes[0].nome : null)
+              if (cFixa) {
+                return (
+                  <div className="h-10 px-3 rounded-md border border-input bg-muted flex items-center gap-2 text-sm">
+                    <Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <span className="font-medium">{cFixa}</span>
+                  </div>
+                )
+              }
+              if (congregacoes.length > 0) {
+                return (
+                  <select
+                    id="v-cong"
+                    value={form.congregacao_nome}
+                    onChange={e => setForm(f => ({ ...f, congregacao_nome: e.target.value }))}
+                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="">Selecione...</option>
+                    {congregacoes.map(c => (
+                      <option key={c.id} value={c.nome}>{c.nome}</option>
+                    ))}
+                  </select>
+                )
+              }
+              return (
+                <Input
+                  id="v-cong"
+                  value={form.congregacao_nome}
+                  onChange={e => setForm(f => ({ ...f, congregacao_nome: e.target.value }))}
+                  placeholder="Nome da congregação"
+                />
+              )
+            })()}
           </div>
 
           {/* Telefone */}

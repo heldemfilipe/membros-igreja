@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Loader2, Plus, Trash2, Search, X, AlertTriangle, UserPlus } from 'lucide-react'
+import { Loader2, Plus, Trash2, Search, X, AlertTriangle, UserPlus, Lock } from 'lucide-react'
 import { CARGOS_ECLESIASTICOS, CARGOS_DEPARTAMENTO } from '@/lib/constants'
 
 type DeptSelecao = { id: number; nome: string; cargo_departamento: string }
@@ -503,27 +503,41 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
       <Card>
         <CardHeader><CardTitle className="text-base">Dados Eclesiásticos</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Congregação — select se houver cadastradas, input livre caso contrário */}
+          {/* Congregação — bloqueada se filtro global ativo ou só 1 disponível */}
           <div className="space-y-2">
             <Label>Congregação *</Label>
-            {congregacoes.length > 0 ? (
-              <select
-                value={form.igreja || ''}
-                onChange={e => set('igreja', e.target.value)}
-                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="">Selecione...</option>
-                {congregacoes.map(c => (
-                  <option key={c.id} value={c.nome}>{c.nome}</option>
-                ))}
-              </select>
-            ) : (
-              <Input
-                value={form.igreja || ''}
-                onChange={e => set('igreja', e.target.value)}
-                placeholder="Congregação"
-              />
-            )}
+            {(() => {
+              const igrejaFixa = filtroCongregacaoNome || (congregacoes.length === 1 ? congregacoes[0].nome : null)
+              if (igrejaFixa) {
+                return (
+                  <div className="h-10 px-3 rounded-md border border-input bg-muted flex items-center gap-2 text-sm">
+                    <Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <span className="font-medium">{igrejaFixa}</span>
+                  </div>
+                )
+              }
+              if (congregacoes.length > 0) {
+                return (
+                  <select
+                    value={form.igreja || ''}
+                    onChange={e => set('igreja', e.target.value)}
+                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="">Selecione...</option>
+                    {congregacoes.map(c => (
+                      <option key={c.id} value={c.nome}>{c.nome}</option>
+                    ))}
+                  </select>
+                )
+              }
+              return (
+                <Input
+                  value={form.igreja || ''}
+                  onChange={e => set('igreja', e.target.value)}
+                  placeholder="Congregação"
+                />
+              )
+            })()}
           </div>
           {selectField('Cargo', 'cargo', CARGOS_ECLESIASTICOS)}
           {field('Função na Igreja', 'funcao_igreja')}

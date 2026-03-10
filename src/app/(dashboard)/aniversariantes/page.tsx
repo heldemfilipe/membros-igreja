@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { AniversarianteItem } from '@/types'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, Cake, Phone } from 'lucide-react'
+import { Loader2, Cake, Phone, Church } from 'lucide-react'
 import { idadeFara, getDiaDoMes, cn } from '@/lib/utils'
 import { getCargoStyle } from '@/lib/constants'
 
@@ -118,6 +118,12 @@ export default function AniversariantesPage() {
                           <Phone className="h-3 w-3" />
                           {a.telefone_principal}
                         </a>
+                      )}
+                      {!filtroCongregacao && a.igreja && (
+                        <p className="flex items-center gap-1 text-xs text-muted-foreground mt-1 w-fit">
+                          <Church className="h-3 w-3 shrink-0" />
+                          {a.igreja}
+                        </p>
                       )}
                     </div>
                   </div>
