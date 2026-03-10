@@ -2,7 +2,7 @@
 
 # ⛪ Sistema de Membros — Igreja
 
-**Plataforma web completa para gestão de membros, departamentos e visitantes de uma congregação.**
+**Plataforma web completa para gestão de membros, departamentos, congregações e visitantes.**
 
 [![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat-square&logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -16,34 +16,46 @@
 
 ## 📋 Sobre o Projeto
 
-Sistema interno desenvolvido para a **Assembleia de Deus de Rio Claro**, com foco em simplicidade e praticidade para secretaria e liderança.
+Sistema interno desenvolvido para a **Assembleia de Deus de Rio Claro**, com suporte a **múltiplas congregações**, foco em simplicidade e praticidade para secretaria e liderança.
 
-Permite cadastrar e gerenciar membros, congregados e visitantes; acompanhar visitas, aniversariantes da semana; organizar departamentos; controlar permissões de usuários e exportar dados para planilha Excel.
+Permite cadastrar e gerenciar membros, congregados e visitantes; acompanhar aniversariantes da semana; organizar departamentos por congregação; controlar permissões granulares por usuário (seção, departamento e congregação) e exportar dados para planilha Excel.
 
 ---
 
 ## ✨ Funcionalidades
 
 ### 🏠 Dashboard
-- Cards de totais: membros, congregados e geral
+- Cards de totais: membros, congregados e geral (filtrados pela congregação selecionada)
 - Gráficos interativos: tipo de participante, sexo, faixa etária, estado civil, cargo eclesiástico e departamento
 - Donut chart com total no centro + lista de valores ao lado (legível no modo escuro)
 - **Banner de aniversariantes** com filtros semanais coloridos — verde para esta semana, violeta para a anterior
+- Pílulas de aniversariantes exibem congregação quando visualizando todas as congregações
 - **Visitantes frequentes** — alerta quando um visitante atinge 3+ visitas em 28 dias, com botão para promover a membro
 - Feed de **últimas visitas** e **membros recentes**
 
 ### 👥 Membros
 - CRUD completo com **38+ campos** (dados pessoais, endereço, contato, dados eclesiásticos)
 - Busca em tempo real com debounce (300 ms) e filtros por tipo, cargo e departamento
-- **Cadastro rápido de visitante** via modal com data da visita e botão "Hoje"
+- **Filtro por congregação** na lista (admins sem filtro global podem ver por congregação específica ou "Sem congregação")
+- **Cadastro rápido de visitante** via modal com data da visita, botão "Hoje" e campo de congregação
 - Modal de visualização com badges coloridos por departamento e cargo
 - **Histórico de visitas** para visitantes: registrar e listar diretamente no modal
 - Histórico eclesiástico e familiares com linhas dinâmicas no formulário
 - Auto-criação de perfil para cônjuge/filhos vinculados
 - **Exportação Excel** (`.xlsx`) com todos os campos
+- Cards responsivos: departamentos, telefone clicável (`tel:`) e congregação sempre visíveis no mobile
+
+### ⛪ Congregações
+- Cadastro e gestão de congregações da denominação
+- **Filtro global de congregação** na sidebar — admins e usuários com acesso a múltiplas congregações podem alternar a visualização entre todas ou uma específica
+- Filtro reflete em todas as telas: dashboard, membros, aniversariantes e departamentos
+- **Campo congregação obrigatório** no cadastro de membro e visitante
+- Quando filtro ou restrição de congregação está ativo, o campo é **bloqueado automaticamente** no cadastro — sem exibir outras opções
+- Cards de membros e aniversariantes exibem a congregação quando a visualização é de todas as congregações
 
 ### 🏢 Departamentos
 - CRUD com cards expansíveis por departamento
+- **Vínculo com congregação** — cada departamento pertence a uma congregação
 - Cores únicas e determinísticas por departamento (via hash do ID)
 - Vínculo N:N membros ↔ departamentos com cargo no departamento
 - **Editar cargo** de qualquer membro diretamente na listagem (botão de lápis inline)
@@ -53,18 +65,23 @@ Permite cadastrar e gerenciar membros, congregados e visitantes; acompanhar visi
 - Listagem por mês com página dedicada
 - Filtros semanais com cores distintas: **verde** (esta semana), **violeta** (semana anterior), cinza (ambas)
 - Cada nome exibe a cor da semana correspondente, independente do filtro selecionado
+- Congregação exibida em cada card quando sem filtro ativo
 
 ### 🔐 Usuários & Permissões
 - Gestão de usuários (somente admin)
-- **Perfis de acesso RBAC**: criação de perfis com permissões granulares por seção
-- Permissões: Dashboard, Membros, Departamentos, Aniversariantes, Exportar, Visitantes, Histórico, Usuários
-- Restrição por departamento: perfis podem limitar acesso a departamentos específicos
+- **Perfis de acesso RBAC** com permissões granulares por seção:
+  - Dashboard, Membros, Departamentos, Aniversariantes, Exportar, Visitantes, Histórico, Usuários
+  - **Departamentos — Editar**: não-admins podem criar/editar/excluir departamentos
+  - **Congregações — Ver / Editar**: controle de acesso à gestão de congregações
+- **Restrição por departamento**: limitar usuário a ver apenas membros de departamentos específicos
+- **Restrição por congregação**: limitar usuário a ver apenas dados de congregações específicas
 - Usuários sem perfil mantêm acesso total (compatibilidade retroativa)
 
 ### 🎨 UX
 - **Modo escuro** com toggle persistente e sem flash ao carregar
 - **Totalmente responsivo** — mobile, tablet e desktop
 - Sidebar com itens condicionais baseados nas permissões do usuário logado
+- Seletor de congregação na sidebar (visível apenas quando o usuário tem acesso a 2+ congregações)
 
 ---
 
@@ -94,6 +111,7 @@ src/
 │   │   ├── auth/                     # login, logout, verify, trocar-senha
 │   │   ├── membros/                  # CRUD + exportar
 │   │   ├── departamentos/            # CRUD + membros (GET/POST/PUT/DELETE)
+│   │   ├── congregacoes/             # CRUD de congregações
 │   │   ├── visitas/                  # Registro de visitas (tabela auto-criada)
 │   │   ├── perfis/                   # Perfis RBAC (tabela auto-criada)
 │   │   ├── usuarios/                 # CRUD de usuários (admin)
@@ -103,6 +121,7 @@ src/
 │   │   ├── dashboard/page.tsx
 │   │   ├── membros/page.tsx
 │   │   ├── departamentos/page.tsx
+│   │   ├── congregacoes/page.tsx
 │   │   ├── usuarios/page.tsx
 │   │   └── aniversariantes/page.tsx
 │   ├── login/page.tsx
@@ -111,7 +130,7 @@ src/
 │   └── page.tsx                      # Redirect → /dashboard
 ├── components/
 │   ├── layout/
-│   │   ├── Sidebar.tsx               # Navegação lateral + permissões
+│   │   ├── Sidebar.tsx               # Navegação lateral + seletor de congregação
 │   │   └── DashboardLayout.tsx       # Wrapper com proteção de rota
 │   ├── membros/
 │   │   ├── MemberForm.tsx            # Formulário completo (38+ campos)
@@ -122,7 +141,7 @@ src/
 │   │   └── StatCard.tsx              # Card de estatística reutilizável
 │   └── ui/                           # Componentes Shadcn/Radix
 ├── contexts/
-│   └── AuthContext.tsx               # Auth custom + temPermissao()
+│   └── AuthContext.tsx               # Auth custom + filtroCongregacao + temPermissao()
 ├── lib/
 │   ├── db.ts                         # Pool pg (DATABASE_URL)
 │   ├── auth.ts                       # verificarToken + permissões
@@ -175,16 +194,17 @@ DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require
 
 ## 🗄️ Banco de Dados
 
-As tabelas principais precisam ser criadas manualmente no PostgreSQL. As tabelas `visitas` e `perfis_acesso` são **criadas automaticamente** na primeira chamada à API (`CREATE TABLE IF NOT EXISTS`).
+As tabelas principais precisam ser criadas manualmente no PostgreSQL. As tabelas `visitas` e `perfis_acesso` são **criadas automaticamente** na primeira chamada à API (`CREATE TABLE IF NOT EXISTS`). A coluna `congregacao_id` em `departamentos` é adicionada automaticamente via migração lazy.
 
 | Tabela | Criação | Descrição |
 |--------|:-------:|-----------|
-| `membros` | Manual | Dados completos dos membros (38+ campos) |
+| `membros` | Manual | Dados completos dos membros (38+ campos, campo `igreja` = nome da congregação) |
 | `historicos` | Manual | Histórico eclesiástico (`FK membro_id`) |
 | `familiares` | Manual | Familiares (`FK membro_id`, `membro_vinculado_id`) |
-| `departamentos` | Manual | Departamentos da igreja |
+| `departamentos` | Manual | Departamentos da igreja (coluna `congregacao_id` adicionada automaticamente) |
 | `membro_departamentos` | Manual | Vínculo N:N membros ↔ departamentos |
-| `usuarios` | Manual | Usuários do sistema (senhas bcrypt) |
+| `congregacoes` | Manual | Congregações da denominação (id, nome) |
+| `usuarios` | Manual | Usuários do sistema (senhas bcrypt, `congregacoes_acesso` int[]) |
 | `sessoes` | Manual | Tokens de autenticação (UUID, `expira_em`) |
 | `visitas` | ✅ Auto | Histórico de visitas dos visitantes |
 | `perfis_acesso` | ✅ Auto | Perfis de permissão RBAC (JSONB) |
@@ -202,12 +222,33 @@ As tabelas principais precisam ser criadas manualmente no PostgreSQL. As tabelas
 ### Permissões (RBAC)
 
 ```
-Admin → acesso total (ignora perfil)
-Usuário com perfil → acesso apenas às seções permitidas no perfil
+Admin → acesso total a todas as congregações (ignora perfil)
+Usuário com perfil → acesso apenas às seções e congregações permitidas
 Usuário sem perfil → acesso total (compatibilidade retroativa)
 ```
 
 Os perfis armazenam permissões em uma coluna `JSONB` e são gerenciados pela tela de **Usuários** (somente admin).
+
+**Permissões disponíveis:**
+
+| Chave | Descrição |
+|-------|-----------|
+| `dashboard` | Ver dashboard |
+| `membros_ver` | Ver lista de membros |
+| `membros_editar` | Criar e editar membros |
+| `departamentos_ver` | Ver departamentos |
+| `departamentos_editar` | Criar e editar departamentos |
+| `aniversariantes` | Ver aniversariantes |
+| `exportar` | Exportar Excel |
+| `visitantes` | Cadastrar visitantes |
+| `historico` | Ver histórico de visitas |
+| `usuarios` | Gerenciar usuários (admin) |
+| `congregacoes_ver` | Ver congregações |
+| `congregacoes_editar` | Criar e editar congregações |
+
+**Restrições adicionais por usuário:**
+- `departamentos_acesso: int[]` — limita a membros de departamentos específicos
+- `congregacoes_acesso: int[]` — limita a dados de congregações específicas
 
 ---
 
