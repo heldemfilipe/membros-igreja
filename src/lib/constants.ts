@@ -1,7 +1,7 @@
 // Cargos eclesiásticos disponíveis
 export const CARGOS_ECLESIASTICOS = [
   'Pastor', 'Evangelista', 'Presbítero', 'Diácono',
-  'Cooperador', 'Obreiro', 'Missionário', 'Auxiliar', 'Membro',
+  'Cooperador', 'Obreiro',
 ]
 
 // Cargos dentro dos departamentos

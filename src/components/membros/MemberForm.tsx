@@ -444,7 +444,7 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
     </div>
   )
 
-  const selectField = (label: string, fieldName: keyof MemberFormData, options: string[], col?: string) => (
+  const selectField = (label: string, fieldName: keyof MemberFormData, options: string[], col?: string, noneLabel = 'Selecione...') => (
     <div className={`space-y-2 ${col || ''}`}>
       <Label>{label}</Label>
       <select
@@ -452,7 +452,7 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
         onChange={e => set(fieldName, e.target.value)}
         className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
       >
-        <option value="">Selecione...</option>
+        <option value="">{noneLabel}</option>
         {options.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
     </div>
@@ -539,7 +539,7 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
               )
             })()}
           </div>
-          {selectField('Cargo', 'cargo', CARGOS_ECLESIASTICOS)}
+          {selectField('Cargo', 'cargo', CARGOS_ECLESIASTICOS, undefined, 'Nenhum')}
           {field('Função na Igreja', 'funcao_igreja')}
           {field('Origem Religiosa', 'origem_religiosa')}
         </CardContent>

@@ -266,9 +266,7 @@ export default function MembrosPage() {
                       <div className="flex items-baseline gap-1.5 flex-wrap">
                         <p className="font-semibold text-sm leading-tight">{m.nome}</p>
                         {m.conhecido_como && (
-                          <span className="text-xs text-muted-foreground hidden sm:inline">
-                            &quot;{m.conhecido_como}&quot;
-                          </span>
+                          <span className="text-xs text-muted-foreground">&quot;{m.conhecido_como}&quot;</span>
                         )}
                       </div>
 
@@ -276,12 +274,10 @@ export default function MembrosPage() {
                         <p className="text-xs text-muted-foreground leading-tight mt-0.5">{m.funcao_igreja}</p>
                       )}
 
+                      {/* Badges pessoais: cargo, sexo, idade, estado civil */}
                       <div className="flex flex-wrap gap-1 mt-1">
                         {m.cargo && (
-                          <Badge
-                            className="text-xs h-5"
-                            style={getCargoStyle(m.cargo)}
-                          >
+                          <Badge className="text-xs h-5" style={getCargoStyle(m.cargo)}>
                             {m.cargo}
                           </Badge>
                         )}
@@ -301,35 +297,43 @@ export default function MembrosPage() {
                             {idade}a
                           </Badge>
                         )}
-                        {(m.estado_civil || true) && (
+                        {m.estado_civil && (
                           <Badge variant="outline" className="text-xs h-5 text-muted-foreground">
-                            {ESTADO_CIVIL_ABREV[m.estado_civil || ''] ?? (m.estado_civil || 'Solt.')}
+                            {ESTADO_CIVIL_ABREV[m.estado_civil] ?? m.estado_civil}
                           </Badge>
                         )}
-                        {m.departamentos_info?.map((d, i) => (
-                          <Badge
-                            key={i}
-                            variant="outline"
-                            className="text-xs h-5 hidden sm:inline-flex"
-                            style={getDeptBadgeStyle(d.dept_id ?? d.dept_nome)}
-                          >
-                            {d.dept_nome}{d.cargo_departamento ? ` · ${d.cargo_departamento}` : ''}
-                          </Badge>
-                        ))}
                       </div>
 
-                      {/* Telefone — visível em sm+ */}
-                      {m.telefone_principal && (
-                        <p className="text-xs text-muted-foreground mt-0.5 hidden sm:block truncate">
-                          <span className="inline-flex items-center gap-1">
-                            <Phone className="h-3 w-3" />
-                            {m.telefone_principal}
-                          </span>
-                        </p>
+                      {/* Departamentos — sempre visíveis */}
+                      {m.departamentos_info && m.departamentos_info.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {m.departamentos_info.map((d, i) => (
+                            <Badge
+                              key={i}
+                              variant="outline"
+                              className="text-xs h-5"
+                              style={getDeptBadgeStyle(d.dept_id ?? d.dept_nome)}
+                            >
+                              {d.dept_nome}{d.cargo_departamento ? ` · ${d.cargo_departamento}` : ''}
+                            </Badge>
+                          ))}
+                        </div>
                       )}
-                      {/* Congregação — exibe apenas quando vendo todas */}
+
+                      {/* Telefone — sempre visível e clicável */}
+                      {m.telefone_principal && (
+                        <a
+                          href={`tel:${m.telefone_principal}`}
+                          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary mt-1 w-fit transition-colors"
+                        >
+                          <Phone className="h-3 w-3" />
+                          {m.telefone_principal}
+                        </a>
+                      )}
+
+                      {/* Congregação — exibe quando sem filtro ativo */}
                       {!filtroCongregacao && !filterCongregacao && m.igreja && (
-                        <p className="text-xs text-muted-foreground mt-0.5 hidden sm:flex items-center gap-1">
+                        <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
                           <Church className="h-3 w-3 shrink-0" />
                           {m.igreja}
                         </p>
