@@ -149,6 +149,18 @@ export interface AniversarianteItem {
   igreja?: string
 }
 
+export interface AniversarianteCasamento {
+  id: number
+  nome: string
+  data_casamento: string
+  sexo?: string
+  telefone_principal?: string
+  tipo_participante: string
+  igreja?: string
+  conjuge_id?: number | null
+  conjuge_nome?: string | null
+}
+
 export interface Visita {
   id: number
   membro_id: number

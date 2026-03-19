@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { DashboardData, AniversarianteItem, VisitaRecente, VisitanteFrequente } from '@/types'
+import { DashboardData, AniversarianteItem, AniversarianteCasamento, VisitaRecente, VisitanteFrequente } from '@/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { StatCard } from '@/components/dashboard/StatCard'
 import { MemberModal } from '@/components/membros/MemberModal'
 import {
@@ -17,7 +18,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { getDiaDoMes } from '@/lib/utils'
-import { CARGO_COLORS, getDeptColor } from '@/lib/constants'
+import { CARGO_COLORS, getDeptColor, getBoda } from '@/lib/constants'
 
 // ---------- paletas de cores ----------
 const CORES_PIE = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316', '#84cc16']
@@ -127,6 +128,9 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [todosAniv, setTodosAniv] = useState<AniversarianteItem[]>([])
   const [filtroSemana, setFiltroSemana] = useState<FiltroSemana>('esta')
+  const [todosAnivCasamento, setTodosAnivCasamento] = useState<AniversarianteCasamento[]>([])
+  const [filtroSemanaCasamento, setFiltroSemanaCasamento] = useState<FiltroSemana>('esta')
+  const [bodaDialog, setBodaDialog] = useState<{ nome: string; significado: string; anos: number } | null>(null)
   const [loading, setLoading] = useState(true)
   const [congregacoes, setCongregacoes] = useState<{ id: number; nome: string }[]>([])
 
@@ -180,6 +184,23 @@ export default function DashboardPage() {
       .catch(() => {})
   }, [token, filtroCongregacao])
 
+  // Aniversariantes de casamento (mês atual + anterior)
+  useEffect(() => {
+    if (!token) return
+    const hoje = new Date()
+    const mes = hoje.getMonth() + 1
+    const mesAnterior = mes === 1 ? 12 : mes - 1
+    const congSuffix = filtroCongregacao ? `&congregacao=${filtroCongregacao}` : ''
+    Promise.all([
+      fetch(`/api/aniversariantes/casamento?mes=${mes}${congSuffix}`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+      fetch(`/api/aniversariantes/casamento?mes=${mesAnterior}${congSuffix}`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+    ])
+      .then(([listaMes, listaMesAnt]: [AniversarianteCasamento[], AniversarianteCasamento[]]) => {
+        setTodosAnivCasamento([...(listaMesAnt || []), ...(listaMes || [])])
+      })
+      .catch(() => {})
+  }, [token, filtroCongregacao])
+
   // Visitas recentes + frequentes
   const loadVisitas = useCallback(async () => {
     if (!token) return
@@ -219,6 +240,29 @@ export default function DashboardPage() {
       return deste >= domingoAnt && deste <= sabado
     })
   }, [todosAniv, filtroSemana])
+
+  const anivCasamentoFiltrados = useMemo(() => {
+    const hoje = new Date()
+    const domingo = new Date(hoje)
+    domingo.setDate(hoje.getDate() - hoje.getDay())
+    domingo.setHours(0, 0, 0, 0)
+    const sabado = new Date(domingo)
+    sabado.setDate(domingo.getDate() + 6)
+    sabado.setHours(23, 59, 59, 999)
+    const domingoAnt = new Date(domingo)
+    domingoAnt.setDate(domingo.getDate() - 7)
+    const sabadoAnt = new Date(domingo)
+    sabadoAnt.setDate(domingo.getDate() - 1)
+    sabadoAnt.setHours(23, 59, 59, 999)
+
+    return todosAnivCasamento.filter(a => {
+      const parts = a.data_casamento.split('T')[0].split('-').map(Number)
+      const deste = new Date(hoje.getFullYear(), parts[1] - 1, parts[2])
+      if (filtroSemanaCasamento === 'esta') return deste >= domingo && deste <= sabado
+      if (filtroSemanaCasamento === 'anterior') return deste >= domingoAnt && deste <= sabadoAnt
+      return deste >= domingoAnt && deste <= sabado
+    })
+  }, [todosAnivCasamento, filtroSemanaCasamento])
 
   // ─── Loading ──────────────────────────────────────────────────────────────
 
@@ -504,6 +548,119 @@ export default function DashboardPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* ─── Aniversários de Casamento da Semana ─────────────────────────── */}
+      <Card className="border-rose-200 bg-rose-50 dark:bg-rose-900/10 dark:border-rose-800/50">
+        <CardContent className="p-4">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-lg leading-none">💍</span>
+                <p className="text-sm font-semibold text-rose-800 dark:text-rose-300">
+                  Aniversários de Casamento
+                  {anivCasamentoFiltrados.length > 0 && (
+                    <span className="ml-1.5 bg-rose-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                      {anivCasamentoFiltrados.length}
+                    </span>
+                  )}
+                </p>
+              </div>
+              <div className="flex gap-1 flex-wrap">
+                {(['esta', 'anterior', 'ambas'] as FiltroSemana[]).map((f, i) => {
+                  const labels = ['Esta semana', 'Semana anterior', 'Ambas']
+                  const cores = {
+                    ativo:   ['bg-emerald-600 text-white shadow-sm', 'bg-violet-600 text-white shadow-sm', 'bg-slate-600 text-white shadow-sm'],
+                    inativo: [
+                      'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 border border-emerald-200 dark:border-emerald-800',
+                      'bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 hover:bg-violet-100 border border-violet-200 dark:border-violet-800',
+                      'bg-slate-100 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 hover:bg-slate-200 border border-slate-200 dark:border-slate-700',
+                    ],
+                  }
+                  return (
+                    <button
+                      key={f}
+                      onClick={() => setFiltroSemanaCasamento(f)}
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${filtroSemanaCasamento === f ? cores.ativo[i] : cores.inativo[i]}`}
+                    >
+                      {labels[i]}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="flex gap-3 text-[10px] text-muted-foreground">
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />Esta semana</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-violet-500 inline-block" />Semana anterior</span>
+            </div>
+
+            {anivCasamentoFiltrados.length === 0 ? (
+              <p className="text-sm text-rose-700 dark:text-rose-400">Nenhum aniversário de casamento {filtroSemanaCasamento === 'esta' ? 'esta semana' : filtroSemanaCasamento === 'anterior' ? 'na semana anterior' : 'nas semanas selecionadas'}.</p>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {anivCasamentoFiltrados.map(a => {
+                  const dia = getDiaDoMes(a.data_casamento)
+                  const mesNum = a.data_casamento.split('T')[0].split('-')[1]
+                  const parts = a.data_casamento.split('T')[0].split('-').map(Number)
+                  const deste = new Date(new Date().getFullYear(), parts[1] - 1, parts[2])
+                  const _dom = new Date(); _dom.setDate(_dom.getDate() - _dom.getDay()); _dom.setHours(0,0,0,0)
+                  const _sab = new Date(_dom); _sab.setDate(_dom.getDate() + 6); _sab.setHours(23,59,59,999)
+                  const isEstaSemana = deste >= _dom && deste <= _sab
+                  const anos = new Date().getFullYear() - parts[0]
+                  const boda = getBoda(anos)
+                  const nomeExibido = a.conjuge_nome ? `${a.nome} + ${a.conjuge_nome}` : a.nome
+                  return (
+                    <span
+                      key={a.id}
+                      onClick={() => boda && setBodaDialog({ ...boda, anos })}
+                      className={`inline-flex flex-col px-2.5 py-1 rounded-full text-xs font-medium transition-opacity ${boda ? 'cursor-pointer hover:opacity-80' : ''} ${
+                        isEstaSemana
+                          ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-900 dark:text-emerald-300 ring-1 ring-emerald-200 dark:ring-emerald-800'
+                          : 'bg-violet-100 dark:bg-violet-900/40 text-violet-900 dark:text-violet-300 ring-1 ring-violet-200 dark:ring-violet-800'
+                      }`}
+                    >
+                      <span>{nomeExibido} · {anos}a ({dia}/{mesNum})</span>
+                      {boda && (
+                        <span className="text-[10px] opacity-70 leading-tight flex items-center gap-0.5">
+                          💍 {boda.nome}
+                        </span>
+                      )}
+                      {!filtroCongregacao && a.igreja && (
+                        <span className="text-[10px] opacity-60 leading-tight flex items-center gap-0.5">
+                          <Church className="h-2.5 w-2.5 shrink-0" />{a.igreja}
+                        </span>
+                      )}
+                    </span>
+                  )
+                })}
+              </div>
+            )}
+
+            <div className="pt-1">
+              <Link href="/aniversariantes?aba=casamento">
+                <Button variant="outline" size="sm" className="gap-1.5 border-rose-300 dark:border-rose-700 text-rose-800 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/40">
+                  <CalendarDays className="h-3.5 w-3.5" />
+                  Ver todos os casamentos
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Dialog de Boda */}
+      {bodaDialog && (
+        <Dialog open onOpenChange={() => setBodaDialog(null)}>
+          <DialogContent className="max-w-sm">
+            <div className="text-center space-y-3 py-2">
+              <div className="text-5xl">💍</div>
+              <h2 className="text-xl font-bold">{bodaDialog.nome}</h2>
+              <p className="text-sm text-muted-foreground font-medium">{bodaDialog.anos} {bodaDialog.anos === 1 ? 'ano' : 'anos'} de casamento</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">{bodaDialog.significado}</p>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* ─── Gráficos — Por Tipo + Por Sexo ─────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

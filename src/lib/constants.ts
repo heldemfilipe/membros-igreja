@@ -67,6 +67,41 @@ export function getDeptBadgeStyle(idOrName: number | string): React.CSSPropertie
   }
 }
 
+// ─── Bodas de casamento ───────────────────────────────────────────────────────
+
+export const BODAS: { anos: number; nome: string; significado: string }[] = [
+  { anos: 1,  nome: 'Bodas de Papel',     significado: 'Como o papel — frágil mas capaz de registrar as mais belas histórias. O primeiro ano pede cuidado e atenção mútua.' },
+  { anos: 2,  nome: 'Bodas de Algodão',   significado: 'Macio e resistente, o algodão representa a leveza e o conforto que o casal já conquistou juntos.' },
+  { anos: 3,  nome: 'Bodas de Trigo',     significado: 'O trigo simboliza prosperidade e abundância — a relação começa a dar frutos.' },
+  { anos: 4,  nome: 'Bodas de Flores',    significado: 'As flores representam o florescimento do amor e o perfume único deste relacionamento.' },
+  { anos: 5,  nome: 'Bodas de Madeira',   significado: 'Firme e duradoura. Cinco anos juntos mostram que a base do casal está sólida.' },
+  { anos: 6,  nome: 'Bodas de Açúcar',    significado: 'Doçura e leveza — o amor amadurece e se torna cada vez mais saboroso.' },
+  { anos: 7,  nome: 'Bodas de Lã',        significado: 'A lã aquece e protege. Sete anos trazem o calor e o cuidado mútuos.' },
+  { anos: 8,  nome: 'Bodas de Bronze',    significado: 'Resistente ao tempo, o bronze representa a solidez de um amor que persevera.' },
+  { anos: 9,  nome: 'Bodas de Louça',     significado: 'Delicada mas resistente — a louça simboliza o cuidado que ainda se tem pela relação.' },
+  { anos: 10, nome: 'Bodas de Estanho',   significado: 'Dez anos moldados juntos — o estanho é maleável, assim como o casal aprendeu a se adaptar.' },
+  { anos: 11, nome: 'Bodas de Aço',       significado: 'Forte e inquebrável. A força conquistada por onze anos de parceria.' },
+  { anos: 12, nome: 'Bodas de Seda',      significado: 'Fina e preciosa — a seda representa a elegância e a intimidade profunda do casal.' },
+  { anos: 13, nome: 'Bodas de Renda',     significado: 'Intrincada e bela como a renda — fruto de muito trabalho e dedicação.' },
+  { anos: 14, nome: 'Bodas de Marfim',    significado: 'Raro e valioso — representa a raridade de um amor que chegou tão longe.' },
+  { anos: 15, nome: 'Bodas de Cristal',   significado: 'Transparente e brilhante. Cristal simboliza clareza, honestidade e amor renovado.' },
+  { anos: 20, nome: 'Bodas de Porcelana', significado: 'Vinte anos de um amor refinado e resistente, como a mais fina porcelana.' },
+  { anos: 25, nome: 'Bodas de Prata',     significado: 'Um quarto de século de cumplicidade — brilhante, puro e valioso como a prata.' },
+  { anos: 30, nome: 'Bodas de Pérola',    significado: 'A pérola nasce da superação — trinta anos são o resultado de paciência, amor e beleza.' },
+  { anos: 35, nome: 'Bodas de Coral',     significado: 'Único e colorido, o coral representa a vitalidade de um casal que chegou longe.' },
+  { anos: 40, nome: 'Bodas de Rubi',      significado: 'Intenso e apaixonante como o rubi — quarenta anos de amor são um tesouro incomparável.' },
+  { anos: 45, nome: 'Bodas de Safira',    significado: 'Fiel e precioso como a safira — 45 anos demonstram lealdade inabalável.' },
+  { anos: 50, nome: 'Bodas de Ouro',      significado: 'Cinquenta anos dourados — o ouro é o símbolo máximo de valor e eternidade do amor.' },
+  { anos: 55, nome: 'Bodas de Esmeralda', significado: 'Rara e deslumbrante — a esmeralda celebra 55 anos de um amor excepcional.' },
+  { anos: 60, nome: 'Bodas de Diamante',  significado: 'O diamante é eterno, assim como o amor de quem chega aos 60 anos juntos.' },
+  { anos: 65, nome: 'Bodas de Ferro',     significado: 'Indestrutível como o ferro — 65 anos de casamento são uma fortaleza de amor e fé.' },
+  { anos: 70, nome: 'Bodas de Platina',   significado: 'O metal mais raro e nobre — 70 anos juntos são uma bênção extraordinária.' },
+]
+
+export function getBoda(anos: number): { nome: string; significado: string } | null {
+  return BODAS.find(b => b.anos === anos) ?? null
+}
+
 // ─── Permissões do sistema ────────────────────────────────────────────────────
 
 export const PERMISSOES_DISPONIVEIS = [
