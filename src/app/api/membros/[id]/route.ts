@@ -152,6 +152,19 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     // Inferência automática de relações familiares derivadas
     await inferirRelacoesFamiliares(Number(id), toNull(sexo), client)
 
+    // Propaga data_casamento para o cônjuge vinculado (se ele não tiver uma data ainda)
+    const dataCasamentoFinal = toNull(data_casamento)
+    if (dataCasamentoFinal) {
+      await client.query(
+        `UPDATE membros SET data_casamento = $1
+         WHERE id IN (
+           SELECT membro_vinculado_id FROM familiares
+           WHERE membro_id = $2 AND parentesco = 'Cônjuge' AND membro_vinculado_id IS NOT NULL
+         ) AND data_casamento IS NULL`,
+        [dataCasamentoFinal, id]
+      )
+    }
+
     // Atualiza departamentos
     try {
       await client.query('DELETE FROM membro_departamentos WHERE membro_id = $1', [id])

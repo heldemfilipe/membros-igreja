@@ -199,12 +199,20 @@ export default function UsuariosPage() {
   }
 
   const toggleCongAcesso = (id: number) => {
-    setUserForm(f => ({
-      ...f,
-      congregacoes_acesso: f.congregacoes_acesso.includes(id)
+    setUserForm(f => {
+      const newCongs = f.congregacoes_acesso.includes(id)
         ? f.congregacoes_acesso.filter(x => x !== id)
-        : [...f.congregacoes_acesso, id],
-    }))
+        : [...f.congregacoes_acesso, id]
+      // Remove departments that no longer belong to any selected congregation
+      const validDepts = departamentos
+        .filter(d => d.congregacao_id == null || newCongs.includes(d.congregacao_id))
+        .map(d => d.id)
+      return {
+        ...f,
+        congregacoes_acesso: newCongs,
+        departamentos_acesso: f.departamentos_acesso.filter(dId => validDepts.includes(dId)),
+      }
+    })
   }
 
   // ─── CRUD Perfis ──────────────────────────────────────────────────────────
@@ -495,33 +503,6 @@ export default function UsuariosPage() {
                   )}
                 </div>
 
-                {/* Restrição de departamentos */}
-                {departamentos.length > 0 && (
-                  <div className="space-y-2">
-                    <Label>Departamentos com Acesso</Label>
-                    <p className="text-xs text-muted-foreground">Deixe vazio para permitir acesso a todos os departamentos.</p>
-                    <div className="max-h-40 overflow-y-auto border rounded-md p-2 space-y-1">
-                      {departamentos.map(d => (
-                        <label key={d.id} className="flex items-center gap-2.5 cursor-pointer rounded px-1 py-1 hover:bg-accent/50 transition-colors">
-                          <div
-                            className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                              userForm.departamentos_acesso.includes(d.id)
-                                ? 'bg-primary border-primary'
-                                : 'border-muted-foreground/40'
-                            }`}
-                            onClick={() => toggleDeptAcesso(d.id)}
-                          >
-                            {userForm.departamentos_acesso.includes(d.id) && (
-                              <Check className="h-2.5 w-2.5 text-primary-foreground" />
-                            )}
-                          </div>
-                          <span className="text-sm" onClick={() => toggleDeptAcesso(d.id)}>{d.nome}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
                 {/* Restrição de congregações */}
                 {congregacoes.length > 0 && (
                   <div className="space-y-2">
@@ -550,6 +531,48 @@ export default function UsuariosPage() {
                     </div>
                   </div>
                 )}
+
+                {/* Restrição de departamentos — filtrado pelas congregações selecionadas */}
+                {(() => {
+                  const deptsFiltrados = userForm.congregacoes_acesso.length > 0
+                    ? departamentos.filter(d => d.congregacao_id != null && userForm.congregacoes_acesso.includes(d.congregacao_id!))
+                    : departamentos
+                  if (deptsFiltrados.length === 0) return null
+                  return (
+                    <div className="space-y-2">
+                      <Label>Departamentos com Acesso</Label>
+                      <p className="text-xs text-muted-foreground">
+                        {userForm.congregacoes_acesso.length > 0
+                          ? 'Departamentos das congregações selecionadas. Deixe vazio para acesso a todos.'
+                          : 'Deixe vazio para permitir acesso a todos os departamentos.'}
+                      </p>
+                      <div className="max-h-40 overflow-y-auto border rounded-md p-2 space-y-1">
+                        {deptsFiltrados.map(d => (
+                          <label key={d.id} className="flex items-center gap-2.5 cursor-pointer rounded px-1 py-1 hover:bg-accent/50 transition-colors">
+                            <div
+                              className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                                userForm.departamentos_acesso.includes(d.id)
+                                  ? 'bg-primary border-primary'
+                                  : 'border-muted-foreground/40'
+                              }`}
+                              onClick={() => toggleDeptAcesso(d.id)}
+                            >
+                              {userForm.departamentos_acesso.includes(d.id) && (
+                                <Check className="h-2.5 w-2.5 text-primary-foreground" />
+                              )}
+                            </div>
+                            <span className="text-sm" onClick={() => toggleDeptAcesso(d.id)}>
+                              {d.nome}
+                              {d.congregacao_nome && userForm.congregacoes_acesso.length !== 1 && (
+                                <span className="text-xs text-muted-foreground ml-1">— {d.congregacao_nome}</span>
+                              )}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
               </>
             )}
 

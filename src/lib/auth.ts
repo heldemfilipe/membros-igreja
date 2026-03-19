@@ -18,7 +18,9 @@ export async function verificarToken(req: NextRequest): Promise<AuthUser | null>
   const authHeader = req.headers.get('authorization')
   if (!authHeader) return null
 
-  const token = authHeader.replace('Bearer ', '')
+  const match = authHeader.match(/^Bearer\s+(.+)$/i)
+  if (!match) return null
+  const token = match[1]
 
   try {
     // Tenta query completa com join em perfis_acesso (inclui congregacoes_acesso)
@@ -84,4 +86,8 @@ export function unauthorized(msg = 'Token inválido ou expirado') {
 
 export function forbidden(msg = 'Acesso negado. Apenas administradores.') {
   return Response.json({ error: msg }, { status: 403 })
+}
+
+export function notFound(msg = 'Registro não encontrado') {
+  return Response.json({ error: msg }, { status: 404 })
 }

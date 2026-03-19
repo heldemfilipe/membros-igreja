@@ -102,6 +102,30 @@ export function getBoda(anos: number): { nome: string; significado: string } | n
   return BODAS.find(b => b.anos === anos) ?? null
 }
 
+// ─── Estilos de tipo de participante (shared entre membros e aniversariantes) ─
+
+export const TIPO_STYLE: Record<string, { card: string; avatar: string }> = {
+  Membro:     { card: 'border-l-4 border-l-blue-500',    avatar: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' },
+  Congregado: { card: 'border-l-4 border-l-emerald-500', avatar: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' },
+  Visitante:  { card: 'border-l-4 border-l-amber-500',   avatar: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' },
+}
+
+export const TIPO_STYLE_CASAMENTO: Record<string, { card: string; avatar: string }> = {
+  ...TIPO_STYLE,
+  _default: { card: 'border-l-4 border-l-rose-400', avatar: 'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300' },
+}
+
+// ─── Abreviações de estado civil ──────────────────────────────────────────────
+
+export const ESTADO_CIVIL_ABREV: Record<string, string> = {
+  'Solteiro(a)':  'Solt.',
+  'Casado(a)':    'Cas.',
+  'Divorciado(a)':'Div.',
+  'Viúvo(a)':     'Viúvo',
+  'Separado(a)':  'Sep.',
+  'União Estável':'U.E.',
+}
+
 // ─── Permissões do sistema ────────────────────────────────────────────────────
 
 export const PERMISSOES_DISPONIVEIS = [

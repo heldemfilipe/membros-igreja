@@ -36,23 +36,28 @@ export async function POST(req: NextRequest) {
   if (!user) return unauthorized()
   if (user.tipo !== 'admin') return forbidden()
 
-  const { nome, email, senha, tipo, perfil_id } = await req.json()
+  const { nome, email, senha, tipo, perfil_id, departamentos_acesso, congregacoes_acesso } = await req.json()
 
   if (!nome || !email || !senha) {
     return Response.json({ error: 'Nome, email e senha são obrigatórios' }, { status: 400 })
   }
+
+  const deptAcesso = Array.isArray(departamentos_acesso) && departamentos_acesso.length > 0
+    ? departamentos_acesso : null
+  const congAcesso = Array.isArray(congregacoes_acesso) && congregacoes_acesso.length > 0
+    ? congregacoes_acesso : null
 
   try {
     const senhaCriptografada = await bcrypt.hash(senha, 10)
     let result
     try {
       result = await pool.query(
-        `INSERT INTO usuarios (nome, email, senha, tipo, perfil_id)
-         VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-        [nome, email, senhaCriptografada, tipo || 'usuario', perfil_id || null]
+        `INSERT INTO usuarios (nome, email, senha, tipo, perfil_id, departamentos_acesso, congregacoes_acesso)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+        [nome, email, senhaCriptografada, tipo || 'usuario', perfil_id || null, deptAcesso, congAcesso]
       )
     } catch {
-      // Fallback sem perfil_id
+      // Fallback sem colunas extras
       result = await pool.query(
         'INSERT INTO usuarios (nome, email, senha, tipo) VALUES ($1, $2, $3, $4) RETURNING id',
         [nome, email, senhaCriptografada, tipo || 'usuario']

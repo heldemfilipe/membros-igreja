@@ -18,7 +18,7 @@
 
 Sistema interno desenvolvido para a **Assembleia de Deus de Rio Claro**, com suporte a **múltiplas congregações**, foco em simplicidade e praticidade para secretaria e liderança.
 
-Permite cadastrar e gerenciar membros, congregados e visitantes; acompanhar aniversariantes da semana; organizar departamentos por congregação; controlar permissões granulares por usuário (seção, departamento e congregação) e exportar dados para planilha Excel.
+Permite cadastrar e gerenciar membros, congregados e visitantes; acompanhar aniversariantes de nascimento e casamento; organizar departamentos por congregação; controlar permissões granulares por usuário e exportar dados para planilha Excel.
 
 ---
 
@@ -27,61 +27,60 @@ Permite cadastrar e gerenciar membros, congregados e visitantes; acompanhar aniv
 ### 🏠 Dashboard
 - Cards de totais: membros, congregados e geral (filtrados pela congregação selecionada)
 - Gráficos interativos: tipo de participante, sexo, faixa etária, estado civil, cargo eclesiástico e departamento
-- Donut chart com total no centro + lista de valores ao lado (legível no modo escuro)
-- **Banner de aniversariantes** com filtros semanais coloridos — verde para esta semana, violeta para a anterior
-- Pílulas de aniversariantes exibem congregação quando visualizando todas as congregações
-- **Visitantes frequentes** — alerta quando um visitante atinge 3+ visitas em 28 dias, com botão para promover a membro
+- **Widget de aniversários de nascimento** — filtro por esta semana / semana anterior / ambas; cores distintas por semana
+- **Widget de aniversários de casamento** — mesmo filtro semanal; exibe o casal como "João + Maria" quando ambos cadastrados; clique na boda abre dialog com nome e significado
+- **Banner de visitantes frequentes** — alerta quando um visitante atinge 3+ visitas em 28 dias, com botão para promover a membro
 - Feed de **últimas visitas** e **membros recentes**
 
 ### 👥 Membros
-- CRUD completo com **38+ campos** (dados pessoais, endereço, contato, dados eclesiásticos)
+- CRUD completo com **38+ campos** (dados pessoais, endereço, contato, documentos, dados eclesiásticos)
+- **Validação em tempo real** com destaque vermelho: CPF (dígitos verificadores mod 11), RG, CEP, telefone, e-mail e datas futuras — não bloqueante, apenas indicativo
 - Busca em tempo real com debounce (300 ms) e filtros por tipo, cargo e departamento
-- **Filtro por congregação** na lista (admins sem filtro global podem ver por congregação específica ou "Sem congregação")
+- **Filtro por congregação** na lista; opção "Sem congregação" para admins
+- **Departamentos filtrados pela congregação** — ao selecionar a congregação no cadastro, só aparecem os departamentos daquela congregação; sem congregação selecionada, seção de departamentos fica oculta
+- Auto-preenchimento: ao trocar de congregação, departamentos incompatíveis são desmarcados automaticamente
 - **Cadastro rápido de visitante** via modal com data da visita, botão "Hoje" e campo de congregação
-- Modal de visualização com badges coloridos por departamento e cargo
-- **Histórico de visitas** para visitantes: registrar e listar diretamente no modal
-- Histórico eclesiástico e familiares com linhas dinâmicas no formulário
-- Auto-criação de perfil para cônjuge/filhos vinculados
+- Histórico eclesiástico e familiares com linhas dinâmicas
+- **Vinculação de familiar a membro já cadastrado** — busca inline com dropdown e opção de cadastro rápido
+- Auto-criação de perfil para cônjuge/filhos vinculados + propagação automática da `data_casamento` para o cônjuge
 - **Exportação Excel** (`.xlsx`) com todos os campos
-- Cards responsivos: departamentos, telefone clicável (`tel:`) e congregação sempre visíveis no mobile
+- Cards responsivos: departamentos, telefone clicável (`tel:`) e congregação visíveis no mobile
 
 ### ⛪ Congregações
 - Cadastro e gestão de congregações da denominação
-- **Filtro global de congregação** na sidebar — admins e usuários com acesso a múltiplas congregações podem alternar a visualização entre todas ou uma específica
+- **Filtro global de congregação** na sidebar — admins e usuários multi-congregação alternam entre todas ou uma específica
 - Filtro reflete em todas as telas: dashboard, membros, aniversariantes e departamentos
-- **Campo congregação obrigatório** no cadastro de membro e visitante
-- Quando filtro ou restrição de congregação está ativo, o campo é **bloqueado automaticamente** no cadastro — sem exibir outras opções
-- Cards de membros e aniversariantes exibem a congregação quando a visualização é de todas as congregações
+- Campo congregação obrigatório no cadastro; bloqueado automaticamente quando filtro ativo
 
 ### 🏢 Departamentos
 - CRUD com cards expansíveis por departamento
 - **Vínculo com congregação** — cada departamento pertence a uma congregação
 - Cores únicas e determinísticas por departamento (via hash do ID)
 - Vínculo N:N membros ↔ departamentos com cargo no departamento
-- **Editar cargo** de qualquer membro diretamente na listagem (botão de lápis inline)
+- Editar cargo de qualquer membro diretamente na listagem (botão de lápis inline)
 - Badges coloridos por departamento em toda a aplicação
 
 ### 🎂 Aniversariantes
-- Listagem por mês com página dedicada
-- Filtros semanais com cores distintas: **verde** (esta semana), **violeta** (semana anterior), cinza (ambas)
-- Cada nome exibe a cor da semana correspondente, independente do filtro selecionado
+- **Aba Nascimento** — listagem mensal com filtro de semana; cor do card reflete a semana do aniversário
+- **Aba Casamento** — listagem de aniversários de casamento; deduplica casais (exibe "Fulano + Cônjuge" uma única vez); inclui automaticamente o cônjuge vinculado mesmo que só um dos dois tenha `data_casamento`
+- **Bodas de casamento** — badge clicável exibe o nome da boda (ex: "Bodas de Prata") + dialog com significado; cobre de 1 a 70 anos de casamento
+- Grid responsivo 2 colunas no mobile, 3 no desktop
 - Congregação exibida em cada card quando sem filtro ativo
 
 ### 🔐 Usuários & Permissões
 - Gestão de usuários (somente admin)
-- **Perfis de acesso RBAC** com permissões granulares por seção:
-  - Dashboard, Membros, Departamentos, Aniversariantes, Exportar, Visitantes, Histórico, Usuários
-  - **Departamentos — Editar**: não-admins podem criar/editar/excluir departamentos
-  - **Congregações — Ver / Editar**: controle de acesso à gestão de congregações
-- **Restrição por departamento**: limitar usuário a ver apenas membros de departamentos específicos
-- **Restrição por congregação**: limitar usuário a ver apenas dados de congregações específicas
-- Usuários sem perfil mantêm acesso total (compatibilidade retroativa)
+- **Perfis de acesso RBAC** com permissões granulares por seção
+- **Restrição por departamento**: limitar usuário a membros de departamentos específicos
+- **Restrição por congregação**: limitar usuário a dados de congregações específicas
+- Formulário de usuário: congregações selecionadas filtram os departamentos disponíveis; ao desmarcar uma congregação, departamentos incompatíveis são removidos automaticamente
+- `congregacoes_acesso` e `departamentos_acesso` salvos corretamente tanto na criação quanto na edição
 
-### 🎨 UX
+### 🎨 UX & Performance
 - **Modo escuro** com toggle persistente e sem flash ao carregar
 - **Totalmente responsivo** — mobile, tablet e desktop
-- Sidebar com itens condicionais baseados nas permissões do usuário logado
-- Seletor de congregação na sidebar (visível apenas quando o usuário tem acesso a 2+ congregações)
+- Fetches paralelos com `Promise.allSettled` + `AbortController` em todos os formulários e listas (sem loading em cascata)
+- Timeout de segurança de 30 s no salvamento — evita spinner infinito em caso de falha de rede
+- Verificação de token no boot com timeout de 10 s + AbortController — sem tela branca em conexões lentas
 
 ---
 
@@ -116,14 +115,16 @@ src/
 │   │   ├── perfis/                   # Perfis RBAC (tabela auto-criada)
 │   │   ├── usuarios/                 # CRUD de usuários (admin)
 │   │   ├── dashboard/                # Estatísticas agregadas
-│   │   └── aniversariantes/          # Listagem por mês
+│   │   └── aniversariantes/
+│   │       ├── route.ts              # Aniversários de nascimento
+│   │       └── casamento/route.ts    # Aniversários de casamento (com deduplicação de casais)
 │   ├── (dashboard)/                  # Páginas protegidas (layout com Sidebar)
 │   │   ├── dashboard/page.tsx
 │   │   ├── membros/page.tsx
 │   │   ├── departamentos/page.tsx
 │   │   ├── congregacoes/page.tsx
 │   │   ├── usuarios/page.tsx
-│   │   └── aniversariantes/page.tsx
+│   │   └── aniversariantes/page.tsx  # Abas: Nascimento + Casamento
 │   ├── login/page.tsx
 │   ├── layout.tsx                    # Root layout (anti-flash, Providers)
 │   ├── globals.css                   # Tailwind + CSS Variables (light/dark)
@@ -133,7 +134,7 @@ src/
 │   │   ├── Sidebar.tsx               # Navegação lateral + seletor de congregação
 │   │   └── DashboardLayout.tsx       # Wrapper com proteção de rota
 │   ├── membros/
-│   │   ├── MemberForm.tsx            # Formulário completo (38+ campos)
+│   │   ├── MemberForm.tsx            # Formulário completo (38+ campos, validação, depts filtrados)
 │   │   ├── MemberModal.tsx           # Modal wrapper do formulário
 │   │   ├── VisitorModal.tsx          # Cadastro rápido de visitante
 │   │   └── MemberViewModal.tsx       # Visualização + histórico de visitas
@@ -143,12 +144,14 @@ src/
 ├── contexts/
 │   └── AuthContext.tsx               # Auth custom + filtroCongregacao + temPermissao()
 ├── lib/
-│   ├── db.ts                         # Pool pg (DATABASE_URL)
-│   ├── auth.ts                       # verificarToken + permissões
-│   ├── constants.ts                  # Cores, cargos, permissões disponíveis
+│   ├── db.ts                         # Pool pg (DATABASE_URL, max:1, timeouts)
+│   ├── auth.ts                       # verificarToken + helpers unauthorized/forbidden/notFound
+│   ├── access.ts                     # buildAccessWhere() — lógica centralizada de controle de acesso
+│   ├── constants.ts                  # Cargos, cores, bodas, estilos compartilhados
+│   ├── familyInference.ts            # Inferência automática de relações familiares derivadas
 │   └── utils.ts                      # cn, calcularIdade, formatarData, toNull
 └── types/
-    └── index.ts                      # Tipos TypeScript (Membro, Visita, Perfil…)
+    └── index.ts                      # Tipos TypeScript (Membro, Visita, Perfil, AniversarianteCasamento…)
 ```
 
 ---
@@ -189,22 +192,23 @@ DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require
 ```
 
 > O projeto usa `pg` (node-postgres) diretamente — **não é necessário** Supabase JS client nem `ANON_KEY`.
+> Para Supabase, use o pooler em modo **Transaction** (porta `6543`) com `?pgbouncer=true` para compatibilidade serverless.
 
 ---
 
 ## 🗄️ Banco de Dados
 
-As tabelas principais precisam ser criadas manualmente no PostgreSQL. As tabelas `visitas` e `perfis_acesso` são **criadas automaticamente** na primeira chamada à API (`CREATE TABLE IF NOT EXISTS`). A coluna `congregacao_id` em `departamentos` é adicionada automaticamente via migração lazy.
+As tabelas principais precisam ser criadas manualmente no PostgreSQL. As tabelas `visitas` e `perfis_acesso` são **criadas automaticamente** na primeira chamada à API. Colunas como `congregacao_id` em `departamentos` e `funcao_igreja` em `membros` são adicionadas via **migração lazy** (fora de transação, idempotente).
 
 | Tabela | Criação | Descrição |
 |--------|:-------:|-----------|
-| `membros` | Manual | Dados completos dos membros (38+ campos, campo `igreja` = nome da congregação) |
+| `membros` | Manual | Dados completos dos membros (38+ campos) |
 | `historicos` | Manual | Histórico eclesiástico (`FK membro_id`) |
 | `familiares` | Manual | Familiares (`FK membro_id`, `membro_vinculado_id`) |
-| `departamentos` | Manual | Departamentos da igreja (coluna `congregacao_id` adicionada automaticamente) |
+| `departamentos` | Manual | Departamentos da igreja (`congregacao_id` auto-adicionado) |
 | `membro_departamentos` | Manual | Vínculo N:N membros ↔ departamentos |
 | `congregacoes` | Manual | Congregações da denominação (id, nome) |
-| `usuarios` | Manual | Usuários do sistema (senhas bcrypt, `congregacoes_acesso` int[]) |
+| `usuarios` | Manual | Usuários do sistema (bcrypt, `congregacoes_acesso int[]`) |
 | `sessoes` | Manual | Tokens de autenticação (UUID, `expira_em`) |
 | `visitas` | ✅ Auto | Histórico de visitas dos visitantes |
 | `perfis_acesso` | ✅ Auto | Perfis de permissão RBAC (JSONB) |
@@ -217,17 +221,17 @@ As tabelas principais precisam ser criadas manualmente no PostgreSQL. As tabelas
 - Login via `POST /api/auth/login` → retorna token UUID
 - Token salvo no `localStorage`, enviado como `Authorization: Bearer <token>`
 - Sessões expiram em **7 dias** (tabela `sessoes`)
-- Usuários com `is_admin = true` têm acesso irrestrito
+- Verificação de token no boot com timeout de 10 s + AbortController
 
 ### Permissões (RBAC)
 
 ```
-Admin → acesso total a todas as congregações (ignora perfil)
-Usuário com perfil → acesso apenas às seções e congregações permitidas
+Admin        → acesso total a todas as congregações (ignora perfil)
+Usuário com perfil → acesso apenas às seções/congregações/departamentos permitidos
 Usuário sem perfil → acesso total (compatibilidade retroativa)
 ```
 
-Os perfis armazenam permissões em uma coluna `JSONB` e são gerenciados pela tela de **Usuários** (somente admin).
+A lógica de controle de acesso nas API routes é centralizada em `src/lib/access.ts` → `buildAccessWhere()`, aplicada consistentemente em membros, dashboard e aniversariantes.
 
 **Permissões disponíveis:**
 
@@ -236,13 +240,11 @@ Os perfis armazenam permissões em uma coluna `JSONB` e são gerenciados pela te
 | `dashboard` | Ver dashboard |
 | `membros_ver` | Ver lista de membros |
 | `membros_editar` | Criar e editar membros |
+| `membros_excluir` | Excluir membros |
+| `membros_exportar` | Exportar Excel |
 | `departamentos_ver` | Ver departamentos |
 | `departamentos_editar` | Criar e editar departamentos |
-| `aniversariantes` | Ver aniversariantes |
-| `exportar` | Exportar Excel |
-| `visitantes` | Cadastrar visitantes |
-| `historico` | Ver histórico de visitas |
-| `usuarios` | Gerenciar usuários (admin) |
+| `aniversariantes_ver` | Ver aniversariantes |
 | `congregacoes_ver` | Ver congregações |
 | `congregacoes_editar` | Criar e editar congregações |
 
@@ -260,7 +262,7 @@ Os perfis armazenam permissões em uma coluna `JSONB` e são gerenciados pela te
 
 O `vercel.json` já está configurado com:
 - Região **`gru1`** (São Paulo) — menor latência para usuários brasileiros
-- **`maxDuration: 30s`** nas API routes (evita timeout em queries pesadas)
+- **`maxDuration: 30s`** nas API routes
 - Headers de segurança (CSP, X-Frame-Options, Referrer-Policy)
 
 ---

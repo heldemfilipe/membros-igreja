@@ -1,20 +1,9 @@
 import { NextRequest } from 'next/server'
 import pool from '@/lib/db'
 import { verificarToken, unauthorized } from '@/lib/auth'
-import { toNull } from '@/lib/utils'
+import { toNull, calcularIdade } from '@/lib/utils'
 import { inferirRelacoesFamiliares } from '@/lib/familyInference'
-
-function calcularIdade(dataNascimento: string | null): number | null {
-  if (!dataNascimento) return null
-  const hoje = new Date()
-  const clean = dataNascimento.split('T')[0]
-  const [y, m, d] = clean.split('-').map(Number)
-  const nasc = new Date(y, m - 1, d)
-  let idade = hoje.getFullYear() - nasc.getFullYear()
-  const mo = hoje.getMonth() - nasc.getMonth()
-  if (mo < 0 || (mo === 0 && hoje.getDate() < nasc.getDate())) idade--
-  return idade
-}
+import { buildAccessWhere } from '@/lib/access'
 
 export async function GET(req: NextRequest) {
   const user = await verificarToken(req)
@@ -27,70 +16,38 @@ export async function GET(req: NextRequest) {
   const departamento = searchParams.get('departamento')
   const congregacaoParam = searchParams.get('congregacao')
 
-  // Restrições de acesso por departamento e congregação
-  const deptoAcesso = user.departamentos_acesso && user.departamentos_acesso.length > 0
-    ? user.departamentos_acesso : null
-  const congAcesso = user.congregacoes_acesso && user.congregacoes_acesso.length > 0
-    ? user.congregacoes_acesso : null
-
   try {
+    const baseParams: unknown[] = []
     let query = 'SELECT * FROM membros WHERE 1=1'
-    const params: (string | number | number[])[] = []
-    let paramCount = 1
 
     if (tipo) {
-      query += ` AND tipo_participante = $${paramCount}`
-      params.push(tipo)
-      paramCount++
+      baseParams.push(tipo)
+      query += ` AND tipo_participante = $${baseParams.length}`
     }
     if (cargo) {
-      query += ` AND cargo = $${paramCount}`
-      params.push(cargo)
-      paramCount++
+      baseParams.push(cargo)
+      query += ` AND cargo = $${baseParams.length}`
     }
     if (search) {
-      query += ` AND (nome ILIKE $${paramCount} OR conhecido_como ILIKE $${paramCount})`
-      params.push(`%${search}%`)
-      paramCount++
+      baseParams.push(`%${search}%`)
+      query += ` AND (nome ILIKE $${baseParams.length} OR conhecido_como ILIKE $${baseParams.length})`
     }
 
-    // Filtro de departamento: combina restrição de acesso + filtro explícito do usuário
-    if (deptoAcesso) {
-      const requestedDept = departamento ? parseInt(departamento) : null
-      const effectiveDepts = requestedDept !== null
-        ? deptoAcesso.filter(id => id === requestedDept)
-        : deptoAcesso
-      if (effectiveDepts.length === 0) {
-        return Response.json([])
-      }
-      query += ` AND id IN (SELECT membro_id FROM membro_departamentos WHERE departamento_id = ANY($${paramCount}::int[]))`
-      params.push(effectiveDepts)
-      paramCount++
-    } else if (departamento) {
-      query += ` AND id IN (SELECT membro_id FROM membro_departamentos WHERE departamento_id = $${paramCount})`
-      params.push(departamento)
-      paramCount++
-    }
-
-    // Filtro de congregação: restrição salva + filtro voluntário (admin)
-    if (congAcesso) {
-      const effective = congregacaoParam
-        ? congAcesso.filter(id => id === parseInt(congregacaoParam))
-        : congAcesso
-      if (effective.length === 0) return Response.json([])
-      query += ` AND igreja IN (SELECT nome FROM congregacoes WHERE id = ANY($${paramCount}::int[]))`
-      params.push(effective)
-      paramCount++
-    } else if (congregacaoParam === 'sem') {
-      // Membros sem congregação (campo vazio ou não pertence a nenhuma congregação cadastrada)
+    // Filtro "sem congregação" — só faz sentido quando o usuário não tem restrição de cong.
+    if (!user.congregacoes_acesso?.length && congregacaoParam === 'sem') {
       query += ` AND (igreja IS NULL OR igreja = '' OR igreja NOT IN (SELECT nome FROM congregacoes))`
-    } else if (congregacaoParam) {
-      query += ` AND igreja IN (SELECT nome FROM congregacoes WHERE id = $${paramCount})`
-      params.push(parseInt(congregacaoParam))
-      paramCount++
     }
 
-    query += ' ORDER BY nome'
+    // Restrições de acesso + filtros voluntários de departamento e congregação
+    const { where: accessWhere, params: accessParams, empty } = buildAccessWhere(
+      user,
+      congregacaoParam,
+      { paramOffset: baseParams.length, departamentoParam: departamento },
+    )
+    if (empty) return Response.json([])
+
+    const params = [...baseParams, ...accessParams]
+    query += accessWhere + ' ORDER BY nome'
 
     const result = await pool.query(query, params)
 
@@ -254,6 +211,19 @@ export async function POST(req: NextRequest) {
 
     // Inferência automática de relações familiares derivadas
     await inferirRelacoesFamiliares(membroId, toNull(sexo), client)
+
+    // Propaga data_casamento ao cônjuge vinculado (se ele ainda não tiver uma data)
+    const dataCasamentoFinal = toNull(data_casamento)
+    if (dataCasamentoFinal) {
+      await client.query(
+        `UPDATE membros SET data_casamento = $1
+         WHERE id IN (
+           SELECT membro_vinculado_id FROM familiares
+           WHERE membro_id = $2 AND parentesco = 'Cônjuge' AND membro_vinculado_id IS NOT NULL
+         ) AND data_casamento IS NULL`,
+        [dataCasamentoFinal, membroId]
+      )
+    }
 
     await client.query('COMMIT')
     return Response.json({ id: membroId, message: 'Membro cadastrado com sucesso!' })

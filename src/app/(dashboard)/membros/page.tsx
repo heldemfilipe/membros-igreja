@@ -12,22 +12,7 @@ import { MemberViewModal } from '@/components/membros/MemberViewModal'
 import { MemberModal } from '@/components/membros/MemberModal'
 import { Loader2, Plus, Search, Pencil, Trash2, Eye, UserPlus, Download, Phone, Church } from 'lucide-react'
 import { calcularIdade, cn } from '@/lib/utils'
-import { getCargoStyle, getDeptBadgeStyle, CARGOS_ECLESIASTICOS } from '@/lib/constants'
-
-const ESTADO_CIVIL_ABREV: Record<string, string> = {
-  'Solteiro(a)':  'Solt.',
-  'Casado(a)':    'Cas.',
-  'Divorciado(a)':'Div.',
-  'Viúvo(a)':     'Viúvo',
-  'Separado(a)':  'Sep.',
-  'União Estável':'U.E.',
-}
-
-const TIPO_STYLE: Record<string, { card: string; avatar: string }> = {
-  Membro:     { card: 'border-l-4 border-l-blue-500',    avatar: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' },
-  Congregado: { card: 'border-l-4 border-l-emerald-500', avatar: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' },
-  Visitante:  { card: 'border-l-4 border-l-amber-500',   avatar: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' },
-}
+import { getCargoStyle, getDeptBadgeStyle, CARGOS_ECLESIASTICOS, TIPO_STYLE, ESTADO_CIVIL_ABREV } from '@/lib/constants'
 
 export default function MembrosPage() {
   const { token, isAdmin, filtroCongregacao } = useAuth()
@@ -77,20 +62,19 @@ export default function MembrosPage() {
     return () => clearTimeout(searchTimer.current)
   }, [loadMembros])
 
+  // Carrega departamentos e congregações em paralelo
   useEffect(() => {
     if (!token) return
-    fetch('/api/departamentos', { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json())
-      .then(setDepartamentos)
-      .catch(() => {})
-  }, [token])
-
-  useEffect(() => {
-    if (!token) return
-    fetch('/api/congregacoes', { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : [])
-      .then((d: { id: number; nome: string }[]) => setCongregacoesLista(d || []))
-      .catch(() => {})
+    const ctrl = new AbortController()
+    const h = { Authorization: `Bearer ${token}` }
+    Promise.allSettled([
+      fetch('/api/departamentos', { headers: h, signal: ctrl.signal }).then(r => r.ok ? r.json() : []),
+      fetch('/api/congregacoes', { headers: h, signal: ctrl.signal }).then(r => r.ok ? r.json() : []),
+    ]).then(([deptsRes, congsRes]) => {
+      if (deptsRes.status === 'fulfilled') setDepartamentos(deptsRes.value || [])
+      if (congsRes.status === 'fulfilled') setCongregacoesLista(congsRes.value || [])
+    })
+    return () => ctrl.abort()
   }, [token])
 
   // Resetar filtro local ao ativar filtro global

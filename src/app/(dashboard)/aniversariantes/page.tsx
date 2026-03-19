@@ -6,21 +6,15 @@ import { useAuth } from '@/contexts/AuthContext'
 import { AniversarianteItem, AniversarianteCasamento } from '@/types'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Loader2, Cake, Phone, Church } from 'lucide-react'
 import { idadeFara, getDiaDoMes, cn } from '@/lib/utils'
-import { getCargoStyle, getBoda } from '@/lib/constants'
+import { getCargoStyle, getBoda, TIPO_STYLE, TIPO_STYLE_CASAMENTO } from '@/lib/constants'
 
 const MESES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
 ]
-
-const TIPO_STYLE: Record<string, { card: string; avatar: string }> = {
-  Membro:     { card: 'border-l-4 border-l-blue-500',    avatar: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' },
-  Congregado: { card: 'border-l-4 border-l-emerald-500', avatar: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' },
-  Visitante:  { card: 'border-l-4 border-l-amber-500',   avatar: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' },
-}
 
 function anosDeCasamento(data_casamento: string): number {
   const parts = data_casamento.split('T')[0].split('-').map(Number)
@@ -83,19 +77,17 @@ export default function AniversariantesPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            {aba === 'nascimento' ? <Cake className="h-6 w-6 text-yellow-500" /> : <span className="text-2xl leading-none">💍</span>}
-            Aniversariantes
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {loading ? '...' : totalLabel}
-          </p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold flex items-center gap-2 mb-0.5">
+          {aba === 'nascimento' ? <Cake className="h-6 w-6 text-yellow-500" /> : <span className="text-2xl leading-none">💍</span>}
+          Aniversariantes
+        </h1>
+        <p className="text-sm text-muted-foreground mb-3">
+          {loading ? '...' : totalLabel}
+        </p>
 
-        <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
-          {/* Tabs */}
+        {/* Tabs + Mês — sempre na mesma linha */}
+        <div className="flex items-center gap-2 flex-wrap">
           <div className="flex rounded-lg border border-border overflow-hidden shrink-0">
             <button
               onClick={() => setAba('nascimento')}
@@ -121,11 +113,10 @@ export default function AniversariantesPage() {
             </button>
           </div>
 
-          {/* Seletor de mês */}
           <select
             value={mes}
             onChange={e => setMes(Number(e.target.value))}
-            className="h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring w-full sm:w-auto"
+            className="h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring flex-1 min-w-[110px]"
           >
             {MESES.map((m, i) => (
               <option key={i} value={i + 1}>{m}</option>
@@ -147,7 +138,7 @@ export default function AniversariantesPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
             {aniversariantes.map(a => {
               const dia = getDiaDoMes(a.data_nascimento)
               const idadeQ = idadeFara(a.data_nascimento)
@@ -199,13 +190,12 @@ export default function AniversariantesPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
             {anivCasamento.map(a => {
               const dia = getDiaDoMes(a.data_casamento)
               const anos = anosDeCasamento(a.data_casamento)
               const boda = getBoda(anos)
-              const tipoStyle = TIPO_STYLE[a.tipo_participante] || { card: 'border-l-4 border-l-rose-400', avatar: 'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300' }
-              const nomeExibido = a.conjuge_nome ? `${a.nome} + ${a.conjuge_nome}` : a.nome
+              const tipoStyle = TIPO_STYLE_CASAMENTO[a.tipo_participante] || TIPO_STYLE_CASAMENTO._default
               return (
                 <Card key={a.id} className={cn('hover:shadow-md transition-shadow', tipoStyle.card)}>
                   <CardContent className="p-4">
@@ -214,7 +204,14 @@ export default function AniversariantesPage() {
                         💍
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm leading-tight">{nomeExibido}</p>
+                        {a.conjuge_nome ? (
+                          <div className="leading-tight">
+                            <p className="font-semibold text-sm truncate">{a.nome}</p>
+                            <p className="text-xs text-muted-foreground truncate">+ {a.conjuge_nome}</p>
+                          </div>
+                        ) : (
+                          <p className="font-semibold text-sm leading-tight truncate">{a.nome}</p>
+                        )}
 
                         <div className="flex flex-wrap gap-1 mt-1.5">
                           <Badge variant="outline" className="text-xs font-medium">
@@ -255,6 +252,9 @@ export default function AniversariantesPage() {
       {bodaDialog && (
         <Dialog open onOpenChange={() => setBodaDialog(null)}>
           <DialogContent className="max-w-sm">
+            <DialogHeader className="sr-only">
+              <DialogTitle>{bodaDialog.nome}</DialogTitle>
+            </DialogHeader>
             <div className="text-center space-y-3 py-2">
               <div className="text-5xl">💍</div>
               <h2 className="text-xl font-bold">{bodaDialog.nome}</h2>

@@ -59,81 +59,95 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
     sexo: string; tipo_participante: string; data_nascimento: string; cargo: string
   } | null>(null)
   const [quickRegSaving, setQuickRegSaving] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // Carregar lista de membros para busca de familiares e verificação de duplicados
+  // Carrega todos os dados necessários em paralelo para minimizar tempo de espera
   useEffect(() => {
     if (!token) return
-    fetch('/api/membros', { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json())
-      .then((data: { id: number; nome: string; data_nascimento?: string }[]) => {
-        if (Array.isArray(data)) setTodosMembros(data.map(m => ({ id: m.id, nome: m.nome, data_nascimento: m.data_nascimento })))
-      })
-      .catch(() => {})
-  }, [token])
+    const ctrl = new AbortController()
+    const { signal } = ctrl
+    const h = { Authorization: `Bearer ${token}` }
 
-  // Carregar departamentos disponíveis
-  useEffect(() => {
-    if (!token) return
-    fetch('/api/departamentos', { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json())
-      .then(data => Array.isArray(data) ? setDepartamentosDisponiveis(data) : [])
-      .catch(() => {})
-  }, [token])
+    const fetchJson = async (url: string) => {
+      const r = await fetch(url, { headers: h, signal })
+      if (!r.ok) throw new Error(`${r.status}`)
+      return r.json()
+    }
 
-  // Carregar congregações disponíveis e pré-preencher quando cabível
-  useEffect(() => {
-    if (!token) return
-    fetch('/api/congregacoes', { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json())
-      .then((data: { id: number; nome: string }[]) => {
-        if (!Array.isArray(data)) return
-        setCongregacoes(data.map(c => ({ id: c.id, nome: c.nome })))
-        // Pré-preencher automaticamente para novo cadastro
+    const run = async () => {
+      // Todas as fetches necessárias disparadas em paralelo
+      const requests: Promise<unknown>[] = [
+        fetchJson('/api/membros'),
+        fetchJson('/api/departamentos'),
+        fetchJson('/api/congregacoes'),
+        membroId ? fetchJson(`/api/membros/${membroId}`) : Promise.resolve(null),
+      ]
+
+      const [membrosRes, deptsRes, congsRes, membroRes] = await Promise.allSettled(requests)
+
+      // Membros para busca de familiares
+      if (membrosRes.status === 'fulfilled' && Array.isArray(membrosRes.value)) {
+        setTodosMembros((membrosRes.value as { id: number; nome: string; data_nascimento?: string }[])
+          .map(m => ({ id: m.id, nome: m.nome, data_nascimento: m.data_nascimento })))
+      }
+
+      // Departamentos disponíveis
+      if (deptsRes.status === 'fulfilled' && Array.isArray(deptsRes.value)) {
+        setDepartamentosDisponiveis(deptsRes.value as Departamento[])
+      }
+
+      // Congregações + pré-preenchimento
+      if (congsRes.status === 'fulfilled' && Array.isArray(congsRes.value)) {
+        const congs = (congsRes.value as { id: number; nome: string }[]).map(c => ({ id: c.id, nome: c.nome }))
+        setCongregacoes(congs)
         if (!membroId) {
           if (filtroCongregacaoNome) {
             setForm(f => ({ ...f, igreja: f.igreja || filtroCongregacaoNome }))
-          } else if (data.length === 1) {
-            setForm(f => ({ ...f, igreja: f.igreja || data[0].nome }))
+          } else if (congs.length === 1) {
+            setForm(f => ({ ...f, igreja: f.igreja || congs[0].nome }))
           }
         }
-      })
-      .catch(() => {})
-  }, [token, membroId, filtroCongregacaoNome])
+      }
 
-  // Carregar dados do membro (edição)
-  useEffect(() => {
-    if (!membroId || !token) return
-    fetch(`/api/membros/${membroId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.json())
-      .then((data: Membro & { historicos: Historico[]; familiares: Familiar[]; departamentos?: DeptSelecao[] }) => {
-        const { id, created_at, updated_at, departamentos_info, departamentos: depts, ...rest } = data as typeof data & {
-          id: number; created_at?: string; updated_at?: string
-          departamentos_info?: unknown; departamentos?: DeptSelecao[]
+      // Dados do membro em edição
+      if (membroId) {
+        if (membroRes.status === 'rejected') {
+          toast({ title: 'Erro ao carregar membro. Tente novamente.', variant: 'destructive' })
+        } else if (membroRes.status === 'fulfilled' && membroRes.value) {
+          const data = membroRes.value as Membro & { historicos: Historico[]; familiares: Familiar[]; departamentos?: DeptSelecao[] }
+          const { id, created_at, updated_at, departamentos_info, departamentos: depts, ...rest } = data as typeof data & {
+            id: number; created_at?: string; updated_at?: string
+            departamentos_info?: unknown; departamentos?: DeptSelecao[]
+          }
+          void id; void created_at; void updated_at; void departamentos_info
+          const d = (v: unknown): string => v ? String(v).split('T')[0] : ''
+          setForm({
+            ...defaultForm,
+            ...rest,
+            data_nascimento: d(rest.data_nascimento),
+            data_casamento: d(rest.data_casamento),
+            data_expedicao: d(rest.data_expedicao),
+            historicos: (data.historicos || []).map((h: Historico) => ({ ...h, data: d(h.data) })),
+            familiares: (data.familiares || []).map((f: Familiar) => ({ ...f, data_nascimento: d(f.data_nascimento) })),
+          })
+          setDeptosSelecionados(
+            (depts || []).map(d => ({ id: d.id, nome: d.nome, cargo_departamento: d.cargo_departamento || '' }))
+          )
         }
-        void id; void created_at; void updated_at; void departamentos_info
-        // Normaliza datas para o formato YYYY-MM-DD esperado pelo <input type="date">
-        const d = (v: unknown): string => v ? String(v).split('T')[0] : ''
-        setForm({
-          ...defaultForm,
-          ...rest,
-          data_nascimento: d(rest.data_nascimento),
-          data_casamento: d(rest.data_casamento),
-          data_expedicao: d(rest.data_expedicao),
-          historicos: (data.historicos || []).map((h: Historico) => ({ ...h, data: d(h.data) })),
-          familiares: (data.familiares || []).map((f: Familiar) => ({ ...f, data_nascimento: d(f.data_nascimento) })),
-        })
-        setDeptosSelecionados(
-          (depts || []).map(d => ({
-            id: d.id,
-            nome: d.nome,
-            cargo_departamento: d.cargo_departamento || '',
-          }))
-        )
-      })
-      .finally(() => setLoading(false))
-  }, [membroId, token])
+        setLoading(false)
+      }
+    }
+
+    run().catch(err => {
+      if (err?.name !== 'AbortError') {
+        toast({ title: 'Erro ao carregar dados. Verifique sua conexão.', variant: 'destructive' })
+        setLoading(false)
+      }
+    })
+
+    return () => ctrl.abort()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, membroId])
 
   const set = (field: keyof MemberFormData, value: unknown) => {
     setForm(f => ({ ...f, [field]: value }))
@@ -338,6 +352,12 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
     }
 
     setSaving(true)
+    // Timeout de 30s: se a requisição não responder, libera o botão de salvar
+    const timeoutId = setTimeout(() => {
+      setSaving(false)
+      toast({ title: 'Tempo esgotado. Verifique sua conexão e tente novamente.', variant: 'destructive' })
+    }, 30000)
+
     try {
       const url = membroId ? `/api/membros/${membroId}` : '/api/membros'
       const method = membroId ? 'PUT' : 'POST'
@@ -355,7 +375,7 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
       const data = await res.json()
 
       if (!res.ok) {
-        toast({ title: data.error, variant: 'destructive' })
+        toast({ title: data.error || 'Erro ao salvar. Tente novamente.', variant: 'destructive' })
         return
       }
 
@@ -365,7 +385,10 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
       } else {
         router.push('/membros')
       }
+    } catch {
+      toast({ title: 'Erro de conexão ao salvar. Tente novamente.', variant: 'destructive' })
     } finally {
+      clearTimeout(timeoutId)
       setSaving(false)
     }
   }
@@ -428,21 +451,73 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
     return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`
   }
 
-  const field = (label: string, fieldName: keyof MemberFormData, type = 'text', col?: string, cap?: boolean) => (
-    <div className={`space-y-2 ${col || ''}`}>
+  // ─── Validação de campos ──────────────────────────────────────────────────
+
+  const validarCPF = (cpf: string): boolean => {
+    const n = cpf.replace(/\D/g, '')
+    if (n.length !== 11 || /^(\d)\1{10}$/.test(n)) return false
+    let s = 0
+    for (let i = 0; i < 9; i++) s += parseInt(n[i]) * (10 - i)
+    let r = (s * 10) % 11; if (r >= 10) r = 0
+    if (r !== parseInt(n[9])) return false
+    s = 0
+    for (let i = 0; i < 10; i++) s += parseInt(n[i]) * (11 - i)
+    r = (s * 10) % 11; if (r >= 10) r = 0
+    return r === parseInt(n[10])
+  }
+
+  const setErr = (f: string, msg: string) => setErrors(e => ({ ...e, [f]: msg }))
+  const clrErr = (f: string) => setErrors(e => { const n = { ...e }; delete n[f]; return n })
+
+  const validateField = (fieldName: string, value: string) => {
+    if (!value) { clrErr(fieldName); return }
+    switch (fieldName) {
+      case 'cpf':
+        validarCPF(value) ? clrErr('cpf') : setErr('cpf', 'CPF inválido')
+        break
+      case 'telefone_principal':
+      case 'telefone_secundario':
+        value.replace(/\D/g, '').length >= 10 ? clrErr(fieldName) : setErr(fieldName, 'Telefone incompleto')
+        break
+      case 'email':
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? clrErr('email') : setErr('email', 'E-mail inválido')
+        break
+      case 'data_nascimento':
+        new Date(value) <= new Date() ? clrErr('data_nascimento') : setErr('data_nascimento', 'Data no futuro')
+        break
+      case 'data_casamento':
+        new Date(value) <= new Date() ? clrErr('data_casamento') : setErr('data_casamento', 'Data no futuro')
+        break
+      case 'cep':
+        value.replace(/\D/g, '').length === 8 ? clrErr('cep') : setErr('cep', 'CEP inválido (8 dígitos)')
+        break
+      case 'identidade':
+        value.replace(/[^0-9Xx]/g, '').length >= 5 ? clrErr('identidade') : setErr('identidade', 'RG inválido')
+        break
+    }
+  }
+
+  const field = (label: string, fieldName: keyof MemberFormData, type = 'text', col?: string, cap?: boolean) => {
+    const err = errors[fieldName as string]
+    return (
+    <div className={`space-y-1 ${col || ''}`}>
       <Label>{label}</Label>
       <Input
         type={type}
         value={String(form[fieldName] ?? '')}
         onChange={e => set(fieldName, e.target.value)}
-        onBlur={cap ? (e: React.FocusEvent<HTMLInputElement>) => {
+        onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
           const v = e.target.value.trim()
-          if (v) set(fieldName, titleCase(v))
-        } : undefined}
+          if (cap && v) set(fieldName, titleCase(v))
+          validateField(fieldName as string, e.target.value)
+        }}
+        className={err ? 'border-red-500 focus-visible:ring-red-500' : ''}
         placeholder={label}
       />
+      {err && <p className="text-xs text-red-500 mt-0.5">{err}</p>}
     </div>
-  )
+    )
+  }
 
   const selectField = (label: string, fieldName: keyof MemberFormData, options: string[], col?: string, noneLabel = 'Selecione...') => (
     <div className={`space-y-2 ${col || ''}`}>
@@ -520,7 +595,18 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
                 return (
                   <select
                     value={form.igreja || ''}
-                    onChange={e => set('igreja', e.target.value)}
+                    onChange={e => {
+                      const novaCong = e.target.value
+                      set('igreja', novaCong)
+                      // Remove departamentos que não pertencem à nova congregação
+                      const cong = congregacoes.find(c => c.nome === novaCong)
+                      if (cong) {
+                        setDeptosSelecionados(prev => prev.filter(s => {
+                          const dept = departamentosDisponiveis.find(d => d.id === s.id)
+                          return !dept?.congregacao_id || dept.congregacao_id === cong.id
+                        }))
+                      }
+                    }}
                     className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="">Selecione...</option>
@@ -549,25 +635,31 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
       <Card>
         <CardHeader><CardTitle className="text-base">Contato</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label>Telefone Principal</Label>
             <Input
               value={form.telefone_principal || ''}
               onChange={e => set('telefone_principal', maskPhone(e.target.value))}
+              onBlur={e => validateField('telefone_principal', e.target.value)}
               placeholder="(00) 00000-0000"
               maxLength={15}
               inputMode="tel"
+              className={errors.telefone_principal ? 'border-red-500 focus-visible:ring-red-500' : ''}
             />
+            {errors.telefone_principal && <p className="text-xs text-red-500 mt-0.5">{errors.telefone_principal}</p>}
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label>Telefone Secundário</Label>
             <Input
               value={form.telefone_secundario || ''}
               onChange={e => set('telefone_secundario', maskPhone(e.target.value))}
+              onBlur={e => validateField('telefone_secundario', e.target.value)}
               placeholder="(00) 00000-0000"
               maxLength={15}
               inputMode="tel"
+              className={errors.telefone_secundario ? 'border-red-500 focus-visible:ring-red-500' : ''}
             />
+            {errors.telefone_secundario && <p className="text-xs text-red-500 mt-0.5">{errors.telefone_secundario}</p>}
           </div>
           {field('E-mail', 'email', 'email')}
         </CardContent>
@@ -577,20 +669,22 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
       <Card>
         <CardHeader><CardTitle className="text-base">Endereço</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label>CEP</Label>
             <div className="flex gap-2">
               <Input
                 value={form.cep || ''}
                 onChange={e => set('cep', maskCEP(e.target.value))}
-                onBlur={buscarCep}
+                onBlur={e => { buscarCep(); validateField('cep', e.target.value) }}
                 placeholder="00000-000"
                 maxLength={9}
+                className={errors.cep ? 'border-red-500 focus-visible:ring-red-500' : ''}
               />
               <Button type="button" variant="outline" size="icon" onClick={buscarCep} disabled={buscandoCep}>
                 {buscandoCep ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
               </Button>
             </div>
+            {errors.cep && <p className="text-xs text-red-500 mt-0.5">{errors.cep}</p>}
           </div>
           <div className="space-y-2 sm:col-span-2">
             <Label>Logradouro</Label>
@@ -613,23 +707,29 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
       <Card>
         <CardHeader><CardTitle className="text-base">Documentos</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label>CPF</Label>
             <Input
               value={form.cpf || ''}
               onChange={e => set('cpf', maskCPF(e.target.value))}
+              onBlur={e => validateField('cpf', e.target.value)}
               placeholder="000.000.000-00"
               maxLength={14}
+              className={errors.cpf ? 'border-red-500 focus-visible:ring-red-500' : ''}
             />
+            {errors.cpf && <p className="text-xs text-red-500 mt-0.5">{errors.cpf}</p>}
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label>RG / Identidade</Label>
             <Input
               value={form.identidade || ''}
               onChange={e => set('identidade', maskRG(e.target.value))}
+              onBlur={e => validateField('identidade', e.target.value)}
               placeholder="00.000.000-0"
               maxLength={12}
+              className={errors.identidade ? 'border-red-500 focus-visible:ring-red-500' : ''}
             />
+            {errors.identidade && <p className="text-xs text-red-500 mt-0.5">{errors.identidade}</p>}
           </div>
           {field('Órgão Expedidor', 'orgao_expedidor')}
           {field('Data de Expedição', 'data_expedicao', 'date')}
@@ -667,13 +767,19 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
         </CardContent>
       </Card>
 
-      {/* Departamentos */}
-      {departamentosDisponiveis.length > 0 && (
+      {/* Departamentos — filtrados pela congregação selecionada */}
+      {(() => {
+        const congSel = congregacoes.find(c => c.nome === form.igreja)
+        const departamentosFiltrados = congSel
+          ? departamentosDisponiveis.filter(d => !d.congregacao_id || d.congregacao_id === congSel.id)
+          : departamentosDisponiveis
+        if (!congSel || departamentosFiltrados.length === 0) return null
+        return (
         <Card>
           <CardHeader><CardTitle className="text-base">Departamentos</CardTitle></CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {departamentosDisponiveis.map(d => {
+              {departamentosFiltrados.map(d => {
                 const sel = deptosSelecionados.find(s => s.id === d.id)
                 const checked = !!sel
                 return (
@@ -711,7 +817,8 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
             </div>
           </CardContent>
         </Card>
-      )}
+        )
+      })()}
 
       {/* Histórico Eclesiástico */}
       <Card>

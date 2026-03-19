@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import pool from '@/lib/db'
 import { verificarToken, unauthorized } from '@/lib/auth'
+import { buildAccessWhere } from '@/lib/access'
 
 export async function GET(req: NextRequest) {
   const user = await verificarToken(req)
@@ -10,38 +11,17 @@ export async function GET(req: NextRequest) {
   const mes = searchParams.get('mes') || String(new Date().getMonth() + 1)
   const congregacaoParam = searchParams.get('congregacao')
 
-  // Restrições por departamento e congregação
-  const deptoAcesso = user.departamentos_acesso && user.departamentos_acesso.length > 0
-    ? user.departamentos_acesso : null
-  const congAcesso = user.congregacoes_acesso && user.congregacoes_acesso.length > 0
-    ? user.congregacoes_acesso : null
-
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const params: any[] = [mes]
-    let extraWhere = ''
-
-    if (deptoAcesso) {
-      extraWhere += ` AND id IN (SELECT membro_id FROM membro_departamentos WHERE departamento_id = ANY($${params.length + 1}::int[]))`
-      params.push(deptoAcesso)
-    }
-    if (congAcesso) {
-      const effective = congregacaoParam
-        ? congAcesso.filter(id => id === parseInt(congregacaoParam))
-        : congAcesso
-      extraWhere += ` AND igreja IN (SELECT nome FROM congregacoes WHERE id = ANY($${params.length + 1}::int[]))`
-      params.push(effective)
-    } else if (congregacaoParam) {
-      extraWhere += ` AND igreja IN (SELECT nome FROM congregacoes WHERE id = $${params.length + 1})`
-      params.push(parseInt(congregacaoParam))
-    }
+    const base = [mes]
+    const { where, params: accessParams, empty } = buildAccessWhere(user, congregacaoParam, { paramOffset: base.length })
+    if (empty) return Response.json([])
 
     const result = await pool.query(
       `SELECT id, nome, conhecido_como, data_nascimento, telefone_principal, tipo_participante, cargo, igreja
        FROM membros
-       WHERE EXTRACT(MONTH FROM data_nascimento) = $1${extraWhere}
+       WHERE EXTRACT(MONTH FROM data_nascimento) = $1${where}
        ORDER BY EXTRACT(DAY FROM data_nascimento)`,
-      params
+      [...base, ...accessParams]
     )
     return Response.json(result.rows)
   } catch (error: unknown) {

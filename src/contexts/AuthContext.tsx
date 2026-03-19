@@ -61,8 +61,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
+    const ctrl = new AbortController()
+    const timeout = setTimeout(() => ctrl.abort(), 10000)
+
     fetch('/api/auth/verify', {
       headers: { Authorization: `Bearer ${storedToken}` },
+      signal: ctrl.signal,
     })
       .then(res => {
         if (!res.ok) throw new Error('Token inválido')
@@ -72,11 +76,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(storedToken)
         setUser(data.usuario)
       })
-      .catch(() => {
+      .catch(err => {
+        if (err.name === 'AbortError') return
         localStorage.removeItem('token')
         localStorage.removeItem('usuario')
       })
-      .finally(() => setLoading(false))
+      .finally(() => {
+        clearTimeout(timeout)
+        setLoading(false)
+      })
+
+    return () => {
+      ctrl.abort()
+      clearTimeout(timeout)
+    }
   }, [])
 
   const login = (newToken: string, usuario: UsuarioBasico) => {

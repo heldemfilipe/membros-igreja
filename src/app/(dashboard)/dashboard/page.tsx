@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { DashboardData, AniversarianteItem, AniversarianteCasamento, VisitaRecente, VisitanteFrequente } from '@/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { StatCard } from '@/components/dashboard/StatCard'
 import { MemberModal } from '@/components/membros/MemberModal'
 import {
@@ -652,6 +652,9 @@ export default function DashboardPage() {
       {bodaDialog && (
         <Dialog open onOpenChange={() => setBodaDialog(null)}>
           <DialogContent className="max-w-sm">
+            <DialogHeader className="sr-only">
+              <DialogTitle>{bodaDialog.nome}</DialogTitle>
+            </DialogHeader>
             <div className="text-center space-y-3 py-2">
               <div className="text-5xl">💍</div>
               <h2 className="text-xl font-bold">{bodaDialog.nome}</h2>
