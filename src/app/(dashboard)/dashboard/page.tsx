@@ -329,9 +329,9 @@ export default function DashboardPage() {
 
       {/* ─── Cards de totais ─────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard title="Total Geral" value={data.total_geral} icon={Users} colorClass="bg-blue-500" description="membros e congregados" />
-        <StatCard title="Membros" value={data.total_membros} icon={UserCheck} colorClass="bg-emerald-500" description="membros efetivos" />
-        <StatCard title="Congregados" value={data.total_congregados} icon={UserCircle} colorClass="bg-violet-500" description="frequentadores regulares" />
+        <StatCard title="Total Geral" value={data.total_geral} icon={Users} colorClass="bg-blue-500" description="membros e congregados" href="/membros" />
+        <StatCard title="Membros" value={data.total_membros} icon={UserCheck} colorClass="bg-emerald-500" description="membros efetivos" href="/membros?tipo=Membro" />
+        <StatCard title="Congregados" value={data.total_congregados} icon={UserCircle} colorClass="bg-violet-500" description="frequentadores regulares" href="/membros?tipo=Congregado" />
       </div>
 
       {/* ─── Visitantes Frequentes — sugestão de promoção ────────────────── */}

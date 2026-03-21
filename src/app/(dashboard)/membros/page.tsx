@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { Membro, Departamento } from '@/types'
 import { useToast } from '@/components/ui/use-toast'
@@ -17,12 +18,13 @@ import { getCargoStyle, getDeptBadgeStyle, CARGOS_ECLESIASTICOS, TIPO_STYLE, EST
 export default function MembrosPage() {
   const { token, isAdmin, filtroCongregacao } = useAuth()
   const { toast } = useToast()
+  const searchParams = useSearchParams()
   const [membros, setMembros] = useState<Membro[]>([])
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
   const [congregacoesLista, setCongregacoesLista] = useState<{ id: number; nome: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [filterTipo, setFilterTipo] = useState('')
+  const [filterTipo, setFilterTipo] = useState(() => searchParams.get('tipo') ?? '')
   const [filterCargo, setFilterCargo] = useState('')
   const [filterDept, setFilterDept] = useState('')
   const [filterCongregacao, setFilterCongregacao] = useState('')

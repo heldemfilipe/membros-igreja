@@ -4,10 +4,9 @@ import { useEffect, useState, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { AniversarianteItem, AniversarianteCasamento } from '@/types'
-import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Loader2, Cake, Phone, Church } from 'lucide-react'
+import { Loader2, Phone, Church } from 'lucide-react'
 import { idadeFara, getDiaDoMes, cn } from '@/lib/utils'
 import { getCargoStyle, getBoda, TIPO_STYLE, TIPO_STYLE_CASAMENTO } from '@/lib/constants'
 
@@ -21,6 +20,112 @@ function anosDeCasamento(data_casamento: string): number {
   return new Date().getFullYear() - parts[0]
 }
 
+// ─── Card de aniversariante de nascimento ─────────────────────────────────────
+function CardNascimento({ a, filtroCongregacao }: { a: AniversarianteItem; filtroCongregacao: number | null }) {
+  const dia = getDiaDoMes(a.data_nascimento)
+  const idadeQ = idadeFara(a.data_nascimento)
+  const tipoStyle = TIPO_STYLE[a.tipo_participante] || { card: '', avatar: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300' }
+
+  return (
+    <div className={cn('flex items-center gap-3 px-4 py-3 bg-card rounded-xl border hover:shadow-sm transition-shadow', tipoStyle.card)}>
+      <div className={cn('flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg select-none', tipoStyle.avatar)}>
+        🎂
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-sm leading-tight truncate">{a.nome}</p>
+        {a.conhecido_como && (
+          <p className="text-xs text-muted-foreground truncate">&quot;{a.conhecido_como}&quot;</p>
+        )}
+        <div className="flex flex-wrap gap-1 mt-1">
+          <Badge variant="outline" className="text-xs font-medium">
+            Dia {dia}{idadeQ !== null ? ` · Fará ${idadeQ} anos` : ''}
+          </Badge>
+          {a.cargo && (
+            <Badge className="text-xs" style={getCargoStyle(a.cargo)}>{a.cargo}</Badge>
+          )}
+        </div>
+      </div>
+      <div className="shrink-0 text-right space-y-0.5">
+        {a.telefone_principal && (
+          <a href={`tel:${a.telefone_principal}`} className="flex items-center justify-end gap-1 text-xs text-muted-foreground hover:text-primary transition-colors">
+            <Phone className="h-3 w-3" />
+            <span className="hidden sm:inline">{a.telefone_principal}</span>
+          </a>
+        )}
+        {!filtroCongregacao && a.igreja && (
+          <p className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
+            <Church className="h-3 w-3 shrink-0" />
+            <span className="hidden sm:inline truncate max-w-[100px]">{a.igreja}</span>
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Card de aniversário de casamento ─────────────────────────────────────────
+function CardCasamento({
+  a,
+  filtroCongregacao,
+  onBoda,
+}: {
+  a: AniversarianteCasamento
+  filtroCongregacao: number | null
+  onBoda: (b: { nome: string; significado: string; anos: number }) => void
+}) {
+  const dia = getDiaDoMes(a.data_casamento)
+  const anos = anosDeCasamento(a.data_casamento)
+  const boda = getBoda(anos)
+  const tipoStyle = TIPO_STYLE_CASAMENTO[a.tipo_participante] || TIPO_STYLE_CASAMENTO._default
+
+  return (
+    <div className={cn('flex items-center gap-3 px-4 py-3 bg-card rounded-xl border hover:shadow-sm transition-shadow', tipoStyle.card)}>
+      <div className={cn('flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg select-none', tipoStyle.avatar)}>
+        💍
+      </div>
+      <div className="flex-1 min-w-0">
+        {a.conjuge_nome ? (
+          <div className="leading-tight">
+            <p className="font-semibold text-sm truncate">{a.nome}</p>
+            <p className="text-xs text-muted-foreground truncate">+ {a.conjuge_nome}</p>
+          </div>
+        ) : (
+          <p className="font-semibold text-sm leading-tight truncate">{a.nome}</p>
+        )}
+        <div className="flex flex-wrap gap-1 mt-1">
+          <Badge variant="outline" className="text-xs font-medium">
+            Dia {dia} · {anos} {anos === 1 ? 'ano' : 'anos'}
+          </Badge>
+          {boda && (
+            <Badge
+              variant="outline"
+              onClick={() => onBoda({ ...boda, anos })}
+              className="text-xs font-medium cursor-pointer border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
+            >
+              💍 {boda.nome}
+            </Badge>
+          )}
+        </div>
+      </div>
+      <div className="shrink-0 text-right space-y-0.5">
+        {a.telefone_principal && (
+          <a href={`tel:${a.telefone_principal}`} className="flex items-center justify-end gap-1 text-xs text-muted-foreground hover:text-primary transition-colors">
+            <Phone className="h-3 w-3" />
+            <span className="hidden sm:inline">{a.telefone_principal}</span>
+          </a>
+        )}
+        {!filtroCongregacao && a.igreja && (
+          <p className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
+            <Church className="h-3 w-3 shrink-0" />
+            <span className="hidden sm:inline truncate max-w-[100px]">{a.igreja}</span>
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Página ───────────────────────────────────────────────────────────────────
 export default function AniversariantesPage() {
   const searchParams = useSearchParams()
   const { token, filtroCongregacao } = useAuth()
@@ -29,15 +134,12 @@ export default function AniversariantesPage() {
   )
   const [mes, setMes] = useState(new Date().getMonth() + 1)
 
-  // Nascimento
   const [aniversariantes, setAniversariantes] = useState<AniversarianteItem[]>([])
   const [loadingNasc, setLoadingNasc] = useState(false)
 
-  // Casamento
   const [anivCasamento, setAnivCasamento] = useState<AniversarianteCasamento[]>([])
   const [loadingCas, setLoadingCas] = useState(false)
 
-  // Dialog boda
   const [bodaDialog, setBodaDialog] = useState<{ nome: string; significado: string; anos: number } | null>(null)
 
   const loadNascimento = useCallback(async () => {
@@ -70,23 +172,24 @@ export default function AniversariantesPage() {
   useEffect(() => { if (aba === 'casamento') loadCasamento() }, [aba, loadCasamento])
 
   const loading = aba === 'nascimento' ? loadingNasc : loadingCas
+  const total = aba === 'nascimento' ? aniversariantes.length : anivCasamento.length
   const totalLabel = aba === 'nascimento'
-    ? `${aniversariantes.length} aniversariante${aniversariantes.length !== 1 ? 's' : ''} em ${MESES[mes - 1]}`
-    : `${anivCasamento.length} aniversário${anivCasamento.length !== 1 ? 's' : ''} de casamento em ${MESES[mes - 1]}`
+    ? `${total} aniversariante${total !== 1 ? 's' : ''} em ${MESES[mes - 1]}`
+    : `${total} aniversário${total !== 1 ? 's' : ''} de casamento em ${MESES[mes - 1]}`
 
   return (
     <div className="space-y-5">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2 mb-0.5">
-          {aba === 'nascimento' ? <Cake className="h-6 w-6 text-yellow-500" /> : <span className="text-2xl leading-none">💍</span>}
+          {aba === 'nascimento' ? '🎂' : '💍'}
           Aniversariantes
         </h1>
         <p className="text-sm text-muted-foreground mb-3">
           {loading ? '...' : totalLabel}
         </p>
 
-        {/* Tabs + Mês — sempre na mesma linha */}
+        {/* Tabs + Mês */}
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex rounded-lg border border-border overflow-hidden shrink-0">
             <button
@@ -132,118 +235,31 @@ export default function AniversariantesPage() {
         </div>
       ) : aba === 'nascimento' ? (
         aniversariantes.length === 0 ? (
-          <Card>
-            <CardContent className="py-16 text-center text-muted-foreground">
-              Nenhum aniversariante em {MESES[mes - 1]}.
-            </CardContent>
-          </Card>
+          <p className="text-center text-muted-foreground py-16">
+            Nenhum aniversariante em {MESES[mes - 1]}.
+          </p>
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-            {aniversariantes.map(a => {
-              const dia = getDiaDoMes(a.data_nascimento)
-              const idadeQ = idadeFara(a.data_nascimento)
-              const tipoStyle = TIPO_STYLE[a.tipo_participante] || { card: '', avatar: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300' }
-              return (
-                <Card key={a.id} className={cn('hover:shadow-md transition-shadow', tipoStyle.card)}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div className={cn('flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-xl select-none', tipoStyle.avatar)}>
-                        🎂
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm leading-tight">{a.nome}</p>
-                        {a.conhecido_como && (
-                          <p className="text-xs text-muted-foreground">&quot;{a.conhecido_como}&quot;</p>
-                        )}
-                        <div className="flex flex-wrap gap-1 mt-1.5">
-                          <Badge variant="outline" className="text-xs font-medium">
-                            Dia {dia}{idadeQ !== null ? ` · Fará ${idadeQ} anos` : ''}
-                          </Badge>
-                          {a.cargo && (
-                            <Badge className="text-xs" style={getCargoStyle(a.cargo)}>{a.cargo}</Badge>
-                          )}
-                        </div>
-                        {a.telefone_principal && (
-                          <a href={`tel:${a.telefone_principal}`} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary mt-1.5 w-fit transition-colors">
-                            <Phone className="h-3 w-3" />{a.telefone_principal}
-                          </a>
-                        )}
-                        {!filtroCongregacao && a.igreja && (
-                          <p className="flex items-center gap-1 text-xs text-muted-foreground mt-1 w-fit">
-                            <Church className="h-3 w-3 shrink-0" />{a.igreja}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
+          <div className="space-y-2">
+            {aniversariantes.map(a => (
+              <CardNascimento key={a.id} a={a} filtroCongregacao={filtroCongregacao} />
+            ))}
           </div>
         )
       ) : (
-        /* ─── Aba Casamento ─── */
         anivCasamento.length === 0 ? (
-          <Card>
-            <CardContent className="py-16 text-center text-muted-foreground">
-              Nenhum aniversário de casamento em {MESES[mes - 1]}.
-            </CardContent>
-          </Card>
+          <p className="text-center text-muted-foreground py-16">
+            Nenhum aniversário de casamento em {MESES[mes - 1]}.
+          </p>
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-            {anivCasamento.map(a => {
-              const dia = getDiaDoMes(a.data_casamento)
-              const anos = anosDeCasamento(a.data_casamento)
-              const boda = getBoda(anos)
-              const tipoStyle = TIPO_STYLE_CASAMENTO[a.tipo_participante] || TIPO_STYLE_CASAMENTO._default
-              return (
-                <Card key={a.id} className={cn('hover:shadow-md transition-shadow', tipoStyle.card)}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div className={cn('flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-xl select-none', tipoStyle.avatar)}>
-                        💍
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        {a.conjuge_nome ? (
-                          <div className="leading-tight">
-                            <p className="font-semibold text-sm truncate">{a.nome}</p>
-                            <p className="text-xs text-muted-foreground truncate">+ {a.conjuge_nome}</p>
-                          </div>
-                        ) : (
-                          <p className="font-semibold text-sm leading-tight truncate">{a.nome}</p>
-                        )}
-
-                        <div className="flex flex-wrap gap-1 mt-1.5">
-                          <Badge variant="outline" className="text-xs font-medium">
-                            Dia {dia} · {anos} {anos === 1 ? 'ano' : 'anos'}
-                          </Badge>
-                          {boda && (
-                            <Badge
-                              variant="outline"
-                              onClick={() => setBodaDialog({ ...boda, anos })}
-                              className="text-xs font-medium cursor-pointer border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
-                            >
-                              💍 {boda.nome}
-                            </Badge>
-                          )}
-                        </div>
-
-                        {a.telefone_principal && (
-                          <a href={`tel:${a.telefone_principal}`} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary mt-1.5 w-fit transition-colors">
-                            <Phone className="h-3 w-3" />{a.telefone_principal}
-                          </a>
-                        )}
-                        {!filtroCongregacao && a.igreja && (
-                          <p className="flex items-center gap-1 text-xs text-muted-foreground mt-1 w-fit">
-                            <Church className="h-3 w-3 shrink-0" />{a.igreja}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
+          <div className="space-y-2">
+            {anivCasamento.map(a => (
+              <CardCasamento
+                key={a.id}
+                a={a}
+                filtroCongregacao={filtroCongregacao}
+                onBoda={setBodaDialog}
+              />
+            ))}
           </div>
         )
       )}
