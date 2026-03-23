@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { pool } from '@/lib/db'
+import pool from '@/lib/db'
 import { verificarToken, unauthorized, forbidden } from '@/lib/auth'
 import { buildAccessWhere } from '@/lib/access'
 
