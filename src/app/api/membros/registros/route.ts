@@ -27,6 +27,13 @@ export async function GET(req: NextRequest) {
     const params: unknown[] = [...accessParams]
     let where = accessWhere
 
+    // Aba casamento: mostrar apenas casados (ou quem tem cônjuge vinculado)
+    if (campo === 'data_casamento') {
+      where += ` AND (m.estado_civil = 'Casado(a)' OR EXISTS (
+        SELECT 1 FROM familiares f WHERE f.membro_id = m.id AND f.parentesco = 'Cônjuge'
+      ))`
+    }
+
     if (status === 'com') {
       where += ` AND m.${campo} IS NOT NULL`
     } else if (status === 'sem') {
