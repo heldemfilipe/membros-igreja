@@ -16,7 +16,7 @@ import { Loader2, Plus, Pencil, Trash2, Building2, Users, ChevronDown, ChevronUp
 import { getDeptColor, getDeptBadgeStyle, getCargoStyle, CARGOS_DEPARTAMENTO } from '@/lib/constants'
 
 export default function DepartamentosPage() {
-  const { token, isAdmin, temPermissao, filtroCongregacao } = useAuth()
+  const { token, isAdmin, temPermissao, filtroCongregacao, congregacoesAcesso } = useAuth()
   const podeEditar = isAdmin || temPermissao('departamentos_editar')
   const { toast } = useToast()
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
@@ -91,7 +91,9 @@ export default function DepartamentosPage() {
 
   const openNewDept = () => {
     setEditingDeptId(null)
-    setDeptForm({ nome: '', descricao: '', congregacao_id: '' })
+    // Pré-seleciona a congregação se o usuário tem filtro ativo ou acesso a apenas uma
+    const congId = filtroCongregacao ?? (congregacoesAcesso?.length === 1 ? congregacoesAcesso[0] : null)
+    setDeptForm({ nome: '', descricao: '', congregacao_id: congId ? String(congId) : '' })
     setDeptModal(true)
   }
 

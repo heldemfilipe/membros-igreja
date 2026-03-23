@@ -43,7 +43,7 @@ interface Props {
 
 export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props) {
   const router = useRouter()
-  const { token, filtroCongregacaoNome } = useAuth()
+  const { token, filtroCongregacao, filtroCongregacaoNome, congregacoesAcesso } = useAuth()
   const { toast } = useToast()
   const [form, setForm] = useState<MemberFormData>({ ...defaultForm, nome: initialNome || '' })
   const [loading, setLoading] = useState(!!membroId)
@@ -101,10 +101,15 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
         const congs = (congsRes.value as { id: number; nome: string }[]).map(c => ({ id: c.id, nome: c.nome }))
         setCongregacoes(congs)
         if (!membroId) {
-          if (filtroCongregacaoNome) {
-            setForm(f => ({ ...f, igreja: f.igreja || filtroCongregacaoNome }))
-          } else if (congs.length === 1) {
-            setForm(f => ({ ...f, igreja: f.igreja || congs[0].nome }))
+          // Pré-preenche a congregação: filtro ativo > acesso único > única no sistema
+          const congNome =
+            filtroCongregacaoNome ||
+            (congregacoesAcesso?.length === 1
+              ? congs.find(c => c.id === congregacoesAcesso[0])?.nome
+              : null) ||
+            (congs.length === 1 ? congs[0].nome : null)
+          if (congNome) {
+            setForm(f => ({ ...f, igreja: f.igreja || congNome }))
           }
         }
       }
