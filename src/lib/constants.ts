@@ -213,6 +213,8 @@ export const PERMISSOES_DISPONIVEIS = [
   { key: 'aniversariantes_ver', label: 'Aniversariantes',         descricao: 'Ver aniversariantes' },
   { key: 'congregacoes_ver',    label: 'Congregações — Ver',      descricao: 'Ver aba de congregações' },
   { key: 'congregacoes_editar', label: 'Congregações — Editar',   descricao: 'Criar, editar e excluir congregações' },
+  { key: 'registros_ver',       label: 'Registros — Ver',         descricao: 'Ver completude de datas (nascimento e casamento)' },
+  { key: 'registros_editar',    label: 'Registros — Editar',      descricao: 'Editar datas de nascimento e casamento diretamente' },
 ] as const
 
 export type PermissaoKey = (typeof PERMISSOES_DISPONIVEIS)[number]['key']

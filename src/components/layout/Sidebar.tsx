@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, Users, Building2, UserCog, Cake,
-  Menu, X, Church, LogOut, Shield, Loader2, Lock, Filter,
+  Menu, X, Church, LogOut, Shield, Loader2, Lock, Filter, ClipboardList,
 } from 'lucide-react'
 
 import { useEffect, useState } from 'react'
@@ -21,7 +21,8 @@ const menuItems = [
 ]
 
 const adminItems = [
-  { title: 'Usuários', icon: UserCog, href: '/usuarios' },
+  { title: 'Usuários',  icon: UserCog,      href: '/usuarios' },
+  { title: 'Registros', icon: ClipboardList, href: '/membros/registros' },
 ]
 
 export function Sidebar() {
@@ -166,33 +167,39 @@ export function Sidebar() {
                   )
                 })}
 
-              {isAdmin && (
+              {(isAdmin || temPermissao('registros_ver') || temPermissao('registros_editar')) && (
                 <>
                   <div className="pt-4 pb-1 px-1">
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                       Administração
                     </p>
                   </div>
-                  {adminItems.map((item) => {
-                    const isActive = pathname === item.href
-                    const Icon = item.icon
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setIsOpen(false)}
-                        className={cn(
-                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                          isActive
-                            ? "bg-primary text-primary-foreground shadow-sm"
-                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                        )}
-                      >
-                        <Icon className="h-4 w-4 shrink-0" />
-                        <span>{item.title}</span>
-                      </Link>
+                  {adminItems
+                    .filter(item =>
+                      item.href === '/membros/registros'
+                        ? isAdmin || temPermissao('registros_ver') || temPermissao('registros_editar')
+                        : isAdmin
                     )
-                  })}
+                    .map((item) => {
+                      const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+                      const Icon = item.icon
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setIsOpen(false)}
+                          className={cn(
+                            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                            isActive
+                              ? "bg-primary text-primary-foreground shadow-sm"
+                              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                          )}
+                        >
+                          <Icon className="h-4 w-4 shrink-0" />
+                          <span>{item.title}</span>
+                        </Link>
+                      )
+                    })}
                 </>
               )}
             </>
