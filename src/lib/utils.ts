@@ -28,6 +28,8 @@ export function calcularIdade(dataNascimento: string | null): number | null {
   let idade = hoje.getFullYear() - nasc.getFullYear()
   const m = hoje.getMonth() - nasc.getMonth()
   if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idade--
+  // Dado inválido: nenhum ser humano ultrapassa 120 anos
+  if (idade < 0 || idade > 120) return null
   return idade
 }
 
@@ -50,7 +52,9 @@ export function idadeFara(dataNascimento: string | null): number | null {
   if (!dataNascimento) return null
   const nasc = parseLocalDate(dataNascimento)
   if (isNaN(nasc.getTime())) return null
-  return new Date().getFullYear() - nasc.getFullYear()
+  const idade = new Date().getFullYear() - nasc.getFullYear()
+  if (idade < 0 || idade > 120) return null
+  return idade
 }
 
 /** Converte string para title case (primeira letra de cada palavra em maiúscula). */
