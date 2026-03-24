@@ -276,6 +276,9 @@ export default function DashboardPage() {
 
   if (!data) return null
 
+  // Exibe congregação nos cards de idade quando há mais de uma congregação visível
+  const mostrarCong = !filtroCongregacao && (congregacoesAcesso === null || congregacoesAcesso.length > 1)
+
   // ─── Prepara dados dos gráficos ───────────────────────────────────────────
 
   const dadosTipo = data.por_tipo.map(d => ({ name: d.tipo_participante, value: parseInt(d.total) }))
@@ -738,20 +741,30 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent className="pt-2 grid grid-cols-2 gap-4">
                 <div className="text-center">
-                  <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Idade Média</p>
-                  <p className="text-5xl font-bold tabular-nums text-primary mt-1">{data.estatisticas_idade.idade_media}</p>
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Mais novo</p>
+                  <p className="text-4xl font-bold tabular-nums text-primary mt-1">{data.estatisticas_idade.idade_min}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">anos</p>
+                  {data.estatisticas_idade.nome_mais_novo && (
+                    <p className="text-xs font-medium text-foreground mt-1 truncate" title={data.estatisticas_idade.nome_mais_novo}>
+                      {data.estatisticas_idade.nome_mais_novo.split(' ')[0]}
+                    </p>
+                  )}
+                  {mostrarCong && data.estatisticas_idade.cong_mais_novo && (
+                    <p className="text-[10px] text-muted-foreground truncate">{data.estatisticas_idade.cong_mais_novo}</p>
+                  )}
                 </div>
                 <div className="text-center">
-                  <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Cobertura</p>
-                  <p className="text-5xl font-bold tabular-nums text-primary mt-1">
-                    {data.total_membros > 0
-                      ? Math.round((data.estatisticas_idade.total_com_idade / data.total_membros) * 100)
-                      : 0}%
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {data.estatisticas_idade.total_com_idade}/{data.total_membros}
-                  </p>
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Mais velho</p>
+                  <p className="text-4xl font-bold tabular-nums text-primary mt-1">{data.estatisticas_idade.idade_max}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">anos</p>
+                  {data.estatisticas_idade.nome_mais_velho && (
+                    <p className="text-xs font-medium text-foreground mt-1 truncate" title={data.estatisticas_idade.nome_mais_velho}>
+                      {data.estatisticas_idade.nome_mais_velho.split(' ')[0]}
+                    </p>
+                  )}
+                  {mostrarCong && data.estatisticas_idade.cong_mais_velho && (
+                    <p className="text-[10px] text-muted-foreground truncate">{data.estatisticas_idade.cong_mais_velho}</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -855,11 +868,27 @@ export default function DashboardPage() {
                 <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Mais novo</p>
                 <p className="text-4xl font-bold tabular-nums text-primary mt-1">{data.estatisticas_idade.idade_min}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">anos</p>
+                {data.estatisticas_idade.nome_mais_novo && (
+                  <p className="text-xs font-medium text-foreground mt-1 truncate" title={data.estatisticas_idade.nome_mais_novo}>
+                    {data.estatisticas_idade.nome_mais_novo.split(' ')[0]}
+                  </p>
+                )}
+                {mostrarCong && data.estatisticas_idade.cong_mais_novo && (
+                  <p className="text-[10px] text-muted-foreground truncate">{data.estatisticas_idade.cong_mais_novo}</p>
+                )}
               </div>
               <div className="text-center">
                 <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Mais velho</p>
                 <p className="text-4xl font-bold tabular-nums text-primary mt-1">{data.estatisticas_idade.idade_max}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">anos</p>
+                {data.estatisticas_idade.nome_mais_velho && (
+                  <p className="text-xs font-medium text-foreground mt-1 truncate" title={data.estatisticas_idade.nome_mais_velho}>
+                    {data.estatisticas_idade.nome_mais_velho.split(' ')[0]}
+                  </p>
+                )}
+                {mostrarCong && data.estatisticas_idade.cong_mais_velho && (
+                  <p className="text-[10px] text-muted-foreground truncate">{data.estatisticas_idade.cong_mais_velho}</p>
+                )}
               </div>
               <div className="text-center">
                 <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Cobertura</p>

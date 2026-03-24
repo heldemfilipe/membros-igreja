@@ -137,6 +137,10 @@ export interface DashboardData {
     total_com_idade: number
     idade_min: number
     idade_max: number
+    nome_mais_novo: string | null
+    cong_mais_novo: string | null
+    nome_mais_velho: string | null
+    cong_mais_velho: string | null
   }
 }
 

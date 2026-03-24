@@ -44,13 +44,21 @@ export async function GET(req: NextRequest) {
           WHEN '36-45 anos' THEN 4 WHEN '46-60 anos' THEN 5 WHEN 'Acima de 60 anos' THEN 6 ELSE 7 END
       `, fp),
       pool.query(`
+        WITH base AS (
+          SELECT nome, data_nascimento, igreja,
+                 EXTRACT(YEAR FROM AGE(data_nascimento))::int AS idade
+          FROM membros
+          WHERE data_nascimento IS NOT NULL AND tipo_participante = 'Membro'${f}
+        )
         SELECT
-          ROUND(AVG(EXTRACT(YEAR FROM AGE(data_nascimento))))::int AS idade_media,
-          COUNT(*) AS total_com_idade,
-          MIN(EXTRACT(YEAR FROM AGE(data_nascimento)))::int AS idade_min,
-          MAX(EXTRACT(YEAR FROM AGE(data_nascimento)))::int AS idade_max
-        FROM membros
-        WHERE data_nascimento IS NOT NULL AND tipo_participante = 'Membro'${f}
+          (SELECT ROUND(AVG(idade))::int FROM base) AS idade_media,
+          (SELECT COUNT(*)            FROM base) AS total_com_idade,
+          (SELECT nome   FROM base ORDER BY data_nascimento DESC LIMIT 1) AS nome_mais_novo,
+          (SELECT igreja FROM base ORDER BY data_nascimento DESC LIMIT 1) AS cong_mais_novo,
+          (SELECT idade  FROM base ORDER BY data_nascimento DESC LIMIT 1) AS idade_min,
+          (SELECT nome   FROM base ORDER BY data_nascimento ASC  LIMIT 1) AS nome_mais_velho,
+          (SELECT igreja FROM base ORDER BY data_nascimento ASC  LIMIT 1) AS cong_mais_velho,
+          (SELECT idade  FROM base ORDER BY data_nascimento ASC  LIMIT 1) AS idade_max
       `, fp),
       pool.query(`SELECT estado_civil, COUNT(*) as total FROM membros WHERE estado_civil IS NOT NULL AND estado_civil != ''${f} GROUP BY estado_civil ORDER BY total DESC`, fp),
     ])
@@ -104,6 +112,10 @@ export async function GET(req: NextRequest) {
         total_com_idade: parseInt(estatisticasIdade.rows[0].total_com_idade) || 0,
         idade_min: parseInt(estatisticasIdade.rows[0].idade_min) || 0,
         idade_max: parseInt(estatisticasIdade.rows[0].idade_max) || 0,
+        nome_mais_novo: estatisticasIdade.rows[0].nome_mais_novo || null,
+        cong_mais_novo: estatisticasIdade.rows[0].cong_mais_novo || null,
+        nome_mais_velho: estatisticasIdade.rows[0].nome_mais_velho || null,
+        cong_mais_velho: estatisticasIdade.rows[0].cong_mais_velho || null,
       },
     })
   } catch (error: unknown) {
