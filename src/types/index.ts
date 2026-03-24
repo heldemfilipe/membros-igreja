@@ -135,6 +135,8 @@ export interface DashboardData {
   estatisticas_idade: {
     idade_media: number
     total_com_idade: number
+    idade_min: number
+    idade_max: number
   }
 }
 

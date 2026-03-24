@@ -35,16 +35,22 @@ export async function GET(req: NextRequest) {
             WHEN EXTRACT(YEAR FROM AGE(data_nascimento)) BETWEEN 46 AND 60 THEN '46-60 anos'
             WHEN EXTRACT(YEAR FROM AGE(data_nascimento)) > 60 THEN 'Acima de 60 anos'
             ELSE 'Não informado'
-          END AS faixa FROM membros WHERE data_nascimento IS NOT NULL${f}
+          END AS faixa
+          FROM membros
+          WHERE data_nascimento IS NOT NULL AND tipo_participante = 'Membro'${f}
         ) t GROUP BY faixa
         ORDER BY CASE faixa
           WHEN '0-17 anos' THEN 1 WHEN '18-25 anos' THEN 2 WHEN '26-35 anos' THEN 3
           WHEN '36-45 anos' THEN 4 WHEN '46-60 anos' THEN 5 WHEN 'Acima de 60 anos' THEN 6 ELSE 7 END
       `, fp),
       pool.query(`
-        SELECT ROUND(AVG(EXTRACT(YEAR FROM AGE(data_nascimento)))) as idade_media,
-               COUNT(*) as total_com_idade
-        FROM membros WHERE data_nascimento IS NOT NULL${f}
+        SELECT
+          ROUND(AVG(EXTRACT(YEAR FROM AGE(data_nascimento))))::int AS idade_media,
+          COUNT(*) AS total_com_idade,
+          MIN(EXTRACT(YEAR FROM AGE(data_nascimento)))::int AS idade_min,
+          MAX(EXTRACT(YEAR FROM AGE(data_nascimento)))::int AS idade_max
+        FROM membros
+        WHERE data_nascimento IS NOT NULL AND tipo_participante = 'Membro'${f}
       `, fp),
       pool.query(`SELECT estado_civil, COUNT(*) as total FROM membros WHERE estado_civil IS NOT NULL AND estado_civil != ''${f} GROUP BY estado_civil ORDER BY total DESC`, fp),
     ])
@@ -96,6 +102,8 @@ export async function GET(req: NextRequest) {
       estatisticas_idade: {
         idade_media: parseInt(estatisticasIdade.rows[0].idade_media) || 0,
         total_com_idade: parseInt(estatisticasIdade.rows[0].total_com_idade) || 0,
+        idade_min: parseInt(estatisticasIdade.rows[0].idade_min) || 0,
+        idade_max: parseInt(estatisticasIdade.rows[0].idade_max) || 0,
       },
     })
   } catch (error: unknown) {

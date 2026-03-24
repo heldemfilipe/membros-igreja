@@ -731,18 +731,27 @@ export default function DashboardPage() {
           data.estatisticas_idade.total_com_idade > 0 && (
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold">Estatísticas de Idade</CardTitle>
+                <div className="flex items-baseline justify-between flex-wrap gap-1">
+                  <CardTitle className="text-sm font-semibold">Estatísticas de Idade</CardTitle>
+                  <span className="text-[11px] text-muted-foreground">Membros com nascimento cadastrado</span>
+                </div>
               </CardHeader>
-              <CardContent className="pt-4 flex flex-wrap gap-8 items-center">
+              <CardContent className="pt-2 grid grid-cols-2 gap-4">
                 <div className="text-center">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Idade Média</p>
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Idade Média</p>
                   <p className="text-5xl font-bold tabular-nums text-primary mt-1">{data.estatisticas_idade.idade_media}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">anos</p>
                 </div>
-                <div className="border-l pl-8">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Com nascimento</p>
-                  <p className="text-5xl font-bold tabular-nums text-primary mt-1">{data.estatisticas_idade.total_com_idade}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">membros</p>
+                <div className="text-center">
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Cobertura</p>
+                  <p className="text-5xl font-bold tabular-nums text-primary mt-1">
+                    {data.total_membros > 0
+                      ? Math.round((data.estatisticas_idade.total_com_idade / data.total_membros) * 100)
+                      : 0}%
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {data.estatisticas_idade.total_com_idade}/{data.total_membros}
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -827,27 +836,42 @@ export default function DashboardPage() {
       {/* ─── Estatísticas de Idade ────────────────────────────────────────── */}
       {dadosEstadoCivil.length > 0 && data.estatisticas_idade.total_com_idade > 0 && (
         <Card>
-          <CardContent className="p-5">
-            <div className="flex flex-wrap items-center gap-8">
+          <CardHeader className="pb-2">
+            <div className="flex items-baseline justify-between flex-wrap gap-2">
+              <CardTitle className="text-sm font-semibold">Estatísticas de Idade</CardTitle>
+              <span className="text-[11px] text-muted-foreground">
+                Apenas membros com nascimento cadastrado
+              </span>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="text-center">
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Idade Média</p>
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Idade Média</p>
                 <p className="text-4xl font-bold tabular-nums text-primary mt-1">{data.estatisticas_idade.idade_media}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">anos</p>
               </div>
-              <div className="border-l pl-8">
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Com data de nascimento</p>
-                <p className="text-4xl font-bold tabular-nums text-primary mt-1">{data.estatisticas_idade.total_com_idade}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">membros</p>
+              <div className="text-center">
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Mais novo</p>
+                <p className="text-4xl font-bold tabular-nums text-primary mt-1">{data.estatisticas_idade.idade_min}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">anos</p>
               </div>
-              {data.total_geral > 0 && (
-                <div className="border-l pl-8">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Cobertura</p>
-                  <p className="text-4xl font-bold tabular-nums text-primary mt-1">
-                    {Math.round((data.estatisticas_idade.total_com_idade / data.total_geral) * 100)}%
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">dados completos</p>
-                </div>
-              )}
+              <div className="text-center">
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Mais velho</p>
+                <p className="text-4xl font-bold tabular-nums text-primary mt-1">{data.estatisticas_idade.idade_max}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">anos</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Cobertura</p>
+                <p className="text-4xl font-bold tabular-nums text-primary mt-1">
+                  {data.total_membros > 0
+                    ? Math.round((data.estatisticas_idade.total_com_idade / data.total_membros) * 100)
+                    : 0}%
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {data.estatisticas_idade.total_com_idade}/{data.total_membros} membros
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
