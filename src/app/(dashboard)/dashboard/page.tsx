@@ -746,7 +746,7 @@ export default function DashboardPage() {
                   <p className="text-xs text-muted-foreground mt-0.5">anos</p>
                   {data.estatisticas_idade.nome_mais_novo && (
                     <p className="text-xs font-medium text-foreground mt-1 truncate" title={data.estatisticas_idade.nome_mais_novo}>
-                      {data.estatisticas_idade.nome_mais_novo.split(' ')[0]}
+                      {data.estatisticas_idade.nome_mais_novo}
                     </p>
                   )}
                   {mostrarCong && data.estatisticas_idade.cong_mais_novo && (
@@ -759,7 +759,7 @@ export default function DashboardPage() {
                   <p className="text-xs text-muted-foreground mt-0.5">anos</p>
                   {data.estatisticas_idade.nome_mais_velho && (
                     <p className="text-xs font-medium text-foreground mt-1 truncate" title={data.estatisticas_idade.nome_mais_velho}>
-                      {data.estatisticas_idade.nome_mais_velho.split(' ')[0]}
+                      {data.estatisticas_idade.nome_mais_velho}
                     </p>
                   )}
                   {mostrarCong && data.estatisticas_idade.cong_mais_velho && (
@@ -870,7 +870,7 @@ export default function DashboardPage() {
                 <p className="text-xs text-muted-foreground mt-0.5">anos</p>
                 {data.estatisticas_idade.nome_mais_novo && (
                   <p className="text-xs font-medium text-foreground mt-1 truncate" title={data.estatisticas_idade.nome_mais_novo}>
-                    {data.estatisticas_idade.nome_mais_novo.split(' ')[0]}
+                    {data.estatisticas_idade.nome_mais_novo}
                   </p>
                 )}
                 {mostrarCong && data.estatisticas_idade.cong_mais_novo && (
@@ -883,7 +883,7 @@ export default function DashboardPage() {
                 <p className="text-xs text-muted-foreground mt-0.5">anos</p>
                 {data.estatisticas_idade.nome_mais_velho && (
                   <p className="text-xs font-medium text-foreground mt-1 truncate" title={data.estatisticas_idade.nome_mais_velho}>
-                    {data.estatisticas_idade.nome_mais_velho.split(' ')[0]}
+                    {data.estatisticas_idade.nome_mais_velho}
                   </p>
                 )}
                 {mostrarCong && data.estatisticas_idade.cong_mais_velho && (

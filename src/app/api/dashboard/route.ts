@@ -37,7 +37,9 @@ export async function GET(req: NextRequest) {
             ELSE 'Não informado'
           END AS faixa
           FROM membros
-          WHERE data_nascimento IS NOT NULL AND tipo_participante = 'Membro'${f}
+          WHERE data_nascimento IS NOT NULL
+            AND tipo_participante = 'Membro'
+            AND EXTRACT(YEAR FROM AGE(data_nascimento)) BETWEEN 0 AND 120${f}
         ) t GROUP BY faixa
         ORDER BY CASE faixa
           WHEN '0-17 anos' THEN 1 WHEN '18-25 anos' THEN 2 WHEN '26-35 anos' THEN 3
@@ -48,11 +50,13 @@ export async function GET(req: NextRequest) {
           SELECT nome, data_nascimento, igreja,
                  EXTRACT(YEAR FROM AGE(data_nascimento))::int AS idade
           FROM membros
-          WHERE data_nascimento IS NOT NULL AND tipo_participante = 'Membro'${f}
+          WHERE data_nascimento IS NOT NULL
+            AND tipo_participante = 'Membro'
+            AND EXTRACT(YEAR FROM AGE(data_nascimento)) BETWEEN 0 AND 120${f}
         )
         SELECT
           (SELECT ROUND(AVG(idade))::int FROM base) AS idade_media,
-          (SELECT COUNT(*)            FROM base) AS total_com_idade,
+          (SELECT COUNT(*)               FROM base) AS total_com_idade,
           (SELECT nome   FROM base ORDER BY data_nascimento DESC LIMIT 1) AS nome_mais_novo,
           (SELECT igreja FROM base ORDER BY data_nascimento DESC LIMIT 1) AS cong_mais_novo,
           (SELECT idade  FROM base ORDER BY data_nascimento DESC LIMIT 1) AS idade_min,
