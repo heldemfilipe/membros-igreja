@@ -51,3 +51,11 @@ export function idadeFara(dataNascimento: string | null): number | null {
 export function toTitleCase(str: string): string {
   return str.trim().replace(/\b\w+/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
 }
+
+/**
+ * Normaliza string para busca insensível a acentos e maiúsculas.
+ * "José" → "jose", "Ação" → "acao"
+ */
+export function normalizar(s: string): string {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+}

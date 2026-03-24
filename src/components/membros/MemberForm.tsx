@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, Plus, Trash2, Search, X, AlertTriangle, UserPlus, Lock } from 'lucide-react'
 import { CARGOS_ECLESIASTICOS, CARGOS_DEPARTAMENTO } from '@/lib/constants'
+import { normalizar } from '@/lib/utils'
 
 type DeptSelecao = { id: number; nome: string; cargo_departamento: string }
 
@@ -57,6 +58,7 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
   const [quickReg, setQuickReg] = useState<{
     idx: number; nome: string; parentesco: string
     sexo: string; tipo_participante: string; data_nascimento: string; cargo: string
+    departamentos: DeptSelecao[]
   } | null>(null)
   const [quickRegSaving, setQuickRegSaving] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -267,6 +269,7 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
       tipo_participante: form.tipo_participante || 'Congregado',
       data_nascimento: '',
       cargo: '',
+      departamentos: [],
     })
     setFamiliarDropdownIdx(null)
   }
@@ -281,6 +284,7 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
         sexo: quickReg.sexo || null,
         cargo: quickReg.cargo || null,
         data_nascimento: quickReg.data_nascimento || null,
+        estado_civil: 'Solteiro(a)',
         // Herança do membro principal
         telefone_principal: form.telefone_principal || null,
         logradouro: form.logradouro || null,
@@ -293,6 +297,7 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
         igreja: form.igreja || null,
         historicos: [],
         familiares: [],
+        departamentos: quickReg.departamentos.map(d => ({ id: d.id, cargo_departamento: d.cargo_departamento || null })),
       }
       const res = await fetch('/api/membros', {
         method: 'POST',
@@ -337,10 +342,10 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
 
   // ─── Verificação de duplicados ────────────────────────────────────────────
 
-  const nomeTrimmed = form.nome.trim().toLowerCase()
+  const nomeTrimmed = normalizar(form.nome)
   // Só verifica duplicado ao criar novo membro — não faz sentido ao editar
   const duplicados = !membroId && nomeTrimmed.length > 2
-    ? todosMembros.filter(m => m.nome.trim().toLowerCase() === nomeTrimmed)
+    ? todosMembros.filter(m => normalizar(m.nome) === nomeTrimmed)
     : []
 
   // ─── Submit ───────────────────────────────────────────────────────────────
@@ -899,12 +904,13 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
             <p className="text-sm text-muted-foreground">Nenhum familiar adicionado.</p>
           )}
           {form.familiares.map((f, i) => {
+            const termoBusca = normalizar(f.nome)
             const resultados = familiarDropdownIdx === i && f.nome.trim().length > 1
               ? todosMembros
-                  .filter(m => m.id !== membroId && m.nome.toLowerCase().includes(f.nome.toLowerCase()))
+                  .filter(m => m.id !== membroId && normalizar(m.nome).includes(termoBusca))
                   .slice(0, 6)
               : []
-            const hasExactMatch = resultados.some(m => m.nome.toLowerCase() === f.nome.toLowerCase().trim())
+            const hasExactMatch = resultados.some(m => normalizar(m.nome) === termoBusca)
             const showCadastrar = f.nome.trim().length > 2 && !hasExactMatch
             const showDropdown = familiarDropdownIdx === i && (resultados.length > 0 || showCadastrar)
 
@@ -1118,6 +1124,61 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
                   }}
                 />
               </div>
+
+              {/* Departamentos filtrados pela congregação herdada */}
+              {(() => {
+                const congSel = congregacoes.find(c => c.nome === form.igreja)
+                const deptosFiltrados = congSel
+                  ? departamentosDisponiveis.filter(d => !d.congregacao_id || d.congregacao_id === congSel.id)
+                  : departamentosDisponiveis
+                if (deptosFiltrados.length === 0) return null
+                return (
+                  <div className="space-y-2">
+                    <Label className="text-xs">Departamentos (opcional)</Label>
+                    <div className="grid grid-cols-1 gap-1.5 max-h-36 overflow-y-auto pr-1">
+                      {deptosFiltrados.map(d => {
+                        const sel = quickReg.departamentos.find(s => s.id === d.id)
+                        const checked = !!sel
+                        return (
+                          <div key={d.id} className={`border rounded-md px-3 py-2 space-y-1.5 transition-colors ${checked ? 'border-primary bg-primary/5' : 'border-border'}`}>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                id={`qr-dept-${d.id}`}
+                                checked={checked}
+                                onChange={e => setQuickReg(q => {
+                                  if (!q) return q
+                                  return {
+                                    ...q,
+                                    departamentos: e.target.checked
+                                      ? [...q.departamentos, { id: d.id, nome: d.nome, cargo_departamento: '' }]
+                                      : q.departamentos.filter(s => s.id !== d.id),
+                                  }
+                                })}
+                                className="h-3.5 w-3.5 accent-primary"
+                              />
+                              <label htmlFor={`qr-dept-${d.id}`} className="text-sm cursor-pointer select-none">{d.nome}</label>
+                            </div>
+                            {checked && (
+                              <select
+                                value={sel?.cargo_departamento || ''}
+                                onChange={e => setQuickReg(q => q ? {
+                                  ...q,
+                                  departamentos: q.departamentos.map(s => s.id === d.id ? { ...s, cargo_departamento: e.target.value } : s),
+                                } : q)}
+                                className="w-full h-7 px-2 rounded border border-input bg-background text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                              >
+                                <option value="">Cargo (opcional)</option>
+                                {CARGOS_DEPARTAMENTO.map(c => <option key={c} value={c}>{c}</option>)}
+                              </select>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })()}
 
               {/* Preview dos dados herdados */}
               {(form.telefone_principal || form.logradouro || form.igreja) && (

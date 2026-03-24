@@ -17,6 +17,9 @@ export async function GET(req: NextRequest) {
   const congregacaoParam = searchParams.get('congregacao')
 
   try {
+    // Garante extensão unaccent (idempotente, roda na primeira chamada)
+    try { await pool.query('CREATE EXTENSION IF NOT EXISTS unaccent') } catch { }
+
     const baseParams: unknown[] = []
     let query = 'SELECT * FROM membros WHERE 1=1'
 
@@ -30,7 +33,7 @@ export async function GET(req: NextRequest) {
     }
     if (search) {
       baseParams.push(`%${search}%`)
-      query += ` AND (nome ILIKE $${baseParams.length} OR conhecido_como ILIKE $${baseParams.length})`
+      query += ` AND (unaccent(nome) ILIKE unaccent($${baseParams.length}) OR unaccent(conhecido_como) ILIKE unaccent($${baseParams.length}))`
     }
 
     // Filtro "sem congregação" — só faz sentido quando o usuário não tem restrição de cong.
@@ -132,7 +135,7 @@ export async function POST(req: NextRequest) {
         nome, toNull(conhecido_como), toNull(igreja), toNull(cargo), toNull(sexo), toNull(data_nascimento),
         toNull(cep), toNull(logradouro), toNull(numero), toNull(complemento), toNull(bairro), toNull(cidade), toNull(estado),
         toNull(telefone_principal), toNull(telefone_secundario), toNull(email),
-        toNull(cpf), toNull(estado_civil), toNull(profissao), toNull(identidade), toNull(orgao_expedidor), toNull(data_expedicao),
+        toNull(cpf), estado_civil || 'Solteiro(a)', toNull(profissao), toNull(identidade), toNull(orgao_expedidor), toNull(data_expedicao),
         toNull(grau_instrucao), toNull(titulo_eleitor), toNull(titulo_eleitor_zona), toNull(titulo_eleitor_secao),
         toNull(tipo_sanguineo), toNull(cert_nascimento_casamento), toNull(reservista), toNull(carteira_motorista),
         chefe_familiar || false, toNull(data_casamento), toNull(naturalidade), toNull(uf_naturalidade), toNull(nacionalidade),
@@ -150,6 +153,32 @@ export async function POST(req: NextRequest) {
     }
 
     for (const f of familiares) {
+      // Se o familiar já é um membro vinculado (cadastrado via pré-cadastro rápido
+      // ou selecionado da lista), apenas registra a relação — sem criar duplicata.
+      if (f.membro_vinculado_id) {
+        await client.query(
+          `INSERT INTO familiares (membro_id, parentesco, nome, data_nascimento, observacoes, membro_vinculado_id)
+           VALUES ($1,$2,$3,$4,$5,$6)`,
+          [membroId, f.parentesco, f.nome, toNull(f.data_nascimento), f.observacoes, f.membro_vinculado_id]
+        )
+        // Garante relação reversa (se ainda não existir)
+        const rev = await client.query(
+          'SELECT id FROM familiares WHERE membro_id=$1 AND membro_vinculado_id=$2',
+          [f.membro_vinculado_id, membroId]
+        )
+        if (rev.rows.length === 0) {
+          let parentescoRev = 'Outro'
+          if (f.parentesco === 'Cônjuge') parentescoRev = 'Cônjuge'
+          else if (f.parentesco === 'Filho(a)') parentescoRev = sexo === 'Masculino' ? 'Pai' : sexo === 'Feminino' ? 'Mãe' : 'Outro'
+          await client.query(
+            'INSERT INTO familiares (membro_id, parentesco, nome, data_nascimento, membro_vinculado_id) VALUES ($1,$2,$3,$4,$5)',
+            [f.membro_vinculado_id, parentescoRev, nome, toNull(data_nascimento), membroId]
+          )
+        }
+        continue
+      }
+
+      // Familiar sem vínculo — insere e, para Cônjuge/Filho(a), cria o membro automaticamente
       const familiarResult = await client.query(
         'INSERT INTO familiares (membro_id, parentesco, nome, data_nascimento, observacoes) VALUES ($1,$2,$3,$4,$5) RETURNING id',
         [membroId, f.parentesco, f.nome, toNull(f.data_nascimento), f.observacoes]

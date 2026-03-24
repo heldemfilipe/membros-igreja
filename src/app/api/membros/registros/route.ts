@@ -41,8 +41,9 @@ export async function GET(req: NextRequest) {
     }
 
     if (search.trim()) {
+      try { await client.query('CREATE EXTENSION IF NOT EXISTS unaccent') } catch { }
       params.push(`%${search.trim()}%`)
-      where += ` AND (m.nome ILIKE $${params.length} OR m.conhecido_como ILIKE $${params.length})`
+      where += ` AND (unaccent(m.nome) ILIKE unaccent($${params.length}) OR unaccent(m.conhecido_como) ILIKE unaccent($${params.length}))`
     }
 
     const membrosRes = await client.query(
