@@ -8,11 +8,17 @@ export function cn(...inputs: ClassValue[]) {
 /**
  * Parseia uma string de data (YYYY-MM-DD ou ISO) como data local,
  * evitando deslocamento de fuso horário (UTC midnight → dia anterior).
+ *
+ * setFullYear() é necessário porque new Date(y, m, d) trata anos 0-99
+ * como 1900+y (quirk histórico do JS). Sem isso, ano 1924 funciona mas
+ * ano 0001 vira 1901 — inconsistente com o PostgreSQL.
  */
 export function parseLocalDate(dateStr: string): Date {
   const clean = dateStr.split('T')[0]
   const [y, m, d] = clean.split('-').map(Number)
-  return new Date(y, m - 1, d)
+  const date = new Date(y, m - 1, d)
+  date.setFullYear(y)
+  return date
 }
 
 export function calcularIdade(dataNascimento: string | null): number | null {
