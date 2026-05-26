@@ -1,12 +1,9 @@
 import { NextRequest } from 'next/server'
 import pool from '@/lib/db'
-import { verificarToken, unauthorized } from '@/lib/auth'
+import { withAuth } from '@/lib/api'
 import { buildAccessWhere } from '@/lib/access'
 
-export async function GET(req: NextRequest) {
-  const user = await verificarToken(req)
-  if (!user) return unauthorized()
-
+export const GET = withAuth(async (req: NextRequest, user) => {
   const { searchParams } = new URL(req.url)
   const congregacaoParam = searchParams.get('congregacao')
 
@@ -14,7 +11,7 @@ export async function GET(req: NextRequest) {
   // paramOffset=0 porque cada pool.query reutiliza os mesmos params a partir de $1
   const { where: f, params: fp } = buildAccessWhere(user, congregacaoParam)
 
-  try {
+  {
     const [
       totalMembros, totalCongregados, totalGeral,
       porSexo, porTipo, porCargo, porFaixaEtaria, estatisticasIdade, porEstadoCivil,
@@ -122,8 +119,5 @@ export async function GET(req: NextRequest) {
         cong_mais_velho: estatisticasIdade.rows[0].cong_mais_velho || null,
       },
     })
-  } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Erro desconhecido'
-    return Response.json({ error: msg }, { status: 500 })
   }
-}
+})

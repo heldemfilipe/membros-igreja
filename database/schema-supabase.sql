@@ -155,7 +155,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trigger_update_membros_timestamp
+CREATE OR REPLACE TRIGGER trigger_update_membros_timestamp
 BEFORE UPDATE ON membros
 FOR EACH ROW
 EXECUTE FUNCTION update_membros_timestamp();
@@ -169,7 +169,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trigger_update_usuarios_timestamp
+CREATE OR REPLACE TRIGGER trigger_update_usuarios_timestamp
 BEFORE UPDATE ON usuarios
 FOR EACH ROW
 EXECUTE FUNCTION update_usuarios_timestamp();

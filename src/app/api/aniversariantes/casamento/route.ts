@@ -1,17 +1,14 @@
 import { NextRequest } from 'next/server'
 import pool from '@/lib/db'
-import { verificarToken, unauthorized } from '@/lib/auth'
+import { withAuth } from '@/lib/api'
 import { buildAccessWhere } from '@/lib/access'
 
-export async function GET(req: NextRequest) {
-  const user = await verificarToken(req)
-  if (!user) return unauthorized()
-
+export const GET = withAuth(async (req: NextRequest, user) => {
   const { searchParams } = new URL(req.url)
   const mes = searchParams.get('mes') || String(new Date().getMonth() + 1)
   const congregacaoParam = searchParams.get('congregacao')
 
-  try {
+  {
     const base = [mes]
     const { where: extraWhere, params: accessParams, empty } = buildAccessWhere(user, congregacaoParam, {
       paramOffset: base.length,
@@ -67,11 +64,8 @@ export async function GET(req: NextRequest) {
         ORDER BY LEAST(id, COALESCE(conjuge_id, id))
       ) dedup
       ORDER BY EXTRACT(DAY FROM data_casamento)`,
-      params
+      params,
     )
     return Response.json(result.rows)
-  } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Erro desconhecido'
-    return Response.json({ error: msg }, { status: 500 })
   }
-}
+})

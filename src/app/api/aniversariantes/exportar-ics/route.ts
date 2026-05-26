@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import pool from '@/lib/db'
-import { verificarToken, unauthorized } from '@/lib/auth'
+import { withAuth } from '@/lib/api'
 import { buildAccessWhere } from '@/lib/access'
 
 // Gera DTSTART com o ano atual para o evento repetir anualmente a partir de hoje
@@ -32,10 +32,7 @@ function vevent(uid: string, dtstart: string, summary: string, description: stri
   ].join('\r\n')
 }
 
-export async function GET(req: NextRequest) {
-  const user = await verificarToken(req)
-  if (!user) return unauthorized()
-
+export const GET = withAuth(async (req: NextRequest, user) => {
   const { searchParams } = new URL(req.url)
   const tipo = searchParams.get('tipo') || 'ambos'
   const congregacaoParam = searchParams.get('congregacao')
@@ -43,7 +40,7 @@ export async function GET(req: NextRequest) {
 
   const events: string[] = []
 
-  try {
+  {
     // ─── Nascimento ───────────────────────────────────────────────────────
     if (tipo === 'nascimento' || tipo === 'ambos') {
       const { where, params, empty } = buildAccessWhere(user, congregacaoParam, { departamentoParam })
@@ -160,8 +157,5 @@ export async function GET(req: NextRequest) {
         'Content-Type': 'text/calendar; charset=utf-8',
       },
     })
-  } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Erro desconhecido'
-    return Response.json({ error: msg }, { status: 500 })
   }
-}
+})

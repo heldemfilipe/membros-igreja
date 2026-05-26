@@ -1,15 +1,16 @@
-import { NextRequest } from 'next/server'
+import { withAuth } from '@/lib/api'
+import { buildAccessWhere } from '@/lib/access'
 import pool from '@/lib/db'
-import { verificarToken, unauthorized } from '@/lib/auth'
 import * as XLSX from 'xlsx'
 
-export async function GET(req: NextRequest) {
-  const user = await verificarToken(req)
-  if (!user) return unauthorized()
+export const GET = withAuth(async (_req, user) => {
+  {
+    // Escopo de acesso: exporta apenas membros que o usuário pode ver.
+    const { where, params, empty } = buildAccessWhere(user, null)
+    if (empty) return Response.json({ error: 'Sem membros no escopo de acesso.' }, { status: 200 })
 
-  try {
     const [membrosRes, historicosRes, familiaresRes] = await Promise.all([
-      pool.query('SELECT * FROM membros ORDER BY nome'),
+      pool.query(`SELECT * FROM membros WHERE 1=1${where} ORDER BY nome`, params),
       pool.query('SELECT * FROM historicos'),
       pool.query('SELECT * FROM familiares'),
     ])
@@ -89,8 +90,5 @@ export async function GET(req: NextRequest) {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       },
     })
-  } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Erro desconhecido'
-    return Response.json({ error: 'Erro ao gerar planilha: ' + msg }, { status: 500 })
   }
-}
+}, { permission: 'membros_exportar' })

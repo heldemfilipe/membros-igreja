@@ -1,3 +1,4 @@
+import type { Pool, PoolClient } from 'pg'
 import { AuthUser } from './auth'
 
 /**
@@ -71,4 +72,24 @@ export function buildAccessWhere(
   }
 
   return { where, params, empty: false }
+}
+
+/**
+ * Verifica se um membro específico está dentro do escopo de acesso do usuário
+ * (mesmas regras de buildAccessWhere). Usado nas rotas /[id] para impedir que
+ * um usuário restrito leia/edite/exclua membros fora da sua congregação ou
+ * departamento apenas conhecendo o ID.
+ */
+export async function membroAcessivel(
+  user: AuthUser,
+  membroId: string | number,
+  db: Pool | PoolClient,
+): Promise<boolean> {
+  const { where, params, empty } = buildAccessWhere(user, null, { paramOffset: 1 })
+  if (empty) return false
+  const result = await db.query(
+    `SELECT 1 FROM membros WHERE id = $1${where} LIMIT 1`,
+    [membroId, ...params],
+  )
+  return result.rows.length > 0
 }

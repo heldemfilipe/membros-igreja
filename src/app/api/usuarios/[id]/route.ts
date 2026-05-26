@@ -1,78 +1,34 @@
-import { NextRequest } from 'next/server'
 import pool from '@/lib/db'
 import bcrypt from 'bcryptjs'
-import { verificarToken, unauthorized, forbidden } from '@/lib/auth'
+import { withAuthParams, ApiError } from '@/lib/api'
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
-  const user = await verificarToken(req)
-  if (!user) return unauthorized()
-  if (user.tipo !== 'admin') return forbidden()
-
+export const PUT = withAuthParams<{ id: string }>(async (req, _user, { params }) => {
   const { id } = params
   const { nome, email, senha, tipo, ativo, perfil_id, departamentos_acesso, congregacoes_acesso } = await req.json()
 
-  try {
-    let query: string
-    let queryParams: (string | boolean | number | null | number[])[]
+  const deptAcesso = Array.isArray(departamentos_acesso) && departamentos_acesso.length > 0 ? departamentos_acesso : null
+  const congAcesso = Array.isArray(congregacoes_acesso) && congregacoes_acesso.length > 0 ? congregacoes_acesso : null
 
-    const deptAcesso = Array.isArray(departamentos_acesso) && departamentos_acesso.length > 0
-      ? departamentos_acesso : null
-    const congAcesso = Array.isArray(congregacoes_acesso) && congregacoes_acesso.length > 0
-      ? congregacoes_acesso : null
-
-    // Lazy migration: garante que a coluna existe
-    try { await pool.query('ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS congregacoes_acesso INTEGER[]') } catch { }
-
-    try {
-      // Tenta atualizar com perfil, departamentos e congregacoes
-      if (senha) {
-        const senhaCriptografada = await bcrypt.hash(senha, 10)
-        query = 'UPDATE usuarios SET nome=$1, email=$2, senha=$3, tipo=$4, ativo=$5, perfil_id=$6, departamentos_acesso=$7, congregacoes_acesso=$8 WHERE id=$9'
-        queryParams = [nome, email, senhaCriptografada, tipo, ativo, perfil_id || null, deptAcesso, congAcesso, id]
-      } else {
-        query = 'UPDATE usuarios SET nome=$1, email=$2, tipo=$3, ativo=$4, perfil_id=$5, departamentos_acesso=$6, congregacoes_acesso=$7 WHERE id=$8'
-        queryParams = [nome, email, tipo, ativo, perfil_id || null, deptAcesso, congAcesso, id]
-      }
-      await pool.query(query, queryParams)
-    } catch {
-      // Fallback sem colunas de perfil
-      if (senha) {
-        const senhaCriptografada = await bcrypt.hash(senha, 10)
-        query = 'UPDATE usuarios SET nome=$1, email=$2, senha=$3, tipo=$4, ativo=$5 WHERE id=$6'
-        queryParams = [nome, email, senhaCriptografada, tipo, ativo, id]
-      } else {
-        query = 'UPDATE usuarios SET nome=$1, email=$2, tipo=$3, ativo=$4 WHERE id=$5'
-        queryParams = [nome, email, tipo, ativo, id]
-      }
-      await pool.query(query, queryParams)
-    }
-
-    return Response.json({ message: 'Usuário atualizado com sucesso' })
-  } catch (error: unknown) {
-    if ((error as { code?: string }).code === '23505') {
-      return Response.json({ error: 'Email já cadastrado' }, { status: 400 })
-    }
-    const msg = error instanceof Error ? error.message : 'Erro desconhecido'
-    return Response.json({ error: msg }, { status: 500 })
+  let query: string
+  let queryParams: (string | boolean | number | null | number[])[]
+  if (senha) {
+    const senhaCriptografada = await bcrypt.hash(senha, 10)
+    query = 'UPDATE usuarios SET nome=$1, email=$2, senha=$3, tipo=$4, ativo=$5, perfil_id=$6, departamentos_acesso=$7, congregacoes_acesso=$8 WHERE id=$9'
+    queryParams = [nome, email, senhaCriptografada, tipo, ativo, perfil_id || null, deptAcesso, congAcesso, id]
+  } else {
+    query = 'UPDATE usuarios SET nome=$1, email=$2, tipo=$3, ativo=$4, perfil_id=$5, departamentos_acesso=$6, congregacoes_acesso=$7 WHERE id=$8'
+    queryParams = [nome, email, tipo, ativo, perfil_id || null, deptAcesso, congAcesso, id]
   }
-}
+  await pool.query(query, queryParams)
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  const user = await verificarToken(req)
-  if (!user) return unauthorized()
-  if (user.tipo !== 'admin') return forbidden()
+  return Response.json({ message: 'Usuário atualizado com sucesso' })
+}, { adminOnly: true })
 
+export const DELETE = withAuthParams<{ id: string }>(async (_req, user, { params }) => {
   const { id } = params
-
   if (parseInt(id) === user.id) {
-    return Response.json({ error: 'Não é possível deletar seu próprio usuário' }, { status: 400 })
+    throw new ApiError(400, 'Não é possível deletar seu próprio usuário')
   }
-
-  try {
-    await pool.query('DELETE FROM usuarios WHERE id = $1', [id])
-    return Response.json({ message: 'Usuário deletado com sucesso' })
-  } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Erro desconhecido'
-    return Response.json({ error: msg }, { status: 500 })
-  }
-}
+  await pool.query('DELETE FROM usuarios WHERE id = $1', [id])
+  return Response.json({ message: 'Usuário deletado com sucesso' })
+}, { adminOnly: true })

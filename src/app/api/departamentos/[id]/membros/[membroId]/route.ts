@@ -1,42 +1,19 @@
-import { NextRequest } from 'next/server'
 import pool from '@/lib/db'
-import { verificarToken, unauthorized, forbidden } from '@/lib/auth'
+import { withAuthParams } from '@/lib/api'
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string; membroId: string } }) {
-  const user = await verificarToken(req)
-  if (!user) return unauthorized()
-  if (user.tipo !== 'admin') return forbidden()
-
-  const { id, membroId } = params
+export const PUT = withAuthParams<{ id: string; membroId: string }>(async (req, _user, { params }) => {
   const { cargo_departamento } = await req.json()
+  await pool.query(
+    'UPDATE membro_departamentos SET cargo_departamento = $1 WHERE departamento_id = $2 AND membro_id = $3',
+    [cargo_departamento || null, params.id, params.membroId],
+  )
+  return Response.json({ message: 'Cargo atualizado com sucesso' })
+}, { adminOnly: true })
 
-  try {
-    await pool.query(
-      'UPDATE membro_departamentos SET cargo_departamento = $1 WHERE departamento_id = $2 AND membro_id = $3',
-      [cargo_departamento || null, id, membroId]
-    )
-    return Response.json({ message: 'Cargo atualizado com sucesso' })
-  } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Erro desconhecido'
-    return Response.json({ error: msg }, { status: 500 })
-  }
-}
-
-export async function DELETE(req: NextRequest, { params }: { params: { id: string; membroId: string } }) {
-  const user = await verificarToken(req)
-  if (!user) return unauthorized()
-  if (user.tipo !== 'admin') return forbidden()
-
-  const { id, membroId } = params
-
-  try {
-    await pool.query(
-      'DELETE FROM membro_departamentos WHERE departamento_id = $1 AND membro_id = $2',
-      [id, membroId]
-    )
-    return Response.json({ message: 'Membro removido do departamento' })
-  } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Erro desconhecido'
-    return Response.json({ error: msg }, { status: 500 })
-  }
-}
+export const DELETE = withAuthParams<{ id: string; membroId: string }>(async (_req, _user, { params }) => {
+  await pool.query(
+    'DELETE FROM membro_departamentos WHERE departamento_id = $1 AND membro_id = $2',
+    [params.id, params.membroId],
+  )
+  return Response.json({ message: 'Membro removido do departamento' })
+}, { adminOnly: true })

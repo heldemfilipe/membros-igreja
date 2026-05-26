@@ -1,8 +1,3 @@
-import { NextRequest } from 'next/server'
-import { verificarToken, unauthorized } from '@/lib/auth'
+import { withAuth } from '@/lib/api'
 
-export async function GET(req: NextRequest) {
-  const user = await verificarToken(req)
-  if (!user) return unauthorized()
-  return Response.json({ usuario: user })
-}
+export const GET = withAuth(async (_req, user) => Response.json({ usuario: user }))

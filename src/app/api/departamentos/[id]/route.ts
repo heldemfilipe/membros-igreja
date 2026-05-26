@@ -1,42 +1,16 @@
-import { NextRequest } from 'next/server'
 import pool from '@/lib/db'
-import { verificarToken, unauthorized, forbidden } from '@/lib/auth'
+import { withAuthParams } from '@/lib/api'
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
-  const user = await verificarToken(req)
-  if (!user) return unauthorized()
-  if (user.tipo !== 'admin' && !user.permissoes.departamentos_editar) return forbidden('Sem permissão para editar departamentos.')
-
-  const { id } = params
+export const PUT = withAuthParams<{ id: string }>(async (req, _user, { params }) => {
   const { nome, descricao, congregacao_id } = await req.json()
+  await pool.query(
+    'UPDATE departamentos SET nome = $1, descricao = $2, congregacao_id = $3 WHERE id = $4',
+    [nome, descricao || null, congregacao_id || null, params.id],
+  )
+  return Response.json({ message: 'Departamento atualizado com sucesso' })
+}, { permission: 'departamentos_editar' })
 
-  try {
-    await pool.query(
-      'UPDATE departamentos SET nome = $1, descricao = $2, congregacao_id = $3 WHERE id = $4',
-      [nome, descricao || null, congregacao_id || null, id]
-    )
-    return Response.json({ message: 'Departamento atualizado com sucesso' })
-  } catch (error: unknown) {
-    if ((error as { code?: string }).code === '23505') {
-      return Response.json({ error: 'Nome já existe' }, { status: 400 })
-    }
-    const msg = error instanceof Error ? error.message : 'Erro desconhecido'
-    return Response.json({ error: msg }, { status: 500 })
-  }
-}
-
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  const user = await verificarToken(req)
-  if (!user) return unauthorized()
-  if (user.tipo !== 'admin' && !user.permissoes.departamentos_editar) return forbidden('Sem permissão para excluir departamentos.')
-
-  const { id } = params
-
-  try {
-    await pool.query('DELETE FROM departamentos WHERE id = $1', [id])
-    return Response.json({ message: 'Departamento deletado com sucesso' })
-  } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Erro desconhecido'
-    return Response.json({ error: msg }, { status: 500 })
-  }
-}
+export const DELETE = withAuthParams<{ id: string }>(async (_req, _user, { params }) => {
+  await pool.query('DELETE FROM departamentos WHERE id = $1', [params.id])
+  return Response.json({ message: 'Departamento deletado com sucesso' })
+}, { permission: 'departamentos_editar' })

@@ -33,12 +33,3 @@ ALTER TABLE familiares
     'Neto(a)',
     'Outro'
   ));
-
--- Verifica os constraints criados
-SELECT conname, consrc
-FROM pg_constraint
-WHERE conrelid IN (
-  'historicos'::regclass,
-  'familiares'::regclass
-)
-AND contype = 'c';
