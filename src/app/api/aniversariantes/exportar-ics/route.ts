@@ -49,7 +49,9 @@ export async function GET(req: NextRequest) {
       const { where, params, empty } = buildAccessWhere(user, congregacaoParam, { departamentoParam })
       if (!empty) {
         const rows = await pool.query(
-          `SELECT id, nome, conhecido_como, data_nascimento, telefone_principal, tipo_participante
+          `SELECT id, nome, conhecido_como,
+                  to_char(data_nascimento, 'YYYY-MM-DD') AS data_nascimento,
+                  telefone_principal, tipo_participante
            FROM membros WHERE data_nascimento IS NOT NULL${where}
            ORDER BY EXTRACT(MONTH FROM data_nascimento), EXTRACT(DAY FROM data_nascimento)`,
           params
@@ -83,7 +85,8 @@ export async function GET(req: NextRequest) {
         const rows = await pool.query(
           `WITH todos AS (
             SELECT
-              m.id, m.nome, m.data_casamento,
+              m.id, m.nome,
+              to_char(m.data_casamento, 'YYYY-MM-DD') AS data_casamento,
               m.telefone_principal, m.tipo_participante,
               f.membro_vinculado_id AS conjuge_id,
               mc.nome AS conjuge_nome
@@ -96,7 +99,8 @@ export async function GET(req: NextRequest) {
             UNION ALL
 
             SELECT
-              m.id, m.nome, mc.data_casamento,
+              m.id, m.nome,
+              to_char(mc.data_casamento, 'YYYY-MM-DD') AS data_casamento,
               m.telefone_principal, m.tipo_participante,
               mc.id AS conjuge_id, mc.nome AS conjuge_nome
             FROM membros m
