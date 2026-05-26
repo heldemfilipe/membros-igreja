@@ -14,7 +14,7 @@ import {
 } from 'recharts'
 import {
   Users, UserCheck, UserCircle, Loader2, Cake, CalendarDays,
-  TrendingUp, Activity, UserPlus, Church,
+  TrendingUp, Activity, UserPlus, Church, MessageCircle,
 } from 'lucide-react'
 import Link from 'next/link'
 import { getDiaDoMes } from '@/lib/utils'
@@ -218,6 +218,28 @@ export default function DashboardPage() {
 
   // ─── Filtro de semana ────────────────────────────────────────────────────
 
+  // ─── Aniversariantes de hoje ─────────────────────────────────────────────
+
+  const hojeAniv = useMemo(() => {
+    const hoje = new Date()
+    const m = hoje.getMonth() + 1
+    const d = hoje.getDate()
+    return todosAniv.filter(a => {
+      const parts = a.data_nascimento.split('T')[0].split('-').map(Number)
+      return parts[1] === m && parts[2] === d
+    })
+  }, [todosAniv])
+
+  const hojeAnivCasamento = useMemo(() => {
+    const hoje = new Date()
+    const m = hoje.getMonth() + 1
+    const d = hoje.getDate()
+    return todosAnivCasamento.filter(a => {
+      const parts = a.data_casamento.split('T')[0].split('-').map(Number)
+      return parts[1] === m && parts[2] === d
+    })
+  }, [todosAnivCasamento])
+
   const anivFiltrados = useMemo(() => {
     const hoje = new Date()
     const domingo = new Date(hoje)
@@ -329,6 +351,99 @@ export default function DashboardPage() {
           {tituloCongreagacao ?? 'Visão geral da congregação'}
         </p>
       </div>
+
+      {/* ─── Banner de aniversariantes de HOJE ──────────────────────────── */}
+      {(hojeAniv.length > 0 || hojeAnivCasamento.length > 0) && (
+        <div className="rounded-xl overflow-hidden border border-amber-300 dark:border-amber-700 shadow-md">
+          <div className="bg-gradient-to-r from-amber-500 to-rose-500 px-4 py-2.5 flex items-center gap-2">
+            <span className="text-xl leading-none animate-bounce">🎉</span>
+            <p className="text-white font-bold text-sm">Hoje é dia de comemorar!</p>
+          </div>
+          <div className="bg-amber-50 dark:bg-amber-900/20 px-4 py-3 space-y-2">
+            {hojeAniv.map(a => {
+              const idadeEsteAno = a.data_nascimento
+                ? new Date().getFullYear() - parseInt(a.data_nascimento.split('T')[0].split('-')[0])
+                : null
+              const whaLink = a.telefone_principal
+                ? `https://wa.me/55${a.telefone_principal.replace(/\D/g, '')}?text=${encodeURIComponent(`Parabéns pelo seu aniversário! 🎂`)}`
+                : null
+              return (
+                <div key={`nasc-${a.id}`} className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-base leading-none shrink-0">🎂</span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold truncate text-amber-900 dark:text-amber-200">
+                        {a.nome}
+                        {idadeEsteAno !== null && (
+                          <span className="ml-1.5 text-xs font-normal text-amber-700 dark:text-amber-400">
+                            — faz {idadeEsteAno} anos hoje
+                          </span>
+                        )}
+                      </p>
+                      {!filtroCongregacao && a.igreja && (
+                        <p className="text-[11px] text-amber-700 dark:text-amber-500 flex items-center gap-0.5">
+                          <Church className="h-2.5 w-2.5 shrink-0" />{a.igreja}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {whaLink && (
+                    <a
+                      href={whaLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 shrink-0 text-xs font-medium text-white bg-emerald-500 hover:bg-emerald-600 transition-colors px-2.5 py-1 rounded-full"
+                    >
+                      <MessageCircle className="h-3 w-3" />
+                      Parabenizar
+                    </a>
+                  )}
+                </div>
+              )
+            })}
+
+            {hojeAnivCasamento.map(a => {
+              const anos = parseInt(a.data_casamento.split('T')[0].split('-')[0])
+              const anosTotal = new Date().getFullYear() - anos
+              const nomes = a.conjuge_nome ? `${a.nome} & ${a.conjuge_nome}` : a.nome
+              const whaLink = a.telefone_principal
+                ? `https://wa.me/55${a.telefone_principal.replace(/\D/g, '')}?text=${encodeURIComponent(`Parabéns pelo aniversário de casamento! 💍`)}`
+                : null
+              return (
+                <div key={`cas-${a.id}`} className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-base leading-none shrink-0">💍</span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold truncate text-rose-900 dark:text-rose-200">
+                        {nomes}
+                        <span className="ml-1.5 text-xs font-normal text-rose-700 dark:text-rose-400">
+                          — {anosTotal} {anosTotal === 1 ? 'ano' : 'anos'} de casamento
+                        </span>
+                      </p>
+                      {!filtroCongregacao && a.igreja && (
+                        <p className="text-[11px] text-rose-700 dark:text-rose-500 flex items-center gap-0.5">
+                          <Church className="h-2.5 w-2.5 shrink-0" />{a.igreja}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {whaLink && (
+                    <a
+                      href={whaLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 shrink-0 text-xs font-medium text-white bg-emerald-500 hover:bg-emerald-600 transition-colors px-2.5 py-1 rounded-full"
+                    >
+                      <MessageCircle className="h-3 w-3" />
+                      Parabenizar
+                    </a>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ─── Cards de totais ─────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

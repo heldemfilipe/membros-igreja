@@ -3,10 +3,11 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
-import { AniversarianteItem, AniversarianteCasamento } from '@/types'
+import { AniversarianteItem, AniversarianteCasamento, Departamento } from '@/types'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Loader2, Phone, Church } from 'lucide-react'
+import { Loader2, Phone, Church, CalendarDays, Download, ChevronDown, ChevronUp } from 'lucide-react'
 import { idadeFara, getDiaDoMes, cn } from '@/lib/utils'
 import { getCargoStyle, getBoda, TIPO_STYLE, TIPO_STYLE_CASAMENTO } from '@/lib/constants'
 
@@ -47,7 +48,13 @@ function CardNascimento({ a, filtroCongregacao }: { a: AniversarianteItem; filtr
       </div>
       <div className="shrink-0 text-right space-y-0.5">
         {a.telefone_principal && (
-          <a href={`tel:${a.telefone_principal}`} className="flex items-center justify-end gap-1 text-xs text-muted-foreground hover:text-primary transition-colors">
+          <a
+            href={`https://wa.me/55${a.telefone_principal.replace(/\D/g, '')}?text=${encodeURIComponent(`Parabéns pelo seu aniversário! 🎂`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-end gap-1 text-xs text-emerald-600 hover:text-emerald-700 transition-colors"
+            title="Parabenizar no WhatsApp"
+          >
             <Phone className="h-3 w-3" />
             <span className="hidden sm:inline">{a.telefone_principal}</span>
           </a>
@@ -109,7 +116,13 @@ function CardCasamento({
       </div>
       <div className="shrink-0 text-right space-y-0.5">
         {a.telefone_principal && (
-          <a href={`tel:${a.telefone_principal}`} className="flex items-center justify-end gap-1 text-xs text-muted-foreground hover:text-primary transition-colors">
+          <a
+            href={`https://wa.me/55${a.telefone_principal.replace(/\D/g, '')}?text=${encodeURIComponent(`Parabéns pelo aniversário de casamento! 💍`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-end gap-1 text-xs text-emerald-600 hover:text-emerald-700 transition-colors"
+            title="Parabenizar no WhatsApp"
+          >
             <Phone className="h-3 w-3" />
             <span className="hidden sm:inline">{a.telefone_principal}</span>
           </a>
@@ -121,6 +134,146 @@ function CardCasamento({
           </p>
         )}
       </div>
+    </div>
+  )
+}
+
+// ─── Painel de exportação ICS ─────────────────────────────────────────────────
+type ExportTipo = 'ambos' | 'nascimento' | 'casamento'
+
+function ExportPanel({
+  token,
+  filtroCongregacao,
+}: {
+  token: string | null
+  filtroCongregacao: number | null
+}) {
+  const [open, setOpen] = useState(false)
+  const [tipo, setTipo] = useState<ExportTipo>('ambos')
+  const [departamento, setDepartamento] = useState('')
+  const [departamentos, setDepartamentos] = useState<Departamento[]>([])
+  const [loadingDepts, setLoadingDepts] = useState(false)
+  const [downloading, setDownloading] = useState(false)
+
+  const loadDepts = useCallback(async () => {
+    if (!token || departamentos.length > 0) return
+    setLoadingDepts(true)
+    try {
+      const params = new URLSearchParams()
+      if (filtroCongregacao) params.set('congregacao', String(filtroCongregacao))
+      const res = await fetch(`/api/departamentos?${params}`, { headers: { Authorization: `Bearer ${token}` } })
+      if (res.ok) setDepartamentos(await res.json())
+    } finally {
+      setLoadingDepts(false)
+    }
+  }, [token, filtroCongregacao, departamentos.length])
+
+  const handleToggle = () => {
+    if (!open) loadDepts()
+    setOpen(v => !v)
+  }
+
+  const handleDownload = async () => {
+    if (!token) return
+    setDownloading(true)
+    try {
+      const params = new URLSearchParams({ tipo })
+      if (filtroCongregacao) params.set('congregacao', String(filtroCongregacao))
+      if (departamento) params.set('departamento', departamento)
+
+      const res = await fetch(`/api/aniversariantes/exportar-ics?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) return
+
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `aniversariantes_${tipo}.ics`
+      a.click()
+      URL.revokeObjectURL(url)
+      setOpen(false)
+    } finally {
+      setDownloading(false)
+    }
+  }
+
+  return (
+    <div className="relative">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handleToggle}
+        className="gap-1.5 shrink-0"
+      >
+        <CalendarDays className="h-3.5 w-3.5" />
+        Exportar para Agenda
+        {open ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+      </Button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-2 z-20 w-72 bg-popover border border-border rounded-xl shadow-lg p-4 space-y-4">
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Tipo</p>
+            <div className="flex gap-1">
+              {(['ambos', 'nascimento', 'casamento'] as ExportTipo[]).map(t => (
+                <button
+                  key={t}
+                  onClick={() => setTipo(t)}
+                  className={cn(
+                    'flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors border',
+                    tipo === t
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-background text-muted-foreground border-border hover:bg-accent'
+                  )}
+                >
+                  {t === 'ambos' ? 'Ambos' : t === 'nascimento' ? '🎂 Nasc.' : '💍 Casam.'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Departamento</p>
+            {loadingDepts ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Carregando...
+              </div>
+            ) : (
+              <select
+                value={departamento}
+                onChange={e => setDepartamento(e.target.value)}
+                className="w-full h-8 px-2 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">Toda a congregação</option>
+                {departamentos.map(d => (
+                  <option key={d.id} value={String(d.id)}>
+                    {d.nome}{d.congregacao_nome ? ` (${d.congregacao_nome})` : ''}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          <div className="pt-1 border-t border-border">
+            <p className="text-[10px] text-muted-foreground mb-2">
+              Gera um arquivo <strong>.ics</strong> com eventos anuais recorrentes.
+              Re-importar atualiza os eventos existentes sem duplicar.
+            </p>
+            <Button
+              size="sm"
+              onClick={handleDownload}
+              disabled={downloading}
+              className="w-full gap-1.5"
+            >
+              {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+              {downloading ? 'Gerando...' : 'Baixar .ics'}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -181,10 +334,13 @@ export default function AniversariantesPage() {
     <div className="space-y-5">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2 mb-0.5">
-          {aba === 'nascimento' ? '🎂' : '💍'}
-          Aniversariantes
-        </h1>
+        <div className="flex items-start justify-between gap-3 mb-0.5">
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            {aba === 'nascimento' ? '🎂' : '💍'}
+            Aniversariantes
+          </h1>
+          <ExportPanel token={token} filtroCongregacao={filtroCongregacao} />
+        </div>
         <p className="text-sm text-muted-foreground mb-3">
           {loading ? '...' : totalLabel}
         </p>
