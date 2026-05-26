@@ -21,6 +21,18 @@ export class ApiError extends Error {
  * devolvido como mensagem genérica — nunca vaza a mensagem crua do Postgres.
  */
 export function errorResponse(error: unknown): Response {
+  // Erros de controle de fluxo do Next (DYNAMIC_SERVER_USAGE durante o build,
+  // NEXT_REDIRECT, NEXT_NOT_FOUND) não são falhas — devem propagar para o Next
+  // tratar (ex: marcar a rota como dinâmica). Engoli-los gera ruído no build.
+  if (
+    typeof error === 'object' && error !== null && 'digest' in error &&
+    typeof (error as { digest: unknown }).digest === 'string' &&
+    ((error as { digest: string }).digest === 'DYNAMIC_SERVER_USAGE' ||
+      (error as { digest: string }).digest.startsWith('NEXT_'))
+  ) {
+    throw error
+  }
+
   if (error instanceof ApiError) {
     return Response.json({ error: error.message }, { status: error.status })
   }
