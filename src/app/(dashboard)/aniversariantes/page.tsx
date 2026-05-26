@@ -141,13 +141,10 @@ function CardCasamento({
 // ─── Painel de exportação ICS ─────────────────────────────────────────────────
 type ExportTipo = 'ambos' | 'nascimento' | 'casamento'
 
-function ExportPanel({
-  token,
-  filtroCongregacao,
-}: {
-  token: string | null
-  filtroCongregacao: number | null
-}) {
+function ExportPanel({ token }: { token: string | null }) {
+  // Lê direto do contexto para garantir o valor mais recente
+  const { filtroCongregacao } = useAuth()
+
   const [open, setOpen] = useState(false)
   const [tipo, setTipo] = useState<ExportTipo>('ambos')
   const [departamento, setDepartamento] = useState('')
@@ -155,23 +152,21 @@ function ExportPanel({
   const [loadingDepts, setLoadingDepts] = useState(false)
   const [downloading, setDownloading] = useState(false)
 
-  const loadDepts = useCallback(async () => {
-    if (!token || departamentos.length > 0) return
+  // Recarrega departamentos sempre que o painel abre ou a congregação muda
+  useEffect(() => {
+    if (!open || !token) return
     setLoadingDepts(true)
-    try {
-      const params = new URLSearchParams()
-      if (filtroCongregacao) params.set('congregacao', String(filtroCongregacao))
-      const res = await fetch(`/api/departamentos?${params}`, { headers: { Authorization: `Bearer ${token}` } })
-      if (res.ok) setDepartamentos(await res.json())
-    } finally {
-      setLoadingDepts(false)
-    }
-  }, [token, filtroCongregacao, departamentos.length])
+    setDepartamento('')
+    const params = new URLSearchParams()
+    if (filtroCongregacao) params.set('congregacao', String(filtroCongregacao))
+    fetch(`/api/departamentos?${params}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : [])
+      .then((d: Departamento[]) => setDepartamentos(d || []))
+      .catch(() => setDepartamentos([]))
+      .finally(() => setLoadingDepts(false))
+  }, [open, token, filtroCongregacao])
 
-  const handleToggle = () => {
-    if (!open) loadDepts()
-    setOpen(v => !v)
-  }
+  const handleToggle = () => setOpen(v => !v)
 
   const handleDownload = async () => {
     if (!token) return
@@ -339,7 +334,7 @@ export default function AniversariantesPage() {
             {aba === 'nascimento' ? '🎂' : '💍'}
             Aniversariantes
           </h1>
-          <ExportPanel token={token} filtroCongregacao={filtroCongregacao} />
+          <ExportPanel token={token} />
         </div>
         <p className="text-sm text-muted-foreground mb-3">
           {loading ? '...' : totalLabel}
