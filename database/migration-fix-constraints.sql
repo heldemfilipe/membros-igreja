@@ -5,6 +5,11 @@
 
 -- 1. Corrige o constraint de tipo do histórico eclesiástico
 --    (Valores conforme ficha padrão da igreja)
+
+-- Normaliza valores legados antes de aplicar o constraint:
+-- 'Batismo' (do sistema antigo) → 'Batismo nas Águas'.
+UPDATE historicos SET tipo = 'Batismo nas Águas' WHERE tipo = 'Batismo';
+
 ALTER TABLE historicos DROP CONSTRAINT IF EXISTS historicos_tipo_check;
 ALTER TABLE historicos
   ADD CONSTRAINT historicos_tipo_check
