@@ -13,9 +13,20 @@ export const GET = withAuth(async (req: NextRequest, user) => {
   const cargo = searchParams.get('cargo')
   const departamento = searchParams.get('departamento')
   const congregacaoParam = searchParams.get('congregacao')
+  // 'todos' = mostra ativos e inativos; qualquer outro valor (ou ausente) = só ativos
+  const apenasInativos = searchParams.get('ativo') === 'false'
+  const mostrarTodos = searchParams.get('ativo') === 'todos'
 
   const baseParams: unknown[] = []
   let query = 'SELECT * FROM membros WHERE 1=1'
+
+  if (mostrarTodos) {
+    // sem filtro de ativo — retorna ambos
+  } else if (apenasInativos) {
+    query += ' AND (ativo = FALSE OR ativo IS NULL)'
+  } else {
+    query += ' AND ativo = TRUE'
+  }
 
   if (tipo) {
     baseParams.push(tipo)

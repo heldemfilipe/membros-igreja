@@ -141,6 +141,20 @@ export const PUT = withAuthParams<{ id: string }>(async (req, user, { params }) 
   }
 }, { permission: 'membros_editar' })
 
+export const PATCH = withAuthParams<{ id: string }>(async (req, user, { params }) => {
+  const { id } = params
+  if (!(await membroAcessivel(user, id, pool))) return notFound('Membro não encontrado')
+
+  const body = await req.json()
+  if (typeof body.ativo !== 'boolean') {
+    return Response.json({ error: 'Campo "ativo" (boolean) é obrigatório.' }, { status: 400 })
+  }
+
+  await pool.query('UPDATE membros SET ativo = $1 WHERE id = $2', [body.ativo, id])
+  const msg = body.ativo ? 'Membro reativado com sucesso!' : 'Membro desativado com sucesso!'
+  return Response.json({ message: msg })
+}, { permission: 'membros_editar' })
+
 export const DELETE = withAuthParams<{ id: string }>(async (req, user, { params }) => {
   const { id } = params
   if (!(await membroAcessivel(user, id, pool))) return notFound('Membro não encontrado')

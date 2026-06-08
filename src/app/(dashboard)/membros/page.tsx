@@ -11,7 +11,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { VisitorModal } from '@/components/membros/VisitorModal'
 import { MemberViewModal } from '@/components/membros/MemberViewModal'
 import { MemberModal } from '@/components/membros/MemberModal'
-import { Loader2, Plus, Search, Pencil, Trash2, Eye, UserPlus, Download, Phone, Church } from 'lucide-react'
+import { Loader2, Plus, Search, Pencil, Trash2, Eye, UserPlus, Download, Phone, Church, UserX, UserCheck } from 'lucide-react'
 import { calcularIdade, cn } from '@/lib/utils'
 import { getCargoStyle, getDeptBadgeStyle, CARGOS_ECLESIASTICOS, TIPO_STYLE, ESTADO_CIVIL_ABREV } from '@/lib/constants'
 
@@ -28,6 +28,7 @@ export default function MembrosPage() {
   const [filterCargo, setFilterCargo] = useState('')
   const [filterDept, setFilterDept] = useState('')
   const [filterCongregacao, setFilterCongregacao] = useState('')
+  const [filterAtivo, setFilterAtivo] = useState<'true' | 'false' | 'todos'>('true')
   const [visitorModal, setVisitorModal] = useState(false)
   const [viewMembro, setViewMembro] = useState<Membro | null>(null)
   const [memberModal, setMemberModal] = useState<{ open: boolean; id?: number }>({ open: false })
@@ -43,6 +44,7 @@ export default function MembrosPage() {
       if (filterTipo) params.set('tipo', filterTipo)
       if (filterCargo) params.set('cargo', filterCargo)
       if (filterDept) params.set('departamento', filterDept)
+      if (filterAtivo !== 'true') params.set('ativo', filterAtivo)
       if (filtroCongregacao) params.set('congregacao', String(filtroCongregacao))
       else if (filterCongregacao) params.set('congregacao', filterCongregacao)
 
@@ -53,7 +55,7 @@ export default function MembrosPage() {
     } finally {
       if (!silent) setLoading(false)
     }
-  }, [token, search, filterTipo, filterCargo, filterDept, filtroCongregacao, filterCongregacao])
+  }, [token, search, filterTipo, filterCargo, filterDept, filterAtivo, filtroCongregacao, filterCongregacao])
 
   // Atualiza lista sem mostrar spinner (preserva posição de scroll)
   const refreshSilent = useCallback(() => loadMembros(true), [loadMembros])
@@ -83,6 +85,23 @@ export default function MembrosPage() {
   useEffect(() => {
     if (filtroCongregacao) setFilterCongregacao('')
   }, [filtroCongregacao])
+
+  const handleToggleAtivo = async (id: number, nome: string, ativoAtual: boolean) => {
+    const acao = ativoAtual ? 'desativar' : 'reativar'
+    if (!confirm(`${ativoAtual ? 'Desativar' : 'Reativar'} o membro "${nome}"?`)) return
+    const res = await fetch(`/api/membros/${id}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ativo: !ativoAtual }),
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      toast({ title: data.error, variant: 'destructive' })
+    } else {
+      toast({ title: data.message })
+      loadMembros()
+    }
+  }
 
   const handleDelete = async (id: number, nome: string) => {
     if (!confirm(`Excluir o membro "${nome}"?\n\nEsta ação não pode ser desfeita.`)) return
@@ -148,7 +167,7 @@ export default function MembrosPage() {
       </div>
 
       {/* Filtros */}
-      <div className={`grid grid-cols-1 sm:grid-cols-2 gap-2 ${isAdmin && !filtroCongregacao && congregacoesLista.length > 1 ? 'xl:grid-cols-5' : 'xl:grid-cols-4'}`}>
+      <div className={`grid grid-cols-1 sm:grid-cols-2 gap-2 ${isAdmin && !filtroCongregacao && congregacoesLista.length > 1 ? 'xl:grid-cols-6' : 'xl:grid-cols-5'}`}>
         <div className="relative sm:col-span-2 xl:col-span-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <input
@@ -193,6 +212,16 @@ export default function MembrosPage() {
           ))}
         </select>
 
+        <select
+          value={filterAtivo}
+          onChange={e => setFilterAtivo(e.target.value as 'true' | 'false' | 'todos')}
+          className="h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          <option value="true">Somente ativos</option>
+          <option value="false">Somente inativos</option>
+          <option value="todos">Ativos e inativos</option>
+        </select>
+
         {/* Filtro de congregação — só para admins sem filtro global ativo */}
         {isAdmin && !filtroCongregacao && congregacoesLista.length > 1 && (
           <select
@@ -225,7 +254,7 @@ export default function MembrosPage() {
         <Card>
           <CardContent className="py-16 text-center">
             <p className="text-muted-foreground">Nenhum membro encontrado.</p>
-            {(search || filterTipo || filterCargo || filterDept) && (
+            {(search || filterTipo || filterCargo || filterDept || filterAtivo !== 'true') && (
               <p className="text-xs text-muted-foreground mt-1">Tente remover os filtros.</p>
             )}
           </CardContent>
@@ -235,8 +264,9 @@ export default function MembrosPage() {
           {membros.map(m => {
             const idade = calcularIdade(m.data_nascimento || null)
             const tipoStyle = TIPO_STYLE[m.tipo_participante] || { card: '', avatar: 'bg-primary/10 dark:bg-primary/20 text-primary' }
+            const inativo = m.ativo === false
             return (
-              <Card key={m.id} className={cn('hover:shadow-sm transition-shadow', tipoStyle.card)}>
+              <Card key={m.id} className={cn('hover:shadow-sm transition-shadow', tipoStyle.card, inativo && 'opacity-60')}>
                 <CardContent className="p-3 sm:p-4">
                   <div className="flex items-center gap-3">
                     {/* Avatar colorido por tipo */}
@@ -253,6 +283,11 @@ export default function MembrosPage() {
                         <p className="font-semibold text-sm leading-tight">{m.nome}</p>
                         {m.conhecido_como && (
                           <span className="text-xs text-muted-foreground">&quot;{m.conhecido_como}&quot;</span>
+                        )}
+                        {inativo && (
+                          <Badge variant="outline" className="text-xs h-5 border-destructive/50 text-destructive">
+                            Inativo
+                          </Badge>
                         )}
                       </div>
 
@@ -341,6 +376,18 @@ export default function MembrosPage() {
                         title="Editar"
                       >
                         <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleToggleAtivo(m.id, m.nome, m.ativo !== false)}
+                        className={cn(
+                          'h-8 w-8 rounded-md flex items-center justify-center transition-colors',
+                          inativo
+                            ? 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950'
+                            : 'text-muted-foreground hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950',
+                        )}
+                        title={inativo ? 'Reativar membro' : 'Desativar membro'}
+                      >
+                        {inativo ? <UserCheck className="h-4 w-4" /> : <UserX className="h-4 w-4" />}
                       </button>
                       {isAdmin && (
                         <button
