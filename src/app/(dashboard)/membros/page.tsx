@@ -11,6 +11,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { VisitorModal } from '@/components/membros/VisitorModal'
 import { MemberViewModal } from '@/components/membros/MemberViewModal'
 import { MemberModal } from '@/components/membros/MemberModal'
+import { ExportModal } from '@/components/membros/ExportModal'
 import { Loader2, Plus, Search, Pencil, Trash2, Eye, UserPlus, Download, Phone, Church, UserX, UserCheck } from 'lucide-react'
 import { calcularIdade, cn } from '@/lib/utils'
 import { getCargoStyle, getDeptBadgeStyle, CARGOS_ECLESIASTICOS, TIPO_STYLE, ESTADO_CIVIL_ABREV } from '@/lib/constants'
@@ -32,7 +33,7 @@ export default function MembrosPage() {
   const [visitorModal, setVisitorModal] = useState(false)
   const [viewMembro, setViewMembro] = useState<Membro | null>(null)
   const [memberModal, setMemberModal] = useState<{ open: boolean; id?: number }>({ open: false })
-  const [exporting, setExporting] = useState(false)
+  const [exportModal, setExportModal] = useState(false)
   const searchTimer = useRef<ReturnType<typeof setTimeout>>()
 
   const loadMembros = useCallback(async (silent = false) => {
@@ -118,28 +119,6 @@ export default function MembrosPage() {
     }
   }
 
-  const handleExport = async () => {
-    setExporting(true)
-    try {
-      const res = await fetch('/api/membros/exportar', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (!res.ok) {
-        toast({ title: 'Erro ao exportar planilha.', variant: 'destructive' })
-        return
-      }
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `membros_${new Date().toISOString().split('T')[0]}.xlsx`
-      a.click()
-      URL.revokeObjectURL(url)
-    } finally {
-      setExporting(false)
-    }
-  }
-
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -151,8 +130,8 @@ export default function MembrosPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting}>
-            {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+          <Button variant="outline" size="sm" onClick={() => setExportModal(true)}>
+            <Download className="h-4 w-4" />
             <span className="hidden sm:inline">Exportar Excel</span>
           </Button>
           <Button variant="outline" size="sm" onClick={() => setVisitorModal(true)}>
@@ -428,6 +407,14 @@ export default function MembrosPage() {
         membroId={memberModal.id}
         onClose={() => setMemberModal({ open: false })}
         onSuccess={refreshSilent}
+      />
+
+      <ExportModal
+        open={exportModal}
+        onClose={() => setExportModal(false)}
+        token={token}
+        congregacoes={congregacoesLista}
+        departamentos={departamentos}
       />
     </div>
   )

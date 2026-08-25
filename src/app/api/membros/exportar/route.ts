@@ -1,18 +1,72 @@
+import { NextRequest } from 'next/server'
 import { withAuth } from '@/lib/api'
 import { buildAccessWhere } from '@/lib/access'
+import { normalizar } from '@/lib/utils'
 import pool from '@/lib/db'
 import * as XLSX from 'xlsx'
 
-export const GET = withAuth(async (_req, user) => {
-  {
-    // Escopo de acesso: exporta apenas membros que o usuário pode ver.
-    const { where, params, empty } = buildAccessWhere(user, null)
-    if (empty) return Response.json({ error: 'Sem membros no escopo de acesso.' }, { status: 200 })
+/** Normaliza um rótulo para uso seguro em nome de arquivo (sem acentos/espaços). */
+function slug(s: string): string {
+  return normalizar(s).replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'exportacao'
+}
 
-    const [membrosRes, historicosRes, familiaresRes] = await Promise.all([
-      pool.query(`SELECT * FROM membros WHERE 1=1${where} ORDER BY nome`, params),
-      pool.query('SELECT * FROM historicos'),
-      pool.query('SELECT * FROM familiares'),
+export const GET = withAuth(async (req: NextRequest, user) => {
+  {
+    const { searchParams } = new URL(req.url)
+    const congregacaoParam = searchParams.get('congregacao')
+    const departamentoParam = searchParams.get('departamento')
+    const membrosParam = searchParams.get('membros') // ids separados por vírgula
+
+    let membrosRes
+    let escopoLabel: string
+
+    if (membrosParam) {
+      // Escopo: pessoas específicas — restringe também ao escopo de acesso do usuário.
+      const ids = membrosParam.split(',').map(s => parseInt(s, 10)).filter(n => Number.isFinite(n))
+      if (ids.length === 0) return Response.json({ error: 'Nenhum membro selecionado.' }, { status: 200 })
+
+      const { where, params, empty } = buildAccessWhere(user, null)
+      if (empty) return Response.json({ error: 'Sem membros no escopo de acesso.' }, { status: 200 })
+
+      membrosRes = await pool.query(
+        `SELECT * FROM membros WHERE id = ANY($1::int[])${where} ORDER BY nome`,
+        [ids, ...params],
+      )
+      escopoLabel = membrosRes.rows.length === 1
+        ? slug(String(membrosRes.rows[0].nome))
+        : `${membrosRes.rows.length}_selecionados`
+    } else {
+      // Escopo: toda a igreja / uma congregação / um departamento (respeitando acesso do usuário).
+      const { where, params, empty } = buildAccessWhere(user, congregacaoParam, { departamentoParam })
+      if (empty) return Response.json({ error: 'Sem membros no escopo de acesso.' }, { status: 200 })
+
+      let query = 'SELECT * FROM membros WHERE 1=1'
+      if (!user.congregacoes_acesso?.length && congregacaoParam === 'sem') {
+        query += ` AND (igreja IS NULL OR igreja = '' OR igreja NOT IN (SELECT nome FROM congregacoes))`
+      }
+      membrosRes = await pool.query(`${query}${where} ORDER BY nome`, params)
+
+      if (departamentoParam) {
+        const d = await pool.query('SELECT nome FROM departamentos WHERE id = $1', [departamentoParam])
+        escopoLabel = slug(d.rows[0]?.nome ? `departamento_${d.rows[0].nome}` : 'departamento')
+      } else if (congregacaoParam === 'sem') {
+        escopoLabel = 'sem_congregacao'
+      } else if (congregacaoParam) {
+        const c = await pool.query('SELECT nome FROM congregacoes WHERE id = $1', [congregacaoParam])
+        escopoLabel = slug(c.rows[0]?.nome ? `congregacao_${c.rows[0].nome}` : 'congregacao')
+      } else {
+        escopoLabel = 'toda_igreja'
+      }
+    }
+
+    if (membrosRes.rows.length === 0) {
+      return Response.json({ error: 'Nenhum membro encontrado para o escopo selecionado.' }, { status: 200 })
+    }
+
+    const idsMembros = membrosRes.rows.map(m => m.id)
+    const [historicosRes, familiaresRes] = await Promise.all([
+      pool.query('SELECT * FROM historicos WHERE membro_id = ANY($1::int[])', [idsMembros]),
+      pool.query('SELECT * FROM familiares WHERE membro_id = ANY($1::int[])', [idsMembros]),
     ])
 
     const historicosMap: Record<number, string[]> = {}
@@ -86,7 +140,7 @@ export const GET = withAuth(async (_req, user) => {
 
     return new Response(buffer, {
       headers: {
-        'Content-Disposition': `attachment; filename="exportacao_completa_${dataAtual}.xlsx"`,
+        'Content-Disposition': `attachment; filename="membros_${escopoLabel}_${dataAtual}.xlsx"`,
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       },
     })
