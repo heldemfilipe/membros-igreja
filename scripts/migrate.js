@@ -42,6 +42,7 @@ const MIGRATIONS = [
   'migration-acompanhamento-visitante.sql',
   'migration-acompanhamento-extra.sql',
   'migration-mensagem-modelo.sql',
+  'migration-mensagem-modelo-extra.sql',
   'migration-indexes.sql',
 ]
 

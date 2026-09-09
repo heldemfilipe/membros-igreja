@@ -89,6 +89,14 @@ export function EnviarMensagemModal({
               <option value="">Escrever do zero</option>
               {modelos.map(m => <option key={m.id} value={m.id}>{m.titulo}</option>)}
             </select>
+            {modelos.length === 0 && onGerenciar && (
+              <p className="text-xs text-muted-foreground">
+                Nenhuma frase cadastrada ainda —{' '}
+                <button type="button" onClick={onGerenciar} className="underline underline-offset-2 hover:text-foreground">
+                  cadastrar frases
+                </button>.
+              </p>
+            )}
           </div>
 
           {(precisaData || precisaHora) && (
