@@ -17,7 +17,10 @@ import { calcularIdade, cn } from '@/lib/utils'
 import { getCargoStyle, getDeptBadgeStyle, CARGOS_ECLESIASTICOS, TIPO_STYLE, ESTADO_CIVIL_ABREV } from '@/lib/constants'
 
 export default function MembrosPage() {
-  const { token, isAdmin, filtroCongregacao } = useAuth()
+  const { token, isAdmin, filtroCongregacao, temPermissao } = useAuth()
+  const podeEditar = temPermissao('membros_editar')
+  const podeExcluir = temPermissao('membros_excluir')
+  const podeExportar = temPermissao('membros_exportar')
   const { toast } = useToast()
   const searchParams = useSearchParams()
   const [membros, setMembros] = useState<Membro[]>([])
@@ -130,18 +133,24 @@ export default function MembrosPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => setExportModal(true)}>
-            <Download className="h-4 w-4" />
-            <span className="hidden sm:inline">Exportar Excel</span>
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setVisitorModal(true)}>
-            <UserPlus className="h-4 w-4" />
-            Visitante
-          </Button>
-          <Button size="sm" onClick={() => setMemberModal({ open: true })}>
-            <Plus className="h-4 w-4" />
-            Novo Membro
-          </Button>
+          {podeExportar && (
+            <Button variant="outline" size="sm" onClick={() => setExportModal(true)}>
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">Exportar Excel</span>
+            </Button>
+          )}
+          {podeEditar && (
+            <Button variant="outline" size="sm" onClick={() => setVisitorModal(true)}>
+              <UserPlus className="h-4 w-4" />
+              Visitante
+            </Button>
+          )}
+          {podeEditar && (
+            <Button size="sm" onClick={() => setMemberModal({ open: true })}>
+              <Plus className="h-4 w-4" />
+              Novo Membro
+            </Button>
+          )}
         </div>
       </div>
 
@@ -349,26 +358,30 @@ export default function MembrosPage() {
                       >
                         <Eye className="h-4 w-4" />
                       </button>
-                      <button
-                        onClick={() => setMemberModal({ open: true, id: m.id })}
-                        className="h-8 w-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                        title="Editar"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleToggleAtivo(m.id, m.nome, m.ativo !== false)}
-                        className={cn(
-                          'h-8 w-8 rounded-md flex items-center justify-center transition-colors',
-                          inativo
-                            ? 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950'
-                            : 'text-muted-foreground hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950',
-                        )}
-                        title={inativo ? 'Reativar membro' : 'Desativar membro'}
-                      >
-                        {inativo ? <UserCheck className="h-4 w-4" /> : <UserX className="h-4 w-4" />}
-                      </button>
-                      {isAdmin && (
+                      {podeEditar && (
+                        <button
+                          onClick={() => setMemberModal({ open: true, id: m.id })}
+                          className="h-8 w-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                          title="Editar"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                      )}
+                      {podeEditar && (
+                        <button
+                          onClick={() => handleToggleAtivo(m.id, m.nome, m.ativo !== false)}
+                          className={cn(
+                            'h-8 w-8 rounded-md flex items-center justify-center transition-colors',
+                            inativo
+                              ? 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950'
+                              : 'text-muted-foreground hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950',
+                          )}
+                          title={inativo ? 'Reativar membro' : 'Desativar membro'}
+                        >
+                          {inativo ? <UserCheck className="h-4 w-4" /> : <UserX className="h-4 w-4" />}
+                        </button>
+                      )}
+                      {podeExcluir && (
                         <button
                           onClick={() => handleDelete(m.id, m.nome)}
                           className="h-8 w-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
@@ -398,7 +411,7 @@ export default function MembrosPage() {
         membro={viewMembro}
         open={!!viewMembro}
         onClose={() => setViewMembro(null)}
-        onEdit={id => { setViewMembro(null); setMemberModal({ open: true, id }) }}
+        onEdit={podeEditar ? (id => { setViewMembro(null); setMemberModal({ open: true, id }) }) : undefined}
         onVisitaRegistrada={refreshSilent}
       />
 

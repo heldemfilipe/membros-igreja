@@ -124,7 +124,8 @@ function fmtDataVisita(iso: string): string {
 // ─── Página ──────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const { token, congregacoesAcesso, filtroCongregacao, filtroCongregacaoNome } = useAuth()
+  const { token, congregacoesAcesso, filtroCongregacao, filtroCongregacaoNome, temPermissao } = useAuth()
+  const podeEditarMembros = temPermissao('membros_editar')
   const [data, setData] = useState<DashboardData | null>(null)
   const [todosAniv, setTodosAniv] = useState<AniversarianteItem[]>([])
   const [filtroSemana, setFiltroSemana] = useState<FiltroSemana>('esta')
@@ -476,14 +477,16 @@ export default function DashboardPage() {
                           {v.total_visitas} visita{Number(v.total_visitas) !== 1 ? 's' : ''} · 28 dias
                         </p>
                       </div>
-                      <Button
-                        size="sm"
-                        className="h-6 text-[10px] px-2 bg-orange-600 hover:bg-orange-700 text-white shrink-0"
-                        onClick={() => setMemberModal({ open: true, id: v.membro_id })}
-                      >
-                        <UserPlus className="h-3 w-3 mr-1" />
-                        Cadastrar
-                      </Button>
+                      {podeEditarMembros && (
+                        <Button
+                          size="sm"
+                          className="h-6 text-[10px] px-2 bg-orange-600 hover:bg-orange-700 text-white shrink-0"
+                          onClick={() => setMemberModal({ open: true, id: v.membro_id })}
+                        >
+                          <UserPlus className="h-3 w-3 mr-1" />
+                          Cadastrar
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>

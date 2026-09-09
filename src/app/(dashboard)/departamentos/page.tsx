@@ -300,7 +300,8 @@ export default function DepartamentosPage() {
                   {/* Lista de membros */}
                   {expandedId === d.id && (
                     <div className="border-t px-4 pb-4">
-                      {podeEditar && (
+                      {/* Vincular/desvincular membro a departamento é ação de admin (API adminOnly) */}
+                      {isAdmin && (
                         <div className="pt-3 pb-2">
                           <Button variant="outline" size="sm" onClick={() => openAddMembro(d.id)}>
                             <Plus className="h-3 w-3" />
@@ -344,7 +345,7 @@ export default function DepartamentosPage() {
                                   )}
                                 </div>
                               </div>
-                              {podeEditar && (
+                              {isAdmin && (
                                 <div className="flex items-center gap-0.5">
                                   <Button
                                     variant="ghost"

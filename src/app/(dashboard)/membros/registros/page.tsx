@@ -250,7 +250,7 @@ export default function RegistrosPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2 mb-0.5">
-          📋 Completude de Cadastro
+          📋 Lista de Aniversários
         </h1>
         <p className="text-sm text-muted-foreground">
           Quais membros ainda estão sem data de nascimento ou de casamento

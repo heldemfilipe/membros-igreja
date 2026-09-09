@@ -4,6 +4,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
 import { MemberForm } from './MemberForm'
+import { RequirePermission } from '@/components/auth/RequirePermission'
 
 interface Props {
   open: boolean
@@ -26,11 +27,13 @@ export function MemberModal({ open, membroId, onClose, onSuccess }: Props) {
             {membroId ? 'Editar Membro' : 'Novo Membro'}
           </DialogTitle>
         </DialogHeader>
-        <MemberForm
-          membroId={membroId}
-          onSuccess={handleSuccess}
-          onCancel={onClose}
-        />
+        <RequirePermission perm="membros_editar">
+          <MemberForm
+            membroId={membroId}
+            onSuccess={handleSuccess}
+            onCancel={onClose}
+          />
+        </RequirePermission>
       </DialogContent>
     </Dialog>
   )

@@ -1,6 +1,7 @@
 "use client"
 
 import { MemberForm } from '@/components/membros/MemberForm'
+import { RequirePermission } from '@/components/auth/RequirePermission'
 import { useParams } from 'next/navigation'
 
 export default function EditarMembroPage() {
@@ -13,7 +14,9 @@ export default function EditarMembroPage() {
         <h1 className="text-2xl font-bold">Editar Membro</h1>
         <p className="text-muted-foreground text-sm">Atualize os dados do membro</p>
       </div>
-      <MemberForm membroId={id} />
+      <RequirePermission perm="membros_editar">
+        <MemberForm membroId={id} />
+      </RequirePermission>
     </div>
   )
 }
