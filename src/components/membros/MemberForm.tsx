@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, Plus, Trash2, Search, X, AlertTriangle, UserPlus, Lock } from 'lucide-react'
-import { CARGOS_ECLESIASTICOS, CARGOS_DEPARTAMENTO, ORIGENS_RELIGIOSAS, DONS_TALENTOS } from '@/lib/constants'
+import { CARGOS_ECLESIASTICOS, CARGOS_DEPARTAMENTO, ORIGENS_RELIGIOSAS, DONS_TALENTOS, TIPOS_HISTORICO } from '@/lib/constants'
 import { normalizar } from '@/lib/utils'
 
 type DeptSelecao = { id: number; nome: string; cargo_departamento: string }
@@ -992,17 +992,13 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
                   className={`w-full h-9 px-2 rounded-md border bg-background text-sm ${errors[`hist_${i}_tipo`] ? 'border-red-500' : 'border-input'}`}
                 >
                   <option value="">Selecione</option>
-                  {[
-                    'Conversão',
-                    'Batismo nas Águas',
-                    'Batismo no Espírito Santo',
-                    'Consagração a Diácono',
-                    'Consagração a Presbítero',
-                    'Ordenação a Evangelista',
-                    'Ordenação a Pastor(a)',
-                  ].map(t => (
+                  {TIPOS_HISTORICO.map(t => (
                     <option key={t} value={t}>{t}</option>
                   ))}
+                  {/* valor legado que não está mais na lista — mantém para não sumir na edição */}
+                  {h.tipo && !TIPOS_HISTORICO.includes(h.tipo) && (
+                    <option value={h.tipo}>{h.tipo} (antigo)</option>
+                  )}
                 </select>
                 {errors[`hist_${i}_tipo`] && <p className="text-xs text-red-500">{errors[`hist_${i}_tipo`]}</p>}
               </div>

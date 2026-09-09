@@ -9,6 +9,10 @@
 -- Normaliza valores legados antes de aplicar o constraint:
 -- 'Batismo' (do sistema antigo) → 'Batismo nas Águas'.
 UPDATE historicos SET tipo = 'Batismo nas Águas' WHERE tipo = 'Batismo';
+-- 'Consagração a Diácono(isa)' / 'Diaconisa' → 'Consagração a Diácono'
+-- (padrão Assembleia de Deus do Belém: apenas "Diácono").
+UPDATE historicos SET tipo = 'Consagração a Diácono'
+  WHERE tipo IN ('Consagração a Diácono(isa)', 'Consagração a Diaconisa');
 
 ALTER TABLE historicos DROP CONSTRAINT IF EXISTS historicos_tipo_check;
 ALTER TABLE historicos
@@ -17,7 +21,7 @@ ALTER TABLE historicos
     'Conversão',
     'Batismo nas Águas',
     'Batismo no Espírito Santo',
-    'Consagração a Diácono(isa)',
+    'Consagração a Diácono',
     'Consagração a Presbítero',
     'Ordenação a Evangelista',
     'Ordenação a Pastor(a)'

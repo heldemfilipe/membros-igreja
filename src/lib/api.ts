@@ -39,6 +39,12 @@ export function errorResponse(error: unknown): Response {
   if (typeof error === 'object' && error !== null && (error as { code?: string }).code === '23505') {
     return Response.json({ error: 'Já existe um registro com esses dados.' }, { status: 409 })
   }
+  if (typeof error === 'object' && error !== null && (error as { code?: string }).code === '23514') {
+    return Response.json(
+      { error: 'Algum campo tem um valor não permitido (ex.: tipo de histórico eclesiástico).' },
+      { status: 400 },
+    )
+  }
   console.error('[API]', error)
   return Response.json({ error: 'Erro interno do servidor.' }, { status: 500 })
 }

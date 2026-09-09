@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS historicos (
         'Conversão',
         'Batismo nas Águas',
         'Batismo no Espírito Santo',
-        'Consagração a Diácono(isa)',
+        'Consagração a Diácono',
         'Consagração a Presbítero',
         'Ordenação a Evangelista',
         'Ordenação a Pastor(a)'

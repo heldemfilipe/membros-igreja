@@ -27,6 +27,18 @@ export const DONS_TALENTOS = [
   'Trabalho com crianças', 'Trabalho com jovens', 'Ação social',
 ]
 
+// Tipos do histórico eclesiástico — DEVE bater com o CHECK de historicos_tipo_check
+// (database/migration-fix-constraints.sql).
+export const TIPOS_HISTORICO = [
+  'Conversão',
+  'Batismo nas Águas',
+  'Batismo no Espírito Santo',
+  'Consagração a Diácono',
+  'Consagração a Presbítero',
+  'Ordenação a Evangelista',
+  'Ordenação a Pastor(a)',
+]
+
 // Cargos dentro dos departamentos
 export const CARGOS_DEPARTAMENTO = [
   'Líder', 'Vice-Líder', 'Regente', 'Secretário(a)', 'Tesoureiro(a)',
