@@ -69,3 +69,12 @@ export function toTitleCase(str: string): string {
 export function normalizar(s: string): string {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
 }
+
+/** Normaliza um telefone BR para o formato do wa.me (com DDI 55). '' se inv\u00e1lido. */
+export function numeroWhatsApp(tel?: string | null): string {
+  const d = (tel || '').replace(/\D/g, '')
+  if (!d) return ''
+  if (d.startsWith('55') && d.length >= 12 && d.length <= 13) return d
+  if (d.length === 10 || d.length === 11) return '55' + d
+  return ''
+}

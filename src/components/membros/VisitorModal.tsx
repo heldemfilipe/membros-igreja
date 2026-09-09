@@ -10,6 +10,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog'
 import { Loader2, CalendarDays, Lock } from 'lucide-react'
+import { numeroWhatsApp } from '@/lib/utils'
 import { AvisoDirigente, type AvisoDados } from '@/components/recepcao/AvisoDirigente'
 
 interface Props {
@@ -29,15 +30,6 @@ type Cong = {
 
 function hoje(): string {
   return new Date().toISOString().split('T')[0]
-}
-
-/** Normaliza um telefone BR para o formato do wa.me (com DDI 55). '' se inválido. */
-function numeroWhatsApp(tel?: string | null): string {
-  const d = (tel || '').replace(/\D/g, '')
-  if (!d) return ''
-  if (d.startsWith('55') && d.length >= 12 && d.length <= 13) return d
-  if (d.length === 10 || d.length === 11) return '55' + d
-  return ''
 }
 
 function dataBR(iso: string): string {

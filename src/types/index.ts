@@ -237,6 +237,13 @@ export interface Acompanhamento {
   observacoes: string | null
 }
 
+export interface MensagemModelo {
+  id: number
+  titulo: string
+  texto: string
+  created_at?: string
+}
+
 export interface VisitanteRecepcao extends Acompanhamento {
   membro_id: number
   nome: string

@@ -11,22 +11,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
   Loader2, DoorOpen, MessageCircle, Phone, Church, CalendarDays,
-  Search, UserPlus, Trash2, Pencil,
+  Search, UserPlus, Trash2, Pencil, Send, MessageSquareText,
 } from 'lucide-react'
-import { formatarData } from '@/lib/utils'
+import { formatarData, numeroWhatsApp } from '@/lib/utils'
 import { AvisoDirigente, type AvisoDados } from '@/components/recepcao/AvisoDirigente'
 import { AcompanhamentoModal } from '@/components/recepcao/AcompanhamentoModal'
+import { EnviarMensagemModal, type AlvoMensagem } from '@/components/recepcao/EnviarMensagemModal'
+import { FrasesProntas } from '@/components/recepcao/FrasesProntas'
 import type { VisitanteRecepcao, Acompanhamento } from '@/types'
 
 function hoje(): string {
   return new Date().toISOString().split('T')[0]
-}
-function numeroWhatsApp(tel?: string | null): string {
-  const d = (tel || '').replace(/\D/g, '')
-  if (!d) return ''
-  if (d.startsWith('55') && d.length >= 12 && d.length <= 13) return d
-  if (d.length === 10 || d.length === 11) return '55' + d
-  return ''
 }
 function dataBR(iso: string): string {
   const [y, m, dd] = iso.split('-')
@@ -66,6 +61,8 @@ function RecepcaoInner() {
   const [saving, setSaving] = useState(false)
   const [aviso, setAviso] = useState<AvisoDados | null>(null)
   const [editando, setEditando] = useState<VisitanteRecepcao | null>(null)
+  const [enviando, setEnviando] = useState<AlvoMensagem | null>(null)
+  const [frasesOpen, setFrasesOpen] = useState(false)
 
   const carregar = useCallback(async () => {
     if (!token) return
@@ -284,15 +281,21 @@ function RecepcaoInner() {
       </Card>
 
       {/* ─── Busca ────────────────────────────────────────────────────────── */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-        <input
-          type="search"
-          value={busca}
-          onChange={e => setBusca(e.target.value)}
-          placeholder="Buscar visitante..."
-          className="w-full h-9 pl-9 pr-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-        />
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <input
+            type="search"
+            value={busca}
+            onChange={e => setBusca(e.target.value)}
+            placeholder="Buscar visitante..."
+            className="w-full h-9 pl-9 pr-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+        <Button variant="outline" size="sm" className="shrink-0 gap-1.5" onClick={() => setFrasesOpen(true)}>
+          <MessageSquareText className="h-3.5 w-3.5" />
+          Frases prontas
+        </Button>
       </div>
 
       {/* ─── Lista de visitantes ─────────────────────────────────────────── */}
@@ -332,6 +335,15 @@ function RecepcaoInner() {
                       <Badge variant="outline" className="text-[10px] text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700">
                         frequente
                       </Badge>
+                    )}
+                    {numeroWhatsApp(v.telefone_principal) && (
+                      <button
+                        onClick={() => setEnviando({ nome: v.nome, telefone: v.telefone_principal })}
+                        title="Enviar mensagem ao visitante"
+                        className="h-8 w-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950 transition-colors"
+                      >
+                        <Send className="h-4 w-4" />
+                      </button>
                     )}
                     {numeroDirigente(v) && (
                       <button
@@ -385,6 +397,13 @@ function RecepcaoInner() {
         onClose={() => setEditando(null)}
         onSalvar={dados => salvarAcomp(editando!.membro_id, dados)}
       />
+      <EnviarMensagemModal
+        alvo={enviando}
+        token={token}
+        onClose={() => setEnviando(null)}
+        onGerenciar={() => { setEnviando(null); setFrasesOpen(true) }}
+      />
+      <FrasesProntas open={frasesOpen} token={token} onClose={() => setFrasesOpen(false)} />
     </div>
   )
 }
