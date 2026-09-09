@@ -38,6 +38,7 @@ const MIGRATIONS = [
   'migration-perfis-congregacao.sql',
   'migration-ficha-campos-b.sql',
   'migration-formacoes.sql',
+  'migration-recepcao-config.sql',
   'migration-indexes.sql',
 ]
 

@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
-import { Loader2, Plus, Pencil, Trash2, Church, Users, ChevronDown, ChevronUp, MapPin } from 'lucide-react'
+import { Loader2, Plus, Pencil, Trash2, Church, Users, ChevronDown, ChevronUp, MapPin, MessageCircle } from 'lucide-react'
 import { calcularIdade } from '@/lib/utils'
 import { getCargoStyle } from '@/lib/constants'
 
@@ -22,6 +22,12 @@ type Congregacao = {
   estado?: string
   observacoes?: string
   total_membros: number
+  dirigente_membro_id?: number | null
+  dirigente_nome?: string | null
+  dirigente_telefone?: string | null
+  dirigente_telefone_efetivo?: string | null
+  notificar_whatsapp?: boolean
+  mensagem_boas_vindas?: string | null
 }
 
 type MembroCong = {
@@ -52,8 +58,15 @@ export default function CongregacoesPage() {
   // Modal CRUD
   const [modal, setModal] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
-  const [form, setForm] = useState({ nome: '', cidade: '', estado: '', observacoes: '' })
+  const [form, setForm] = useState({
+    nome: '', cidade: '', estado: '', observacoes: '',
+    dirigente_membro_id: '' as string | number,
+    dirigente_telefone: '',
+    notificar_whatsapp: true,
+  })
   const [saving, setSaving] = useState(false)
+  // Membros da congregação em edição (para escolher o dirigente)
+  const [membrosDoModal, setMembrosDoModal] = useState<MembroCong[]>([])
 
   const loadCongregacoes = useCallback(async () => {
     if (!token) return
@@ -86,14 +99,38 @@ export default function CongregacoesPage() {
 
   const openNew = () => {
     setEditingId(null)
-    setForm({ nome: '', cidade: '', estado: '', observacoes: '' })
+    setMembrosDoModal([])
+    setForm({
+      nome: '', cidade: '', estado: '', observacoes: '',
+      dirigente_membro_id: '', dirigente_telefone: '', notificar_whatsapp: true,
+    })
     setModal(true)
   }
 
-  const openEdit = (c: Congregacao) => {
+  const openEdit = async (c: Congregacao) => {
     setEditingId(c.id)
-    setForm({ nome: c.nome, cidade: c.cidade || '', estado: c.estado || '', observacoes: c.observacoes || '' })
+    setForm({
+      nome: c.nome,
+      cidade: c.cidade || '',
+      estado: c.estado || '',
+      observacoes: c.observacoes || '',
+      dirigente_membro_id: c.dirigente_membro_id ?? '',
+      dirigente_telefone: c.dirigente_telefone || '',
+      notificar_whatsapp: c.notificar_whatsapp !== false,
+    })
     setModal(true)
+    // Carrega os membros para o seletor de dirigente
+    setMembrosDoModal(membrosCong[c.id] || [])
+    if (!membrosCong[c.id]) {
+      try {
+        const res = await fetch(`/api/congregacoes/${c.id}`, { headers: { Authorization: `Bearer ${token}` } })
+        if (res.ok) {
+          const data = await res.json()
+          setMembrosDoModal(data)
+          setMembrosCong(prev => ({ ...prev, [c.id]: data }))
+        }
+      } catch { /* ignore */ }
+    }
   }
 
   const save = async () => {
@@ -105,7 +142,10 @@ export default function CongregacoesPage() {
       const res = await fetch(url, {
         method,
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          dirigente_membro_id: form.dirigente_membro_id === '' ? null : Number(form.dirigente_membro_id),
+        }),
       })
       const data = await res.json()
       if (!res.ok) { toast({ title: data.error, variant: 'destructive' }); return }
@@ -320,6 +360,66 @@ export default function CongregacoesPage() {
                 placeholder="Observações (opcional)"
               />
             </div>
+
+            {/* Dirigente + aviso de visitante no WhatsApp */}
+            {editingId ? (
+              <div className="space-y-3 rounded-lg border p-3 bg-muted/20">
+                <div className="flex items-center gap-2">
+                  <MessageCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  <span className="text-sm font-semibold">Aviso de visitante no WhatsApp</span>
+                </div>
+
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.notificar_whatsapp}
+                    onChange={e => setForm(f => ({ ...f, notificar_whatsapp: e.target.checked }))}
+                    className="h-4 w-4 mt-0.5 accent-primary"
+                  />
+                  <span className="text-sm">Mostrar o botão &quot;Avisar dirigente&quot; ao cadastrar um visitante</span>
+                </label>
+
+                <div className="space-y-2">
+                  <Label>Dirigente</Label>
+                  <select
+                    value={form.dirigente_membro_id}
+                    onChange={e => setForm(f => ({ ...f, dirigente_membro_id: e.target.value }))}
+                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="">— Nenhum (usar telefone manual) —</option>
+                    {membrosDoModal.map(m => (
+                      <option key={m.id} value={m.id}>
+                        {m.nome}{m.telefone_principal ? ` — ${m.telefone_principal}` : ' — (sem telefone)'}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-muted-foreground">O telefone vem sempre da ficha do membro escolhido.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Telefone manual (fallback)</Label>
+                  <Input
+                    value={form.dirigente_telefone}
+                    onChange={e => setForm(f => ({ ...f, dirigente_telefone: e.target.value }))}
+                    placeholder="(00) 00000-0000"
+                  />
+                </div>
+
+                {(() => {
+                  const memSel = membrosDoModal.find(m => String(m.id) === String(form.dirigente_membro_id))
+                  const tel = memSel?.telefone_principal || form.dirigente_telefone.trim()
+                  return (
+                    <p className={`text-xs ${tel ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                      {tel ? `Os avisos vão para: ${tel}` : 'Nenhum telefone definido — o aviso não aparece.'}
+                    </p>
+                  )
+                })()}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Salve a congregação e cadastre os membros; depois edite aqui para definir o dirigente e o aviso no WhatsApp.
+              </p>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setModal(false)}>Cancelar</Button>

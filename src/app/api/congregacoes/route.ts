@@ -18,11 +18,17 @@ export const GET = withAuth(async (_req, user) => {
 
   const result = await pool.query(`
     SELECT c.id, c.nome, c.cidade, c.estado, c.observacoes,
+      c.dirigente_membro_id, c.dirigente_telefone, c.notificar_whatsapp, c.mensagem_boas_vindas,
+      dm.nome AS dirigente_nome,
+      COALESCE(NULLIF(dm.telefone_principal, ''), c.dirigente_telefone) AS dirigente_telefone_efetivo,
       COUNT(m.id)::int AS total_membros
     FROM congregacoes c
     LEFT JOIN membros m ON m.igreja = c.nome
+    LEFT JOIN membros dm ON dm.id = c.dirigente_membro_id
     ${congWhere}
-    GROUP BY c.id, c.nome, c.cidade, c.estado, c.observacoes
+    GROUP BY c.id, c.nome, c.cidade, c.estado, c.observacoes,
+      c.dirigente_membro_id, c.dirigente_telefone, c.notificar_whatsapp, c.mensagem_boas_vindas,
+      dm.nome, dm.telefone_principal
     ORDER BY c.nome
   `, params)
   return Response.json(result.rows)

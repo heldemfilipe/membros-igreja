@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog'
-import { Loader2, CalendarDays, Lock } from 'lucide-react'
+import { Loader2, CalendarDays, Lock, MessageCircle, CheckCircle2 } from 'lucide-react'
 
 interface Props {
   open: boolean
@@ -18,14 +18,36 @@ interface Props {
   token: string | null
 }
 
+type Cong = {
+  id: number
+  nome: string
+  notificar_whatsapp?: boolean
+  dirigente_nome?: string | null
+  dirigente_telefone_efetivo?: string | null
+}
+
 function hoje(): string {
   return new Date().toISOString().split('T')[0]
+}
+
+/** Normaliza um telefone BR para o formato do wa.me (com DDI 55). '' se inválido. */
+function numeroWhatsApp(tel?: string | null): string {
+  const d = (tel || '').replace(/\D/g, '')
+  if (!d) return ''
+  if (d.startsWith('55') && d.length >= 12 && d.length <= 13) return d
+  if (d.length === 10 || d.length === 11) return '55' + d
+  return ''
+}
+
+function dataBR(iso: string): string {
+  const [y, m, dd] = iso.split('-')
+  return dd && m && y ? `${dd}/${m}/${y}` : iso
 }
 
 export function VisitorModal({ open, onClose, onSuccess, token }: Props) {
   const { toast } = useToast()
   const { filtroCongregacaoNome } = useAuth()
-  const [congregacoes, setCongregacoes] = useState<{ id: number; nome: string }[]>([])
+  const [congregacoes, setCongregacoes] = useState<Cong[]>([])
   const [form, setForm] = useState({
     nome: '',
     telefone_principal: '',
@@ -34,18 +56,18 @@ export function VisitorModal({ open, onClose, onSuccess, token }: Props) {
     congregacao_nome: '',
   })
   const [saving, setSaving] = useState(false)
+  // Tela de sucesso com o aviso ao dirigente
+  const [aviso, setAviso] = useState<{ texto: string; numero: string; dirigente: string } | null>(null)
 
-  // Carrega congregações e pré-preenche quando o modal abre
   useEffect(() => {
     if (!token || !open) return
     fetch('/api/congregacoes', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : [])
-      .then((data: { id: number; nome: string }[]) => {
+      .then((data: Cong[]) => {
         const lista = data || []
         setCongregacoes(lista)
-        // Pré-preencher: filtro global > única disponível
         setForm(f => {
-          if (f.congregacao_nome) return f // já preenchido
+          if (f.congregacao_nome) return f
           if (filtroCongregacaoNome) return { ...f, congregacao_nome: filtroCongregacaoNome }
           if (lista.length === 1) return { ...f, congregacao_nome: lista[0].nome }
           return f
@@ -54,13 +76,13 @@ export function VisitorModal({ open, onClose, onSuccess, token }: Props) {
       .catch(() => {})
   }, [token, open, filtroCongregacaoNome])
 
-  const reset = () => setForm({
-    nome: '',
-    telefone_principal: '',
-    informacoes_complementares: '',
-    data_visita: hoje(),
-    congregacao_nome: '',
-  })
+  const reset = () => {
+    setForm({
+      nome: '', telefone_principal: '', informacoes_complementares: '',
+      data_visita: hoje(), congregacao_nome: '',
+    })
+    setAviso(null)
+  }
 
   const handleSave = async () => {
     if (!form.nome.trim()) {
@@ -74,7 +96,6 @@ export function VisitorModal({ open, onClose, onSuccess, token }: Props) {
 
     setSaving(true)
     try {
-      // 1. Cria o visitante como membro
       const membroRes = await fetch('/api/membros', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -87,13 +108,11 @@ export function VisitorModal({ open, onClose, onSuccess, token }: Props) {
         }),
       })
       const membroData = await membroRes.json()
-
       if (!membroRes.ok) {
         toast({ title: membroData.error || 'Erro ao cadastrar.', variant: 'destructive' })
         return
       }
 
-      // 2. Registra a visita com a data selecionada
       try {
         await fetch('/api/visitas', {
           method: 'POST',
@@ -105,13 +124,28 @@ export function VisitorModal({ open, onClose, onSuccess, token }: Props) {
           }),
         })
       } catch {
-        // visita é opcional — não bloqueia o fluxo
+        // visita é opcional
       }
 
-      toast({ title: '✓ Visitante registrado!' })
-      reset()
       onSuccess()
-      onClose()
+
+      // Aviso ao dirigente no WhatsApp, se a congregação tiver isso configurado
+      const cong = congregacoes.find(c => c.nome === form.congregacao_nome)
+      const numero = cong?.notificar_whatsapp !== false ? numeroWhatsApp(cong?.dirigente_telefone_efetivo) : ''
+      if (numero) {
+        const texto =
+          `🙋 *Novo visitante* — ${form.congregacao_nome}\n\n` +
+          `Nome: ${form.nome.trim()}\n` +
+          `Telefone: ${form.telefone_principal || '—'}\n` +
+          `Data da visita: ${dataBR(form.data_visita || hoje())}\n` +
+          `Como conheceu / obs.: ${form.informacoes_complementares || '—'}`
+        setAviso({ texto, numero, dirigente: cong?.dirigente_nome || 'o dirigente' })
+        toast({ title: '✓ Visitante registrado!' })
+      } else {
+        toast({ title: '✓ Visitante registrado!' })
+        reset()
+        onClose()
+      }
     } finally {
       setSaving(false)
     }
@@ -125,122 +159,153 @@ export function VisitorModal({ open, onClose, onSuccess, token }: Props) {
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Cadastro Rápido — Visitante</DialogTitle>
-          <DialogDescription>
-            Informe os dados básicos. Você pode completar o cadastro depois.
-          </DialogDescription>
-        </DialogHeader>
+        {aviso ? (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                Visitante registrado
+              </DialogTitle>
+              <DialogDescription>
+                Avise {aviso.dirigente} pelo WhatsApp com a mensagem já pronta.
+              </DialogDescription>
+            </DialogHeader>
 
-        <div className="space-y-4 py-2">
-          {/* Nome */}
-          <div className="space-y-2">
-            <Label htmlFor="v-nome">Nome completo *</Label>
-            <Input
-              id="v-nome"
-              value={form.nome}
-              onChange={e => setForm(f => ({ ...f, nome: e.target.value }))}
-              placeholder="Nome do visitante"
-              autoFocus
-            />
-          </div>
-
-          {/* Congregação — bloqueada se filtro global ativo ou só 1 disponível */}
-          <div className="space-y-2">
-            <Label htmlFor="v-cong">Congregação *</Label>
-            {(() => {
-              const cFixa = filtroCongregacaoNome || (congregacoes.length === 1 ? congregacoes[0].nome : null)
-              if (cFixa) {
-                return (
-                  <div className="h-10 px-3 rounded-md border border-input bg-muted flex items-center gap-2 text-sm">
-                    <Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                    <span className="font-medium">{cFixa}</span>
-                  </div>
-                )
-              }
-              if (congregacoes.length > 0) {
-                return (
-                  <select
-                    id="v-cong"
-                    value={form.congregacao_nome}
-                    onChange={e => setForm(f => ({ ...f, congregacao_nome: e.target.value }))}
-                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    <option value="">Selecione...</option>
-                    {congregacoes.map(c => (
-                      <option key={c.id} value={c.nome}>{c.nome}</option>
-                    ))}
-                  </select>
-                )
-              }
-              return (
-                <Input
-                  id="v-cong"
-                  value={form.congregacao_nome}
-                  onChange={e => setForm(f => ({ ...f, congregacao_nome: e.target.value }))}
-                  placeholder="Nome da congregação"
-                />
-              )
-            })()}
-          </div>
-
-          {/* Telefone */}
-          <div className="space-y-2">
-            <Label htmlFor="v-tel">Telefone</Label>
-            <Input
-              id="v-tel"
-              type="tel"
-              value={form.telefone_principal}
-              onChange={e => setForm(f => ({ ...f, telefone_principal: e.target.value }))}
-              placeholder="(00) 00000-0000"
-            />
-          </div>
-
-          {/* Data da visita */}
-          <div className="space-y-2">
-            <Label htmlFor="v-data">Data da Visita</Label>
-            <div className="flex gap-2">
-              <Input
-                id="v-data"
-                type="date"
-                value={form.data_visita}
-                onChange={e => setForm(f => ({ ...f, data_visita: e.target.value }))}
-                className="flex-1"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setForm(f => ({ ...f, data_visita: hoje() }))}
-                className="shrink-0 gap-1.5"
-              >
-                <CalendarDays className="h-3.5 w-3.5" />
-                Hoje
-              </Button>
+            <div className="rounded-lg border bg-muted/30 p-3 text-sm whitespace-pre-wrap text-muted-foreground">
+              {aviso.texto}
             </div>
-          </div>
 
-          {/* Observações */}
-          <div className="space-y-2">
-            <Label htmlFor="v-obs">Observações</Label>
-            <Input
-              id="v-obs"
-              value={form.informacoes_complementares}
-              onChange={e => setForm(f => ({ ...f, informacoes_complementares: e.target.value }))}
-              placeholder="Como conheceu a igreja, indicação, etc."
-            />
-          </div>
-        </div>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button variant="outline" onClick={handleClose} className="w-full sm:w-auto">
+                Concluir
+              </Button>
+              <a
+                href={`https://wa.me/${aviso.numero}?text=${encodeURIComponent(aviso.texto)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setTimeout(handleClose, 300)}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 h-10 px-4 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-colors"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Avisar no WhatsApp
+              </a>
+            </DialogFooter>
+          </>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle>Cadastro Rápido — Visitante</DialogTitle>
+              <DialogDescription>
+                Informe os dados básicos. Você pode completar o cadastro depois.
+              </DialogDescription>
+            </DialogHeader>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={saving}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-            Cadastrar e Vincular
-          </Button>
-        </DialogFooter>
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="v-nome">Nome completo *</Label>
+                <Input
+                  id="v-nome"
+                  value={form.nome}
+                  onChange={e => setForm(f => ({ ...f, nome: e.target.value }))}
+                  placeholder="Nome do visitante"
+                  autoFocus
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="v-cong">Congregação *</Label>
+                {(() => {
+                  const cFixa = filtroCongregacaoNome || (congregacoes.length === 1 ? congregacoes[0].nome : null)
+                  if (cFixa) {
+                    return (
+                      <div className="h-10 px-3 rounded-md border border-input bg-muted flex items-center gap-2 text-sm">
+                        <Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        <span className="font-medium">{cFixa}</span>
+                      </div>
+                    )
+                  }
+                  if (congregacoes.length > 0) {
+                    return (
+                      <select
+                        id="v-cong"
+                        value={form.congregacao_nome}
+                        onChange={e => setForm(f => ({ ...f, congregacao_nome: e.target.value }))}
+                        className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      >
+                        <option value="">Selecione...</option>
+                        {congregacoes.map(c => (
+                          <option key={c.id} value={c.nome}>{c.nome}</option>
+                        ))}
+                      </select>
+                    )
+                  }
+                  return (
+                    <Input
+                      id="v-cong"
+                      value={form.congregacao_nome}
+                      onChange={e => setForm(f => ({ ...f, congregacao_nome: e.target.value }))}
+                      placeholder="Nome da congregação"
+                    />
+                  )
+                })()}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="v-tel">Telefone</Label>
+                <Input
+                  id="v-tel"
+                  type="tel"
+                  value={form.telefone_principal}
+                  onChange={e => setForm(f => ({ ...f, telefone_principal: e.target.value }))}
+                  placeholder="(00) 00000-0000"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="v-data">Data da Visita</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="v-data"
+                    type="date"
+                    value={form.data_visita}
+                    onChange={e => setForm(f => ({ ...f, data_visita: e.target.value }))}
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setForm(f => ({ ...f, data_visita: hoje() }))}
+                    className="shrink-0 gap-1.5"
+                  >
+                    <CalendarDays className="h-3.5 w-3.5" />
+                    Hoje
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="v-obs">Observações</Label>
+                <Input
+                  id="v-obs"
+                  value={form.informacoes_complementares}
+                  onChange={e => setForm(f => ({ ...f, informacoes_complementares: e.target.value }))}
+                  placeholder="Como conheceu a igreja, indicação, etc."
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={handleClose} disabled={saving}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSave} disabled={saving}>
+                {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+                Cadastrar e Vincular
+              </Button>
+            </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   )

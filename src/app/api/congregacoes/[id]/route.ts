@@ -6,7 +6,10 @@ import { assertCongregacaoNoEscopoDb } from '@/lib/scope'
 
 export const PUT = withAuthParams<{ id: string }>(async (req, _user, { params }) => {
   const { id } = params
-  const { nome, cidade, estado, observacoes } = await req.json()
+  const {
+    nome, cidade, estado, observacoes,
+    dirigente_membro_id, dirigente_telefone, notificar_whatsapp, mensagem_boas_vindas,
+  } = await req.json()
 
   if (!nome?.trim()) throw new ApiError(400, 'Nome é obrigatório.')
 
@@ -17,8 +20,18 @@ export const PUT = withAuthParams<{ id: string }>(async (req, _user, { params })
   }
 
   const result = await pool.query(
-    'UPDATE congregacoes SET nome=$1, cidade=$2, estado=$3, observacoes=$4 WHERE id=$5 RETURNING *',
-    [nome.trim(), cidade || null, estado || null, observacoes || null, id],
+    `UPDATE congregacoes
+     SET nome=$1, cidade=$2, estado=$3, observacoes=$4,
+         dirigente_membro_id=$5, dirigente_telefone=$6, notificar_whatsapp=$7, mensagem_boas_vindas=$8
+     WHERE id=$9 RETURNING *`,
+    [
+      nome.trim(), cidade || null, estado || null, observacoes || null,
+      dirigente_membro_id || null,
+      (dirigente_telefone || '').trim() || null,
+      notificar_whatsapp !== false,
+      (mensagem_boas_vindas || '').trim() || null,
+      id,
+    ],
   )
   if (result.rows.length === 0) return notFound('Congregação não encontrada.')
   return Response.json(result.rows[0])
