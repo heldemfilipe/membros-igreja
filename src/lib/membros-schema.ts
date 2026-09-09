@@ -78,6 +78,36 @@ export const membroSchema = z.object({
   historicos: z.array(historicoSchema).optional(),
   familiares: z.array(familiarSchema).optional(),
   departamentos: z.array(departamentoVinculoSchema).optional(),
+}).superRefine((data, ctx) => {
+  // Familiares: linha totalmente em branco é ignorada; linha pela metade é erro.
+  // (impede criar membro "vazio" a partir de um familiar Cônjuge/Filho(a) sem nome)
+  ;(data.familiares ?? []).forEach((f, i) => {
+    const nome = (f.nome ?? '').trim()
+    const parentesco = (f.parentesco ?? '').trim()
+    if (!nome && !parentesco) return
+    if (!nome) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['familiares', i, 'nome'],
+        message: `Familiar ${i + 1}: informe o nome (ou remova a linha).` })
+    }
+    if (!parentesco) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['familiares', i, 'parentesco'],
+        message: `Familiar ${i + 1}: informe o parentesco (ou remova a linha).` })
+    }
+  })
+  // Histórico: precisa de tipo E data juntos (data é NOT NULL no banco).
+  ;(data.historicos ?? []).forEach((h, i) => {
+    const tipo = (h.tipo ?? '').trim()
+    const dataH = (h.data ?? '').trim()
+    if (!tipo && !dataH) return
+    if (!dataH) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['historicos', i, 'data'],
+        message: `Histórico ${i + 1}: informe a data (ou remova a linha).` })
+    }
+    if (!tipo) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['historicos', i, 'tipo'],
+        message: `Histórico ${i + 1}: informe o tipo (ou remova a linha).` })
+    }
+  })
 })
 
 export type MembroPayload = z.infer<typeof membroSchema>

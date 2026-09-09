@@ -90,7 +90,8 @@ export const PUT = withAuthParams<{ id: string }>(async (req, user, { params }) 
     await client.query('DELETE FROM familiares WHERE membro_id = $1', [id])
 
     for (const h of historicos) {
-      if (!h.tipo) continue
+      // Ignora linhas incompletas (o schema já barra as "pela metade").
+      if (!h.tipo?.trim() || !h.data?.trim()) continue
       await client.query(
         'INSERT INTO historicos (membro_id, tipo, data, localidade, observacoes) VALUES ($1,$2,$3,$4,$5)',
         [id, h.tipo, toNull(h.data), toNull(h.localidade), toNull(h.observacoes)],
@@ -98,6 +99,8 @@ export const PUT = withAuthParams<{ id: string }>(async (req, user, { params }) 
     }
 
     for (const f of familiares) {
+      // Ignora familiar sem nome/parentesco (evita membro "vazio" auto-criado).
+      if (!f.nome?.trim() || !f.parentesco?.trim()) continue
       await client.query(
         'INSERT INTO familiares (membro_id, parentesco, nome, data_nascimento, observacoes, membro_vinculado_id) VALUES ($1,$2,$3,$4,$5,$6)',
         [id, f.parentesco, f.nome, toNull(f.data_nascimento), toNull(f.observacoes), f.membro_vinculado_id || null],

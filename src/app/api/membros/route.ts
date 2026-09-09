@@ -96,7 +96,8 @@ export const POST = withAuth(async (req: NextRequest, user) => {
     const membroId = membroResult.rows[0].id
 
     for (const h of historicos) {
-      if (!h.tipo) continue
+      // Ignora linhas incompletas (o schema já barra as "pela metade").
+      if (!h.tipo?.trim() || !h.data?.trim()) continue
       await client.query(
         'INSERT INTO historicos (membro_id, tipo, data, localidade, observacoes) VALUES ($1,$2,$3,$4,$5)',
         [membroId, h.tipo, toNull(h.data), toNull(h.localidade), toNull(h.observacoes)],
@@ -104,6 +105,9 @@ export const POST = withAuth(async (req: NextRequest, user) => {
     }
 
     for (const f of familiares) {
+      // Ignora familiar sem nome/parentesco (evita membro "vazio" auto-criado).
+      if (!f.nome?.trim() || !f.parentesco?.trim()) continue
+
       // Familiar já vinculado a um membro existente: apenas registra a relação.
       if (f.membro_vinculado_id) {
         await client.query(

@@ -158,6 +158,9 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
 
   const set = (field: keyof MemberFormData, value: unknown) => {
     setForm(f => ({ ...f, [field]: value }))
+    if (field === 'nome' || field === 'igreja') {
+      setErrors(e => { const n = { ...e }; delete n[field as string]; return n })
+    }
   }
 
   const buscarCep = async () => {
@@ -198,6 +201,7 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
       ...f,
       historicos: f.historicos.map((h, idx) => idx === i ? { ...h, [field]: value } : h),
     }))
+    setErrors(e => { const n = { ...e }; delete n[`hist_${i}_${field}`]; return n })
   }
 
   // ─── Familiares ───────────────────────────────────────────────────────────
@@ -220,6 +224,7 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
         ? 'Casado(a)' : f.estado_civil
       return { ...f, familiares: newFamiliares, estado_civil: autoCivil }
     })
+    setErrors(e => { const n = { ...e }; delete n[`fam_${i}_${field}`]; return n })
   }
 
   const vincularFamiliar = (i: number, membro: { id: number; nome: string; data_nascimento?: string }) => {
@@ -352,12 +357,36 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.nome.trim()) {
-      toast({ title: 'Nome é obrigatório.', variant: 'destructive' })
-      return
-    }
-    if (!form.igreja) {
-      toast({ title: 'Congregação é obrigatória.', variant: 'destructive' })
+
+    // ── Validação de campos obrigatórios (destaca em vermelho) ──────────────
+    const faltando: Record<string, string> = {}
+    if (!form.nome.trim()) faltando.nome = 'Informe o nome completo.'
+    if (!form.igreja) faltando.igreja = 'Selecione a congregação.'
+    form.familiares.forEach((f, i) => {
+      const n = (f.nome || '').trim()
+      const p = (f.parentesco || '').trim()
+      if (n && !p) faltando[`fam_${i}_parentesco`] = 'Selecione o parentesco.'
+      if (p && !n) faltando[`fam_${i}_nome`] = 'Informe o nome do familiar.'
+    })
+    form.historicos.forEach((h, i) => {
+      const t = (h.tipo || '').trim()
+      const d = (h.data || '').trim()
+      if (t && !d) faltando[`hist_${i}_data`] = 'Informe a data.'
+      if (d && !t) faltando[`hist_${i}_tipo`] = 'Selecione o tipo.'
+    })
+
+    // Substitui os erros de obrigatoriedade preservando os de formato (CPF, e-mail…)
+    setErrors(prev => {
+      const next = { ...prev }
+      ;['nome', 'igreja'].forEach(k => delete next[k])
+      Object.keys(next).forEach(k => {
+        if (k.startsWith('fam_') || k.startsWith('hist_')) delete next[k]
+      })
+      return { ...next, ...faltando }
+    })
+
+    if (Object.keys(faltando).length > 0) {
+      toast({ title: 'Preencha os campos obrigatórios destacados em vermelho.', variant: 'destructive' })
       return
     }
 
@@ -557,7 +586,9 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
               onBlur={e => { const v = e.target.value.trim(); if (v) set('nome', titleCase(v)) }}
               placeholder="Nome completo"
               required
+              className={errors.nome ? 'border-red-500 focus-visible:ring-red-500' : ''}
             />
+            {errors.nome && <p className="text-xs text-red-500 mt-0.5">{errors.nome}</p>}
             {duplicados.length > 0 && (
               <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 text-xs bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-md px-3 py-2">
                 <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
@@ -593,6 +624,7 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
             <Label>Congregação *</Label>
             {(() => {
               const igrejaFixa = filtroCongregacaoNome || (congregacoes.length === 1 ? congregacoes[0].nome : null)
+              const erroClasse = errors.igreja ? 'border-red-500 focus-visible:ring-red-500 focus:ring-red-500' : ''
               if (igrejaFixa) {
                 return (
                   <div className="h-10 px-3 rounded-md border border-input bg-muted flex items-center gap-2 text-sm">
@@ -617,7 +649,7 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
                         }))
                       }
                     }}
-                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    className={`w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring ${erroClasse}`}
                   >
                     <option value="">Selecione...</option>
                     {congregacoes.map(c => (
@@ -631,9 +663,11 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
                   value={form.igreja || ''}
                   onChange={e => set('igreja', e.target.value)}
                   placeholder="Congregação"
+                  className={erroClasse}
                 />
               )
             })()}
+            {errors.igreja && <p className="text-xs text-red-500 mt-0.5">{errors.igreja}</p>}
           </div>
           {selectField('Cargo', 'cargo', CARGOS_ECLESIASTICOS, undefined, 'Nenhum')}
           {field('Função na Igreja', 'funcao_igreja')}
@@ -851,7 +885,7 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
                 <select
                   value={h.tipo}
                   onChange={e => setHistorico(i, 'tipo', e.target.value)}
-                  className="w-full h-9 px-2 rounded-md border border-input bg-background text-sm"
+                  className={`w-full h-9 px-2 rounded-md border bg-background text-sm ${errors[`hist_${i}_tipo`] ? 'border-red-500' : 'border-input'}`}
                 >
                   <option value="">Selecione</option>
                   {[
@@ -866,10 +900,13 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
                     <option key={t} value={t}>{t}</option>
                   ))}
                 </select>
+                {errors[`hist_${i}_tipo`] && <p className="text-xs text-red-500">{errors[`hist_${i}_tipo`]}</p>}
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Data</Label>
-                <Input type="date" value={h.data || ''} onChange={e => setHistorico(i, 'data', e.target.value)} className="h-9" />
+                <Input type="date" value={h.data || ''} onChange={e => setHistorico(i, 'data', e.target.value)}
+                  className={`h-9 ${errors[`hist_${i}_data`] ? 'border-red-500 focus-visible:ring-red-500' : ''}`} />
+                {errors[`hist_${i}_data`] && <p className="text-xs text-red-500">{errors[`hist_${i}_data`]}</p>}
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Localidade</Label>
@@ -923,13 +960,14 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
                     <select
                       value={f.parentesco}
                       onChange={e => setFamiliar(i, 'parentesco', e.target.value)}
-                      className="w-full h-9 px-2 rounded-md border border-input bg-background text-sm"
+                      className={`w-full h-9 px-2 rounded-md border bg-background text-sm ${errors[`fam_${i}_parentesco`] ? 'border-red-500' : 'border-input'}`}
                     >
                       <option value="">Selecione</option>
                       {['Cônjuge', 'Filho(a)', 'Pai', 'Mãe', 'Irmão(ã)', 'Avô/Avó', 'Neto(a)', 'Outro'].map(p => (
                         <option key={p} value={p}>{p}</option>
                       ))}
                     </select>
+                    {errors[`fam_${i}_parentesco`] && <p className="text-xs text-red-500">{errors[`fam_${i}_parentesco`]}</p>}
                   </div>
 
                   {/* Nome — vinculado ou busca */}
@@ -958,7 +996,7 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
                           onFocus={() => { if (f.nome.trim().length > 1) setFamiliarDropdownIdx(i) }}
                           onBlur={() => setFamiliarDropdownIdx(null)}
                           placeholder="Nome ou buscar membro cadastrado"
-                          className="h-9"
+                          className={`h-9 ${errors[`fam_${i}_nome`] ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                         />
                         {showDropdown && (
                           <div
@@ -992,6 +1030,7 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
                         )}
                       </div>
                     )}
+                    {errors[`fam_${i}_nome`] && <p className="text-xs text-red-500">{errors[`fam_${i}_nome`]}</p>}
                   </div>
                 </div>
 
