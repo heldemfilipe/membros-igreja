@@ -220,12 +220,20 @@ export interface VisitanteFrequente {
 }
 
 export interface Acompanhamento {
-  voltou_culto: boolean
-  voltou_culto_data: string | null
+  contato_feito: boolean
+  contato_por: string | null
+  contato_data: string | null
+  visita_agendada: boolean
+  visita_agendada_por: string | null
   visita_casa_data: string | null
   visita_casa_feita: boolean
+  voltou_culto: boolean
+  voltou_culto_data: string | null
   discipulado: boolean
+  discipulado_inicio: string | null
   discipulador: string | null
+  batizado: boolean
+  congregacao_origem: string | null
   observacoes: string | null
 }
 

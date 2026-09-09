@@ -17,23 +17,33 @@ export const GET = withAuth(async (req: NextRequest, user) => {
 
   const result = await pool.query(
     `SELECT m.id AS membro_id, m.nome, m.telefone_principal, m.igreja,
-            COALESCE(av.voltou_culto, false)      AS voltou_culto,
-            av.voltou_culto_data::text            AS voltou_culto_data,
+            COALESCE(av.contato_feito, false)     AS contato_feito,
+            av.contato_por,
+            av.contato_data::text                 AS contato_data,
+            COALESCE(av.visita_agendada, false)   AS visita_agendada,
+            av.visita_agendada_por,
             av.visita_casa_data::text             AS visita_casa_data,
             COALESCE(av.visita_casa_feita, false) AS visita_casa_feita,
+            COALESCE(av.voltou_culto, false)      AS voltou_culto,
+            av.voltou_culto_data::text            AS voltou_culto_data,
             COALESCE(av.discipulado, false)       AS discipulado,
-            av.discipulador, av.observacoes,
-            COUNT(v.id)::int          AS total_visitas,
-            MAX(v.data_visita)::text  AS ultima_visita,
-            MIN(v.data_visita)::text  AS primeira_visita
+            av.discipulado_inicio::text           AS discipulado_inicio,
+            av.discipulador,
+            COALESCE(av.batizado, false)          AS batizado,
+            av.congregacao_origem,
+            av.observacoes,
+            COALESCE(vs.total_visitas, 0)         AS total_visitas,
+            vs.ultima_visita, vs.primeira_visita
      FROM membros m
      LEFT JOIN acompanhamento_visitante av ON av.membro_id = m.id
-     LEFT JOIN visitas v ON v.membro_id = m.id
+     LEFT JOIN (
+       SELECT membro_id, COUNT(*)::int AS total_visitas,
+              MAX(data_visita)::text AS ultima_visita,
+              MIN(data_visita)::text AS primeira_visita
+       FROM visitas GROUP BY membro_id
+     ) vs ON vs.membro_id = m.id
      WHERE m.tipo_participante = 'Visitante' AND m.ativo = TRUE${where}
-     GROUP BY m.id, m.nome, m.telefone_principal, m.igreja,
-              av.voltou_culto, av.voltou_culto_data, av.visita_casa_data, av.visita_casa_feita,
-              av.discipulado, av.discipulador, av.observacoes
-     ORDER BY MAX(v.data_visita) DESC NULLS LAST, m.nome
+     ORDER BY vs.ultima_visita DESC NULLS LAST, m.nome
      LIMIT 200`,
     params,
   )

@@ -11,11 +11,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
   Loader2, DoorOpen, MessageCircle, Phone, Church, CalendarDays,
-  Search, UserPlus, CheckCircle2, Trash2,
+  Search, UserPlus, Trash2, Pencil,
 } from 'lucide-react'
 import { formatarData } from '@/lib/utils'
 import { AvisoDirigente, type AvisoDados } from '@/components/recepcao/AvisoDirigente'
-import type { VisitanteRecepcao } from '@/types'
+import { AcompanhamentoModal } from '@/components/recepcao/AcompanhamentoModal'
+import type { VisitanteRecepcao, Acompanhamento } from '@/types'
 
 function hoje(): string {
   return new Date().toISOString().split('T')[0]
@@ -32,22 +33,15 @@ function dataBR(iso: string): string {
   return dd && m && y ? `${dd}/${m}/${y}` : iso
 }
 
-// ─── Toggle "chip" ───────────────────────────────────────────────────────────
-function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
-        on
-          ? 'bg-emerald-600 border-emerald-600 text-white'
-          : 'bg-background border-input text-muted-foreground hover:bg-accent'
-      }`}
-    >
-      {on ? <CheckCircle2 className="h-3.5 w-3.5" /> : <span className="w-3.5 h-3.5 rounded-full border border-current inline-block" />}
-      {children}
-    </button>
-  )
+function statusTags(v: VisitanteRecepcao): string[] {
+  return [
+    v.contato_feito && 'Contato feito',
+    v.visita_agendada && 'Visita marcada',
+    v.visita_casa_feita && 'Visita realizada',
+    v.voltou_culto && 'Voltou ao culto',
+    v.discipulado && 'Discipulado',
+    v.batizado && 'Batizado',
+  ].filter(Boolean) as string[]
 }
 
 function RecepcaoInner() {
@@ -71,6 +65,7 @@ function RecepcaoInner() {
   })
   const [saving, setSaving] = useState(false)
   const [aviso, setAviso] = useState<AvisoDados | null>(null)
+  const [editando, setEditando] = useState<VisitanteRecepcao | null>(null)
 
   const carregar = useCallback(async () => {
     if (!token) return
@@ -152,25 +147,25 @@ function RecepcaoInner() {
     }
   }
 
-  const salvarAcomp = async (membroId: number, patch: Partial<VisitanteRecepcao>) => {
+  const salvarAcomp = async (membroId: number, patch: Partial<Acompanhamento>) => {
     const atual = lista.find(v => v.membro_id === membroId)
     if (!atual) return
     const merged = { ...atual, ...patch }
     setLista(prev => prev.map(v => v.membro_id === membroId ? merged : v))
+    const campos: (keyof Acompanhamento)[] = [
+      'contato_feito', 'contato_por', 'contato_data',
+      'visita_agendada', 'visita_agendada_por', 'visita_casa_data', 'visita_casa_feita',
+      'voltou_culto', 'voltou_culto_data',
+      'discipulado', 'discipulado_inicio', 'discipulador',
+      'batizado', 'congregacao_origem', 'observacoes',
+    ]
+    const body: Record<string, unknown> = { membro_id: membroId }
+    campos.forEach(k => { body[k] = merged[k] })
     try {
       const res = await fetch('/api/recepcao/acompanhamento', {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          membro_id: membroId,
-          voltou_culto: merged.voltou_culto,
-          voltou_culto_data: merged.voltou_culto_data,
-          visita_casa_data: merged.visita_casa_data,
-          visita_casa_feita: merged.visita_casa_feita,
-          discipulado: merged.discipulado,
-          discipulador: merged.discipulador,
-          observacoes: merged.observacoes,
-        }),
+        body: JSON.stringify(body),
       })
       if (!res.ok) throw new Error()
     } catch {
@@ -348,6 +343,13 @@ function RecepcaoInner() {
                       </button>
                     )}
                     <button
+                      onClick={() => setEditando(v)}
+                      title="Acompanhamento"
+                      className="h-8 w-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
                       onClick={() => removerVisitante(v.membro_id, v.nome)}
                       title="Remover visitante"
                       className="h-8 w-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
@@ -357,46 +359,19 @@ function RecepcaoInner() {
                   </div>
                 </div>
 
-                {/* Checklist */}
-                <div className="flex flex-wrap items-center gap-2 pl-12">
-                  <Chip on={v.voltou_culto} onClick={() => salvarAcomp(v.membro_id, { voltou_culto: !v.voltou_culto })}>
-                    Voltou no culto
-                  </Chip>
-                  <input
-                    type="date"
-                    value={v.voltou_culto_data ? v.voltou_culto_data.split('T')[0] : ''}
-                    onChange={e => salvarAcomp(v.membro_id, {
-                      voltou_culto_data: e.target.value || null,
-                      voltou_culto: e.target.value ? true : v.voltou_culto,
-                    })}
-                    title="Data em que voltou ao culto"
-                    className="h-7 px-2 rounded-md border border-input bg-background text-xs"
-                  />
-
-                  <Chip on={v.visita_casa_feita} onClick={() => salvarAcomp(v.membro_id, { visita_casa_feita: !v.visita_casa_feita })}>
-                    Visita na casa
-                  </Chip>
-                  <input
-                    type="date"
-                    value={v.visita_casa_data ? v.visita_casa_data.split('T')[0] : ''}
-                    onChange={e => salvarAcomp(v.membro_id, { visita_casa_data: e.target.value || null })}
-                    title="Data da visita na casa"
-                    className="h-7 px-2 rounded-md border border-input bg-background text-xs"
-                  />
-
-                  <Chip on={v.discipulado} onClick={() => salvarAcomp(v.membro_id, { discipulado: !v.discipulado })}>
-                    Discipulado
-                  </Chip>
-                  <input
-                    type="text"
-                    defaultValue={v.discipulador ?? ''}
-                    onBlur={e => {
-                      const val = e.target.value.trim() || null
-                      if (val !== (v.discipulador ?? null)) salvarAcomp(v.membro_id, { discipulador: val })
-                    }}
-                    placeholder="quem vai discipular"
-                    className="h-7 px-2 rounded-md border border-input bg-background text-xs w-40"
-                  />
+                {/* Status do acompanhamento */}
+                <div className="flex flex-wrap items-center gap-1.5 pl-12">
+                  {statusTags(v).length === 0 ? (
+                    <button onClick={() => setEditando(v)} className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2">
+                      registrar acompanhamento
+                    </button>
+                  ) : (
+                    statusTags(v).map(t => (
+                      <Badge key={t} variant="outline" className="text-[10px] text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700">
+                        {t}
+                      </Badge>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -405,6 +380,11 @@ function RecepcaoInner() {
       )}
 
       <AvisoDirigente aviso={aviso} onClose={() => setAviso(null)} />
+      <AcompanhamentoModal
+        visitante={editando}
+        onClose={() => setEditando(null)}
+        onSalvar={dados => salvarAcomp(editando!.membro_id, dados)}
+      />
     </div>
   )
 }

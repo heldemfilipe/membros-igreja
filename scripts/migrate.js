@@ -40,6 +40,7 @@ const MIGRATIONS = [
   'migration-formacoes.sql',
   'migration-recepcao-config.sql',
   'migration-acompanhamento-visitante.sql',
+  'migration-acompanhamento-extra.sql',
   'migration-indexes.sql',
 ]
 
