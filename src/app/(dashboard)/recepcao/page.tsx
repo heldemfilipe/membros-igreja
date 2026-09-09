@@ -106,36 +106,59 @@ function RecepcaoInner() {
     const cong = congTravada || form.congregacao_nome
     if (!cong) { toast({ title: 'Selecione a congregação.', variant: 'destructive' }); return }
 
+    // Se a congregação avisa por WhatsApp, já abre uma aba em branco AGORA
+    // (dentro do clique) para não ser bloqueada pelo navegador; depois do
+    // cadastro, mandamos ela para o wa.me.
+    const congObj = congs.find(c => c.nome === cong)
+    const vaiAvisar = congObj?.notificar_whatsapp !== false && !!numeroWhatsApp(congObj?.dirigente_telefone_efetivo)
+    const janela = vaiAvisar ? window.open('about:blank', '_blank') : null
+
+    const nome = form.nome.trim()
+    const obs = form.obs.trim()
+
     setSaving(true)
     try {
       const res = await fetch('/api/recepcao/visitante', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          nome: form.nome.trim(),
+          nome,
           congregacao_nome: cong,
           telefone_principal: form.telefone.trim(),
           data_visita: form.data_visita || hoje(),
-          observacoes: form.obs.trim(),
+          observacoes: obs,
         }),
       })
       const data = await res.json()
-      if (!res.ok) { toast({ title: data.error || 'Erro ao registrar.', variant: 'destructive' }); return }
+      if (!res.ok) {
+        janela?.close()
+        toast({ title: data.error || 'Erro ao registrar.', variant: 'destructive' })
+        return
+      }
 
       toast({ title: '✓ Visitante registrado!' })
       const numero = numeroWhatsApp(data.dirigente?.telefone)
       if (numero) {
-        setAviso({
-          numero,
-          dirigenteNome: data.dirigente?.nome || null,
-          congregacao: cong,
-          campos: [
-            { key: 'nome', label: 'Nome', valor: form.nome.trim() },
-            { key: 'telefone', label: 'Telefone', valor: form.telefone.trim() },
-            { key: 'data_visita', label: 'Data da visita', valor: dataBR(form.data_visita || hoje()) },
-            { key: 'observacoes', label: 'Observações', valor: form.obs.trim() },
-          ],
-        })
+        const texto = `Novo visitante — ${cong}\n\nNome: ${nome}\nObservações: ${obs || '—'}`
+        const url = `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`
+        if (janela) {
+          janela.location.href = url
+        } else {
+          // aba foi bloqueada — abre o diálogo com o botão manual
+          setAviso({
+            numero,
+            dirigenteNome: data.dirigente?.nome || null,
+            congregacao: cong,
+            campos: [
+              { key: 'nome', label: 'Nome', valor: nome },
+              { key: 'telefone', label: 'Telefone', valor: form.telefone.trim() },
+              { key: 'data_visita', label: 'Data da visita', valor: dataBR(form.data_visita || hoje()) },
+              { key: 'observacoes', label: 'Observações', valor: obs },
+            ],
+          })
+        }
+      } else {
+        janela?.close()
       }
       setForm(f => ({ ...f, nome: '', telefone: '', obs: '' }))
       carregar()

@@ -86,6 +86,12 @@ export function VisitorModal({ open, onClose, onSuccess, token }: Props) {
       return
     }
 
+    // Abre a aba AGORA (dentro do clique) se a congregação avisa por WhatsApp,
+    // para o navegador não bloquear como popup.
+    const congPre = congregacoes.find(c => c.nome === form.congregacao_nome)
+    const vaiAvisar = congPre?.notificar_whatsapp !== false && !!numeroWhatsApp(congPre?.dirigente_telefone_efetivo)
+    const janela = vaiAvisar ? window.open('about:blank', '_blank') : null
+
     setSaving(true)
     try {
       const membroRes = await fetch('/api/membros', {
@@ -101,6 +107,7 @@ export function VisitorModal({ open, onClose, onSuccess, token }: Props) {
       })
       const membroData = await membroRes.json()
       if (!membroRes.ok) {
+        janela?.close()
         toast({ title: membroData.error || 'Erro ao cadastrar.', variant: 'destructive' })
         return
       }
@@ -125,19 +132,30 @@ export function VisitorModal({ open, onClose, onSuccess, token }: Props) {
       // Aviso ao dirigente no WhatsApp, se a congregação tiver isso configurado
       const cong = congregacoes.find(c => c.nome === form.congregacao_nome)
       const numero = cong?.notificar_whatsapp !== false ? numeroWhatsApp(cong?.dirigente_telefone_efetivo) : ''
+      const nome = form.nome.trim()
+      const obs = form.informacoes_complementares.trim()
       if (numero) {
-        setAviso({
-          numero,
-          dirigenteNome: cong?.dirigente_nome || null,
-          congregacao: form.congregacao_nome,
-          campos: [
-            { key: 'nome', label: 'Nome', valor: form.nome.trim() },
-            { key: 'telefone', label: 'Telefone', valor: form.telefone_principal.trim() },
-            { key: 'data_visita', label: 'Data da visita', valor: dataBR(form.data_visita || hoje()) },
-            { key: 'observacoes', label: 'Observações', valor: form.informacoes_complementares.trim() },
-          ],
-        })
+        const texto = `Novo visitante — ${form.congregacao_nome}\n\nNome: ${nome}\nObservações: ${obs || '—'}`
+        const url = `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`
+        if (janela) {
+          janela.location.href = url
+          reset()
+          onClose()
+        } else {
+          setAviso({
+            numero,
+            dirigenteNome: cong?.dirigente_nome || null,
+            congregacao: form.congregacao_nome,
+            campos: [
+              { key: 'nome', label: 'Nome', valor: nome },
+              { key: 'telefone', label: 'Telefone', valor: form.telefone_principal.trim() },
+              { key: 'data_visita', label: 'Data da visita', valor: dataBR(form.data_visita || hoje()) },
+              { key: 'observacoes', label: 'Observações', valor: obs },
+            ],
+          })
+        }
       } else {
+        janela?.close()
         reset()
         onClose()
       }
