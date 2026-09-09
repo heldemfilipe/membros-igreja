@@ -12,6 +12,7 @@ export interface AuthUser {
   departamentos_acesso: number[] | null
   congregacoes_acesso: number[] | null
   perfil_id?: number | null
+  deve_trocar_senha?: boolean
 }
 
 export async function verificarToken(req: NextRequest): Promise<AuthUser | null> {
@@ -25,6 +26,7 @@ export async function verificarToken(req: NextRequest): Promise<AuthUser | null>
   const result = await pool.query(
     `SELECT s.*, u.id as user_id, u.nome, u.email, u.tipo, u.ativo,
             u.perfil_id, u.departamentos_acesso, u.congregacoes_acesso,
+            u.deve_trocar_senha,
             pa.permissoes
      FROM sessoes s
      JOIN usuarios u ON s.usuario_id = u.id
@@ -47,6 +49,7 @@ export async function verificarToken(req: NextRequest): Promise<AuthUser | null>
     departamentos_acesso: sessao.departamentos_acesso || null,
     congregacoes_acesso: sessao.congregacoes_acesso || null,
     perfil_id: sessao.perfil_id || null,
+    deve_trocar_senha: !!sessao.deve_trocar_senha,
   }
 }
 

@@ -5,6 +5,7 @@ import { notFound } from '@/lib/auth'
 import { toNull } from '@/lib/utils'
 import { inferirRelacoesFamiliares } from '@/lib/familyInference'
 import { membroAcessivel } from '@/lib/access'
+import { assertIgrejaNoEscopo } from '@/lib/scope'
 import { membroSchema, buildUpdateMembro } from '@/lib/membros-schema'
 
 function parentescoReverso(parentesco: string, sexoDoMembro: string | null): string {
@@ -61,6 +62,9 @@ export const PUT = withAuthParams<{ id: string }>(async (req, user, { params }) 
 
   const body = await parseBody(req, membroSchema)
   const { sexo, nome, data_nascimento, historicos = [], familiares = [], departamentos = [] } = body
+
+  // Impede mover o membro para uma congregação fora do escopo do usuário.
+  await assertIgrejaNoEscopo(user, body.igreja, pool)
 
   const client = await pool.connect()
   try {

@@ -46,6 +46,13 @@ export function errorResponse(error: unknown): Response {
 interface AuthOptions {
   /** Exige uma permissão específica (admin sempre passa). */
   permission?: keyof Permissoes
+  /**
+   * Como `permission`, mas NÃO concede acesso pela retrocompatibilidade
+   * "usuário sem perfil = acesso total". Só passa admin ou quem tem a flag
+   * explicitamente marcada no perfil. Use em áreas sensíveis (ex.: gestão
+   * de usuários) que não existiam quando a retrocompat foi criada.
+   */
+  permissionStrict?: keyof Permissoes
   /** Exige tipo === 'admin'. */
   adminOnly?: boolean
 }
@@ -64,6 +71,13 @@ export function temPermissao(user: AuthUser, chave: keyof Permissoes): boolean {
 function checkAccess(user: AuthUser, options: AuthOptions): Response | null {
   if (options.adminOnly && user.tipo !== 'admin') return forbidden()
   if (options.permission && !temPermissao(user, options.permission)) return forbidden()
+  if (
+    options.permissionStrict &&
+    user.tipo !== 'admin' &&
+    user.permissoes[options.permissionStrict] !== true
+  ) {
+    return forbidden()
+  }
   return null
 }
 

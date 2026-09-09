@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import pool from '@/lib/db'
 import { withAuth, ApiError } from '@/lib/api'
+import { escopoCongregacoes, assertCongregacaoNoEscopo } from '@/lib/scope'
 
 export const GET = withAuth(async (req: NextRequest, user) => {
   const { searchParams } = new URL(req.url)
@@ -43,9 +44,18 @@ export const GET = withAuth(async (req: NextRequest, user) => {
   return Response.json(result.rows)
 })
 
-export const POST = withAuth(async (req: NextRequest) => {
+export const POST = withAuth(async (req: NextRequest, user) => {
   const { nome, descricao, congregacao_id } = await req.json()
   if (!nome) throw new ApiError(400, 'Nome é obrigatório')
+
+  const escopo = escopoCongregacoes(user)
+  if (escopo) {
+    // Usuário restrito: departamento tem de nascer dentro da(s) sua(s) congregação(ões).
+    if (congregacao_id == null) {
+      throw new ApiError(400, 'Selecione a congregação do departamento.')
+    }
+    assertCongregacaoNoEscopo(user, Number(congregacao_id))
+  }
 
   const result = await pool.query(
     'INSERT INTO departamentos (nome, descricao, congregacao_id) VALUES ($1, $2, $3) RETURNING id',

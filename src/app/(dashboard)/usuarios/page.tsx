@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog'
-import { Loader2, Plus, Pencil, Trash2, Shield, User, UserCog, Lock, ChevronDown, ChevronUp, Check } from 'lucide-react'
+import { Loader2, Plus, Pencil, Trash2, Shield, User, UserCog, Lock, ChevronDown, ChevronUp, Check, KeyRound } from 'lucide-react'
 import { formatarData } from '@/lib/utils'
 import { PERMISSOES_DISPONIVEIS } from '@/lib/constants'
 
@@ -27,6 +27,7 @@ const defaultUserForm = {
   perfil_id: '' as string | number,
   departamentos_acesso: [] as number[],
   congregacoes_acesso: [] as number[],
+  deve_trocar_senha: true,
 }
 
 const defaultPerfilForm = {
@@ -38,8 +39,10 @@ const defaultPerfilForm = {
 // ─── Página ──────────────────────────────────────────────────────────────────
 
 export default function UsuariosPage() {
-  const { token, isAdmin } = useAuth()
+  const { token, isAdmin, permissoes, congregacoesAcesso } = useAuth()
   const { toast } = useToast()
+  // "strict": não vale a retrocompat "sem perfil = acesso total" para gestão de usuários.
+  const podeGerenciar = isAdmin || permissoes.usuarios_gerenciar === true
 
   // Usuários
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
@@ -105,19 +108,26 @@ export default function UsuariosPage() {
 
   // ─── Guard ────────────────────────────────────────────────────────────────
 
-  if (!isAdmin) {
+  if (!podeGerenciar) {
     return (
       <div className="flex items-center justify-center py-20 text-muted-foreground">
-        Acesso restrito a administradores.
+        Acesso restrito.
       </div>
     )
   }
+
+  // Congregações que este gestor pode atribuir (admin: todas; gestor: as dele)
+  const congregacoesAtribuiveis = isAdmin || !congregacoesAcesso?.length
+    ? congregacoes
+    : congregacoes.filter(c => congregacoesAcesso.includes(c.id))
 
   // ─── CRUD Usuários ────────────────────────────────────────────────────────
 
   const openNewUser = () => {
     setEditingUserId(null)
-    setUserForm(defaultUserForm)
+    // Gestor de congregação: já deixa vinculado à(s) congregação(ões) dele.
+    const congsIniciais = !isAdmin && congregacoesAcesso?.length ? [...congregacoesAcesso] : []
+    setUserForm({ ...defaultUserForm, congregacoes_acesso: congsIniciais })
     setUserDialog(true)
   }
 
@@ -132,6 +142,7 @@ export default function UsuariosPage() {
       perfil_id: u.perfil_id ?? '',
       departamentos_acesso: u.departamentos_acesso || [],
       congregacoes_acesso: u.congregacoes_acesso || [],
+      deve_trocar_senha: !!u.deve_trocar_senha,
     })
     setUserDialog(true)
   }
@@ -152,6 +163,7 @@ export default function UsuariosPage() {
       const method = editingUserId ? 'PUT' : 'POST'
       const body = {
         ...userForm,
+        tipo: isAdmin ? userForm.tipo : 'usuario',
         perfil_id: userForm.perfil_id !== '' ? Number(userForm.perfil_id) : null,
         departamentos_acesso: userForm.departamentos_acesso.length > 0 ? userForm.departamentos_acesso : null,
         congregacoes_acesso: userForm.congregacoes_acesso.length > 0 ? userForm.congregacoes_acesso : null,
@@ -299,7 +311,8 @@ export default function UsuariosPage() {
         </Button>
       </div>
 
-      {/* ─── Seção: Perfis de Acesso ─────────────────────────────────────── */}
+      {/* ─── Seção: Perfis de Acesso (somente admin) ─────────────────────── */}
+      {isAdmin && (
       <Card>
         <CardHeader
           className="cursor-pointer select-none"
@@ -388,6 +401,7 @@ export default function UsuariosPage() {
           </CardContent>
         )}
       </Card>
+      )}
 
       {/* ─── Lista de Usuários ───────────────────────────────────────────── */}
       {loadingUsers ? (
@@ -415,6 +429,12 @@ export default function UsuariosPage() {
                         <Badge variant="outline" className="text-xs gap-1">
                           <Lock className="h-2.5 w-2.5" />
                           {u.perfil_nome}
+                        </Badge>
+                      )}
+                      {u.deve_trocar_senha && (
+                        <Badge variant="outline" className="text-xs gap-1 text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700">
+                          <KeyRound className="h-2.5 w-2.5" />
+                          Senha provisória
                         </Badge>
                       )}
                     </div>
@@ -471,6 +491,26 @@ export default function UsuariosPage() {
               <Label>{editingUserId ? 'Nova Senha (deixe em branco para manter)' : 'Senha *'}</Label>
               <Input type="password" value={userForm.senha} onChange={e => setUserForm(f => ({ ...f, senha: e.target.value }))} placeholder="••••••••" />
             </div>
+
+            {/* Exigir troca de senha no próximo acesso */}
+            <label className="flex items-start gap-2 cursor-pointer">
+              <div
+                className={`w-4 h-4 mt-0.5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                  userForm.deve_trocar_senha ? 'bg-primary border-primary' : 'border-muted-foreground/40'
+                }`}
+                onClick={() => setUserForm(f => ({ ...f, deve_trocar_senha: !f.deve_trocar_senha }))}
+              >
+                {userForm.deve_trocar_senha && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
+              </div>
+              <span className="text-sm" onClick={() => setUserForm(f => ({ ...f, deve_trocar_senha: !f.deve_trocar_senha }))}>
+                Exigir troca de senha no próximo acesso
+                <span className="block text-xs text-muted-foreground">
+                  O usuário define a própria senha ao entrar; o aviso some depois disso.
+                </span>
+              </span>
+            </label>
+
+            {isAdmin && (
             <div className="space-y-2">
               <Label>Tipo</Label>
               <select
@@ -482,6 +522,7 @@ export default function UsuariosPage() {
                 <option value="admin">Administrador</option>
               </select>
             </div>
+            )}
 
             {/* Perfil de Acesso (só para não-admins) */}
             {userForm.tipo !== 'admin' && (
@@ -504,12 +545,16 @@ export default function UsuariosPage() {
                 </div>
 
                 {/* Restrição de congregações */}
-                {congregacoes.length > 0 && (
+                {congregacoesAtribuiveis.length > 0 && (
                   <div className="space-y-2">
                     <Label>Congregações com Acesso</Label>
-                    <p className="text-xs text-muted-foreground">Deixe vazio para permitir acesso a todas as congregações.</p>
+                    <p className="text-xs text-muted-foreground">
+                      {isAdmin
+                        ? 'Deixe vazio para permitir acesso a todas as congregações.'
+                        : 'O usuário terá acesso apenas à(s) congregação(ões) marcada(s).'}
+                    </p>
                     <div className="max-h-40 overflow-y-auto border rounded-md p-2 space-y-1">
-                      {congregacoes.map(c => (
+                      {congregacoesAtribuiveis.map(c => (
                         <label key={c.id} className="flex items-center gap-2.5 cursor-pointer rounded px-1 py-1 hover:bg-accent/50 transition-colors">
                           <div
                             className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${

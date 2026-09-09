@@ -2,9 +2,11 @@ import { NextRequest } from 'next/server'
 import pool from '@/lib/db'
 import { withAuthParams, ApiError } from '@/lib/api'
 import { notFound } from '@/lib/auth'
+import { assertCongregacaoNoEscopo } from '@/lib/scope'
 
-export const PUT = withAuthParams<{ id: string }>(async (req, _user, { params }) => {
+export const PUT = withAuthParams<{ id: string }>(async (req, user, { params }) => {
   const { id } = params
+  assertCongregacaoNoEscopo(user, Number(id))
   const { nome, cidade, estado, observacoes } = await req.json()
 
   if (!nome?.trim()) throw new ApiError(400, 'Nome é obrigatório.')
@@ -23,13 +25,15 @@ export const PUT = withAuthParams<{ id: string }>(async (req, _user, { params })
   return Response.json(result.rows[0])
 }, { permission: 'congregacoes_editar' })
 
-export const DELETE = withAuthParams<{ id: string }>(async (_req, _user, { params }) => {
+export const DELETE = withAuthParams<{ id: string }>(async (_req, user, { params }) => {
+  assertCongregacaoNoEscopo(user, Number(params.id))
   await pool.query('DELETE FROM congregacoes WHERE id = $1', [params.id])
   return Response.json({ message: 'Congregação excluída.' })
 }, { permission: 'congregacoes_editar' })
 
 // GET /api/congregacoes/[id] — membros dessa congregação
-export const GET = withAuthParams<{ id: string }>(async (_req, _user, { params }) => {
+export const GET = withAuthParams<{ id: string }>(async (_req: NextRequest, user, { params }) => {
+  assertCongregacaoNoEscopo(user, Number(params.id))
   const congResult = await pool.query('SELECT nome FROM congregacoes WHERE id = $1', [params.id])
   if (congResult.rows.length === 0) return notFound('Congregação não encontrada.')
   const nome = congResult.rows[0].nome

@@ -1,13 +1,14 @@
 import pool from '@/lib/db'
 import { withAuthParams, ApiError } from '@/lib/api'
-import { forbidden, notFound } from '@/lib/auth'
+import { notFound } from '@/lib/auth'
+import { assertDepartamentoNoEscopo } from '@/lib/scope'
 
 export const GET = withAuthParams<{ id: string }>(async (_req, user, { params }) => {
   const { id } = params
 
-  // Verificar se o usuário tem acesso a este departamento
-  const deptoAcesso = user.departamentos_acesso?.length ? user.departamentos_acesso : null
-  if (deptoAcesso && !deptoAcesso.includes(parseInt(id))) return forbidden()
+  // Restrição de departamento E de congregação (impede ler membros de um
+  // departamento de outra congregação apenas pelo ID).
+  await assertDepartamentoNoEscopo(user, id, pool)
 
   const result = await pool.query(
     `SELECT m.id, m.nome, m.conhecido_como, m.cargo, m.tipo_participante, m.telefone_principal, m.sexo, m.data_nascimento, md.cargo_departamento

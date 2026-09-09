@@ -169,6 +169,7 @@ export const PERMISSOES_DISPONIVEIS = [
   { key: 'congregacoes_editar', label: 'Congregações — Editar',   descricao: 'Criar, editar e excluir congregações' },
   { key: 'registros_ver',       label: 'Registros — Ver',         descricao: 'Ver completude de datas (nascimento e casamento)' },
   { key: 'registros_editar',    label: 'Registros — Editar',      descricao: 'Editar datas de nascimento e casamento diretamente' },
+  { key: 'usuarios_gerenciar',  label: 'Usuários — Gerenciar',     descricao: 'Criar e editar usuários vinculados à(s) sua(s) congregação(ões)' },
 ] as const
 
 export type PermissaoKey = (typeof PERMISSOES_DISPONIVEIS)[number]['key']

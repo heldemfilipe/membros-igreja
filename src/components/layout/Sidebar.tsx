@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, Users, Building2, UserCog, Cake,
-  Menu, X, Church, LogOut, Shield, Loader2, Lock, Filter, ClipboardList,
+  Menu, X, Church, LogOut, Shield, Loader2, Lock, Filter, ClipboardList, UserCircle,
 } from 'lucide-react'
 
 import { useEffect, useState } from 'react'
@@ -25,12 +25,14 @@ const adminItems = [
   { title: 'Registros', icon: ClipboardList, href: '/membros/registros' },
 ]
 
+const contaItem = { title: 'Minha Conta', icon: UserCircle, href: '/minha-conta' }
+
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
-  const { user, token, isAdmin, loading, logout, temPermissao, filtroCongregacao, setFiltroCongregacao } = useAuth()
+  const { user, token, isAdmin, loading, logout, temPermissao, permissoes, filtroCongregacao, setFiltroCongregacao } = useAuth()
   const [congregacoesDisponiveis, setCongregacoesDisponiveis] = useState<{ id: number; nome: string }[]>([])
 
   // Carrega lista de congregações disponíveis para o seletor
@@ -144,8 +146,7 @@ export function Sidebar() {
             </div>
           ) : (
             <>
-              {menuItems
-                .filter(item => temPermissao(item.permissao))
+              {[...menuItems.filter(item => temPermissao(item.permissao)), contaItem]
                 .map((item) => {
                   const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
                   const Icon = item.icon
@@ -167,20 +168,21 @@ export function Sidebar() {
                   )
                 })}
 
-              {(isAdmin || temPermissao('registros_ver') || temPermissao('registros_editar')) && (
-                <>
-                  <div className="pt-4 pb-1 px-1">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Administração
-                    </p>
-                  </div>
-                  {adminItems
-                    .filter(item =>
-                      item.href === '/membros/registros'
-                        ? isAdmin || temPermissao('registros_ver') || temPermissao('registros_editar')
-                        : isAdmin
-                    )
-                    .map((item) => {
+              {(() => {
+                const podeUsuarios = isAdmin || permissoes.usuarios_gerenciar === true
+                const podeRegistros = isAdmin || temPermissao('registros_ver') || temPermissao('registros_editar')
+                if (!podeUsuarios && !podeRegistros) return null
+                const itensAdmin = adminItems.filter(item =>
+                  item.href === '/membros/registros' ? podeRegistros : podeUsuarios
+                )
+                return (
+                  <>
+                    <div className="pt-4 pb-1 px-1">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        Administração
+                      </p>
+                    </div>
+                    {itensAdmin.map((item) => {
                       const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
                       const Icon = item.icon
                       return (
@@ -200,8 +202,9 @@ export function Sidebar() {
                         </Link>
                       )
                     })}
-                </>
-              )}
+                  </>
+                )
+              })()}
             </>
           )}
         </nav>
@@ -210,23 +213,30 @@ export function Sidebar() {
         <div className="px-3 py-3 border-t border-border space-y-1 shrink-0">
           {user && (
             <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center text-xs font-bold text-primary">
-                {iniciais}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate leading-tight">{user.nome}</p>
-                <div className="flex items-center gap-1">
-                  {isAdmin
-                    ? <Shield className="h-3 w-3 text-primary shrink-0" />
-                    : perfilNome
-                      ? <Lock className="h-3 w-3 text-muted-foreground shrink-0" />
-                      : null
-                  }
-                  <p className="text-[11px] text-muted-foreground truncate">
-                    {isAdmin ? 'Administrador' : perfilNome || 'Usuário'}
-                  </p>
+              <Link
+                href="/minha-conta"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-2 flex-1 min-w-0 rounded-lg hover:bg-accent/60 transition-colors -mx-1 px-1 py-1"
+                title="Minha Conta"
+              >
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center text-xs font-bold text-primary">
+                  {iniciais}
                 </div>
-              </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate leading-tight">{user.nome}</p>
+                  <div className="flex items-center gap-1">
+                    {isAdmin
+                      ? <Shield className="h-3 w-3 text-primary shrink-0" />
+                      : perfilNome
+                        ? <Lock className="h-3 w-3 text-muted-foreground shrink-0" />
+                        : null
+                    }
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      {isAdmin ? 'Administrador' : perfilNome || 'Usuário'}
+                    </p>
+                  </div>
+                </div>
+              </Link>
               <ThemeToggle />
             </div>
           )}

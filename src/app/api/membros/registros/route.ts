@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import pool from '@/lib/db'
 import { withAuth, ApiError } from '@/lib/api'
 import { forbidden, notFound } from '@/lib/auth'
-import { buildAccessWhere } from '@/lib/access'
+import { buildAccessWhere, membroAcessivel } from '@/lib/access'
 
 // GET /api/membros/registros?campo=nascimento|casamento&congregacao=&status=todos|com|sem&search=
 export const GET = withAuth(async (req: NextRequest, user) => {
@@ -64,6 +64,9 @@ export const PATCH = withAuth(async (req: NextRequest, user) => {
   if (campo !== 'data_nascimento' && campo !== 'data_casamento') {
     throw new ApiError(400, 'campo deve ser data_nascimento ou data_casamento.')
   }
+
+  // Escopo: não deixa editar data de um membro fora da congregação/departamento do usuário.
+  if (!(await membroAcessivel(user, id, pool))) return notFound('Membro não encontrado.')
 
   const result = await pool.query(
     `UPDATE membros SET ${campo} = $1 WHERE id = $2 RETURNING id, nome, data_nascimento, data_casamento`,

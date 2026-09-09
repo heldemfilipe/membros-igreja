@@ -4,10 +4,11 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Sidebar } from './Sidebar'
 import { useAuth } from '@/contexts/AuthContext'
+import { TrocaSenhaObrigatoria } from '@/components/auth/TrocaSenhaObrigatoria'
 import { Loader2 } from 'lucide-react'
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth()
+  const { user, loading, precisaTrocarSenha } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
@@ -28,6 +29,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) return null
+
+  // Bloqueia todo o sistema até o usuário definir uma nova senha.
+  if (precisaTrocarSenha) return <TrocaSenhaObrigatoria />
 
   return (
     <div className="flex min-h-screen bg-background">

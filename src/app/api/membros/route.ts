@@ -4,6 +4,7 @@ import { withAuth, parseBody } from '@/lib/api'
 import { toNull, calcularIdade } from '@/lib/utils'
 import { inferirRelacoesFamiliares } from '@/lib/familyInference'
 import { buildAccessWhere } from '@/lib/access'
+import { assertIgrejaNoEscopo } from '@/lib/scope'
 import { membroSchema, buildInsertMembro } from '@/lib/membros-schema'
 
 export const GET = withAuth(async (req: NextRequest, user) => {
@@ -79,9 +80,12 @@ export const GET = withAuth(async (req: NextRequest, user) => {
   return Response.json(membros)
 })
 
-export const POST = withAuth(async (req: NextRequest) => {
+export const POST = withAuth(async (req: NextRequest, user) => {
   const body = await parseBody(req, membroSchema)
   const { sexo, nome, data_nascimento, historicos = [], familiares = [], departamentos = [] } = body
+
+  // Usuário restrito só cadastra membro na(s) própria(s) congregação(ões).
+  await assertIgrejaNoEscopo(user, body.igreja, pool)
 
   const client = await pool.connect()
   try {

@@ -13,6 +13,7 @@ interface UsuarioBasico {
   departamentos_acesso?: number[] | null
   congregacoes_acesso?: number[] | null
   permissoes?: Permissoes
+  deve_trocar_senha?: boolean
 }
 
 interface AuthContextType {
@@ -27,6 +28,8 @@ interface AuthContextType {
   filtroCongregacaoNome: string | null
   setFiltroCongregacao: (id: number | null, nome?: string | null) => void
   temPermissao: (chave: string) => boolean
+  precisaTrocarSenha: boolean
+  atualizarUsuario: (patch: Partial<UsuarioBasico>) => void
   login: (token: string, usuario: UsuarioBasico) => void
   logout: () => Promise<void>
 }
@@ -43,6 +46,8 @@ const AuthContext = createContext<AuthContextType>({
   filtroCongregacaoNome: null,
   setFiltroCongregacao: () => {},
   temPermissao: () => false,
+  precisaTrocarSenha: false,
+  atualizarUsuario: () => {},
   login: () => {},
   logout: async () => {},
 })
@@ -127,6 +132,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setFiltroCongregacaoNome(nome ?? null)
   }, [])
 
+  const atualizarUsuario = useCallback((patch: Partial<UsuarioBasico>) => {
+    setUser(prev => {
+      if (!prev) return prev
+      const next = { ...prev, ...patch }
+      try { localStorage.setItem('usuario', JSON.stringify(next)) } catch { /* ignore */ }
+      return next
+    })
+  }, [])
+
   const isAdmin = user?.tipo === 'admin'
   const permissoes: Permissoes = user?.permissoes || {}
   const departamentosAcesso: number[] | null = user?.departamentos_acesso || null
@@ -142,12 +156,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return !!permissoes[chave]
   }, [user, permissoes])
 
+  const precisaTrocarSenha = !!user?.deve_trocar_senha
+
   return (
     <AuthContext.Provider value={{
       user, token, isAdmin, loading, permissoes,
       departamentosAcesso, congregacoesAcesso,
       filtroCongregacao, filtroCongregacaoNome, setFiltroCongregacao,
-      temPermissao, login, logout,
+      temPermissao, precisaTrocarSenha, atualizarUsuario, login, logout,
     }}>
       {children}
     </AuthContext.Provider>

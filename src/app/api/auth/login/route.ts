@@ -54,6 +54,7 @@ export async function POST(req: NextRequest) {
         departamentos_acesso: usuario.departamentos_acesso ?? null,
         congregacoes_acesso: usuario.congregacoes_acesso ?? null,
         permissoes: usuario.permissoes ?? {},
+        deve_trocar_senha: !!usuario.deve_trocar_senha,
       },
     })
   } catch (error) {
