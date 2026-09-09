@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { Membro, VisitaRecente, Familiar, Historico } from '@/types'
+import { Membro, VisitaRecente, Familiar, Historico, Formacao } from '@/types'
 import { calcularIdade, formatarData, cn } from '@/lib/utils'
 import { getCargoStyle, getDeptBadgeStyle } from '@/lib/constants'
 import { Badge } from '@/components/ui/badge'
@@ -39,6 +39,7 @@ export function MemberViewModal({ membro, open, onClose, onEdit, onVisitaRegistr
   const [visitas, setVisitas] = useState<VisitaRecente[]>([])
   const [familiares, setFamiliares] = useState<Familiar[]>([])
   const [historicos, setHistoricos] = useState<Historico[]>([])
+  const [formacoes, setFormacoes] = useState<Formacao[]>([])
   const [showNovaVisita, setShowNovaVisita] = useState(false)
   const [dataVisita, setDataVisita] = useState(hoje())
   const [obsVisita, setObsVisita] = useState('')
@@ -55,6 +56,7 @@ export function MemberViewModal({ membro, open, onClose, onEdit, onVisitaRegistr
         if (data) {
           setFamiliares(data.familiares || [])
           setHistoricos(data.historicos || [])
+          setFormacoes(data.formacoes || [])
         }
       })
       .catch(() => {})
@@ -80,6 +82,7 @@ export function MemberViewModal({ membro, open, onClose, onEdit, onVisitaRegistr
       setVisitas([])
       setFamiliares([])
       setHistoricos([])
+      setFormacoes([])
     }
   }, [open])
 
@@ -290,6 +293,31 @@ export function MemberViewModal({ membro, open, onClose, onEdit, onVisitaRegistr
                       {h.data && <span className="text-muted-foreground text-xs"> · {formatarData(h.data)}</span>}
                       {h.localidade && <span className="text-muted-foreground text-xs"> · {h.localidade}</span>}
                       {h.observacoes && <p className="text-xs text-muted-foreground mt-0.5">{h.observacoes}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Formação Teológica / Cursos */}
+          {formacoes.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+                <BookOpen className="h-3.5 w-3.5" /> Formação Teológica / Cursos
+              </p>
+              <div className="space-y-1.5">
+                {formacoes.map((fo, i) => (
+                  <div key={i} className="flex items-start gap-2 text-sm">
+                    <div className="w-3.5 shrink-0" />
+                    <div>
+                      <span className="font-medium">{fo.curso}</span>
+                      {fo.instituicao && <span className="text-muted-foreground text-xs"> · {fo.instituicao}</span>}
+                      {(fo.ano_inicio || fo.ano_conclusao) && (
+                        <span className="text-muted-foreground text-xs"> · {[fo.ano_inicio, fo.ano_conclusao].filter(Boolean).join('–')}</span>
+                      )}
+                      {fo.situacao && <span className="text-muted-foreground text-xs"> · {fo.situacao}</span>}
+                      {fo.observacoes && <p className="text-xs text-muted-foreground mt-0.5">{fo.observacoes}</p>}
                     </div>
                   </div>
                 ))}

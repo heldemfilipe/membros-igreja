@@ -26,7 +26,7 @@ export const GET = withAuthParams<{ id: string }>(async (req, user, { params }) 
   // Escopo de acesso: usuário restrito não lê membro fora da sua congregação/dept.
   if (!(await membroAcessivel(user, id, pool))) return notFound('Membro não encontrado')
 
-  const [membroResult, historicosResult, familiaresResult, deptResult] = await Promise.all([
+  const [membroResult, historicosResult, familiaresResult, formacoesResult, deptResult] = await Promise.all([
     pool.query('SELECT * FROM membros WHERE id = $1', [id]),
     pool.query('SELECT * FROM historicos WHERE membro_id = $1 ORDER BY data', [id]),
     pool.query(
@@ -35,6 +35,11 @@ export const GET = withAuthParams<{ id: string }>(async (req, user, { params }) 
        FROM familiares f
        LEFT JOIN membros m ON m.id = f.membro_vinculado_id
        WHERE f.membro_id = $1`,
+      [id],
+    ),
+    pool.query(
+      `SELECT * FROM formacoes WHERE membro_id = $1
+       ORDER BY COALESCE(ano_conclusao, ano_inicio, 9999), id`,
       [id],
     ),
     pool.query(
@@ -52,6 +57,7 @@ export const GET = withAuthParams<{ id: string }>(async (req, user, { params }) 
     ...membroResult.rows[0],
     historicos: historicosResult.rows,
     familiares: familiaresResult.rows,
+    formacoes: formacoesResult.rows,
     departamentos: deptResult.rows,
   })
 })
@@ -61,7 +67,7 @@ export const PUT = withAuthParams<{ id: string }>(async (req, user, { params }) 
   if (!(await membroAcessivel(user, id, pool))) return notFound('Membro não encontrado')
 
   const body = await parseBody(req, membroSchema)
-  const { sexo, nome, data_nascimento, historicos = [], familiares = [], departamentos = [] } = body
+  const { sexo, nome, data_nascimento, historicos = [], familiares = [], formacoes = [], departamentos = [] } = body
 
   // Impede mover o membro para uma congregação fora do escopo do usuário.
   await assertIgrejaNoEscopo(user, body.igreja, pool)
@@ -74,6 +80,7 @@ export const PUT = withAuthParams<{ id: string }>(async (req, user, { params }) 
     await client.query(update.text, update.values)
 
     await client.query('DELETE FROM historicos WHERE membro_id = $1', [id])
+    await client.query('DELETE FROM formacoes WHERE membro_id = $1', [id])
 
     // Remove apenas os vínculos reversos que ESPELHAM os vínculos antigos deste
     // membro (membros que ele referenciava). Não toca em relações que outros
@@ -95,6 +102,18 @@ export const PUT = withAuthParams<{ id: string }>(async (req, user, { params }) 
       await client.query(
         'INSERT INTO historicos (membro_id, tipo, data, localidade, observacoes) VALUES ($1,$2,$3,$4,$5)',
         [id, h.tipo, toNull(h.data), toNull(h.localidade), toNull(h.observacoes)],
+      )
+    }
+
+    for (const fo of formacoes) {
+      if (!fo.curso?.trim()) continue
+      await client.query(
+        `INSERT INTO formacoes (membro_id, curso, instituicao, ano_inicio, ano_conclusao, situacao, observacoes)
+         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+        [id, fo.curso.trim(), toNull(fo.instituicao),
+         fo.ano_inicio ? Number(fo.ano_inicio) : null,
+         fo.ano_conclusao ? Number(fo.ano_conclusao) : null,
+         toNull(fo.situacao), toNull(fo.observacoes)],
       )
     }
 

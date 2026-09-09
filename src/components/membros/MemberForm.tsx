@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Membro, Historico, Familiar, Departamento } from '@/types'
+import { Membro, Historico, Familiar, Formacao, Departamento } from '@/types'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/components/ui/use-toast'
 import { Button } from '@/components/ui/button'
@@ -19,6 +19,7 @@ type DeptSelecao = { id: number; nome: string; cargo_departamento: string }
 type MemberFormData = Omit<Membro, 'id' | 'created_at' | 'updated_at' | 'departamentos_info'> & {
   historicos: Historico[]
   familiares: Familiar[]
+  formacoes: Formacao[]
 }
 
 const defaultForm: MemberFormData = {
@@ -34,7 +35,7 @@ const defaultForm: MemberFormData = {
   observacao_religiosa: '', convidado_por: '', dons_talentos: '', dons_desejados: '',
   tipo_participante: 'Membro',
   informacoes_complementares: '', funcao_igreja: '',
-  historicos: [], familiares: [],
+  historicos: [], familiares: [], formacoes: [],
 }
 
 interface Props {
@@ -125,7 +126,7 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
         if (membroRes.status === 'rejected') {
           toast({ title: 'Erro ao carregar membro. Tente novamente.', variant: 'destructive' })
         } else if (membroRes.status === 'fulfilled' && membroRes.value) {
-          const data = membroRes.value as Membro & { historicos: Historico[]; familiares: Familiar[]; departamentos?: DeptSelecao[] }
+          const data = membroRes.value as Membro & { historicos: Historico[]; familiares: Familiar[]; formacoes?: Formacao[]; departamentos?: DeptSelecao[] }
           const { id, created_at, updated_at, departamentos_info, departamentos: depts, ...rest } = data as typeof data & {
             id: number; created_at?: string; updated_at?: string
             departamentos_info?: unknown; departamentos?: DeptSelecao[]
@@ -140,6 +141,11 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
             data_expedicao: d(rest.data_expedicao),
             historicos: (data.historicos || []).map((h: Historico) => ({ ...h, data: d(h.data) })),
             familiares: (data.familiares || []).map((f: Familiar) => ({ ...f, data_nascimento: d(f.data_nascimento) })),
+            formacoes: (data.formacoes || []).map((fo: Formacao) => ({
+              ...fo,
+              ano_inicio: fo.ano_inicio ?? '',
+              ano_conclusao: fo.ano_conclusao ?? '',
+            })),
           })
           setDeptosSelecionados(
             (depts || []).map(d => ({ id: d.id, nome: d.nome, cargo_departamento: d.cargo_departamento || '' }))
@@ -206,6 +212,24 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
       historicos: f.historicos.map((h, idx) => idx === i ? { ...h, [field]: value } : h),
     }))
     setErrors(e => { const n = { ...e }; delete n[`hist_${i}_${field}`]; return n })
+  }
+
+  // ─── Formação teológica / cursos ─────────────────────────────────────────
+
+  const addFormacao = () => {
+    setForm(f => ({ ...f, formacoes: [...f.formacoes, { curso: '', instituicao: '', ano_inicio: '', ano_conclusao: '', situacao: '', observacoes: '' }] }))
+  }
+
+  const removeFormacao = (i: number) => {
+    setForm(f => ({ ...f, formacoes: f.formacoes.filter((_, idx) => idx !== i) }))
+  }
+
+  const setFormacao = (i: number, field: keyof Formacao, value: string) => {
+    setForm(f => ({
+      ...f,
+      formacoes: f.formacoes.map((x, idx) => idx === i ? { ...x, [field]: value } : x),
+    }))
+    setErrors(e => { const n = { ...e }; delete n[`form_${i}_${field}`]; return n })
   }
 
   // ─── Familiares ───────────────────────────────────────────────────────────
@@ -378,13 +402,19 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
       if (t && !d) faltando[`hist_${i}_data`] = 'Informe a data.'
       if (d && !t) faltando[`hist_${i}_tipo`] = 'Selecione o tipo.'
     })
+    form.formacoes.forEach((fo, i) => {
+      const curso = (fo.curso || '').trim()
+      const resto = [fo.instituicao, fo.ano_inicio, fo.ano_conclusao, fo.situacao, fo.observacoes]
+        .some(v => String(v ?? '').trim())
+      if (resto && !curso) faltando[`form_${i}_curso`] = 'Informe o curso.'
+    })
 
     // Substitui os erros de obrigatoriedade preservando os de formato (CPF, e-mail…)
     setErrors(prev => {
       const next = { ...prev }
       ;['nome', 'igreja'].forEach(k => delete next[k])
       Object.keys(next).forEach(k => {
-        if (k.startsWith('fam_') || k.startsWith('hist_')) delete next[k]
+        if (k.startsWith('fam_') || k.startsWith('hist_') || k.startsWith('form_')) delete next[k]
       })
       return { ...next, ...faltando }
     })
@@ -994,6 +1024,69 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      {/* Formação Teológica / Cursos */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">Formação Teológica / Cursos</CardTitle>
+            <Button type="button" variant="outline" size="sm" onClick={addFormacao}>
+              <Plus className="h-4 w-4" /> Adicionar
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {form.formacoes.length === 0 && (
+            <p className="text-sm text-muted-foreground">Nenhuma formação adicionada (faculdade, seminário, curso livre...).</p>
+          )}
+          {form.formacoes.map((fo, i) => (
+            <div key={i} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 p-3 border rounded-lg">
+              <div className="space-y-1 sm:col-span-2">
+                <Label className="text-xs">Curso *</Label>
+                <Input
+                  value={fo.curso || ''}
+                  onChange={e => setFormacao(i, 'curso', e.target.value)}
+                  placeholder="Ex.: Bacharel em Teologia"
+                  className={`h-9 ${errors[`form_${i}_curso`] ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                />
+                {errors[`form_${i}_curso`] && <p className="text-xs text-red-500">{errors[`form_${i}_curso`]}</p>}
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label className="text-xs">Instituição</Label>
+                <Input value={fo.instituicao || ''} onChange={e => setFormacao(i, 'instituicao', e.target.value)} placeholder="Ex.: Faculdade X" className="h-9" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Início</Label>
+                <Input type="number" inputMode="numeric" value={String(fo.ano_inicio ?? '')} onChange={e => setFormacao(i, 'ano_inicio', e.target.value)} placeholder="Ano" className="h-9" min={1900} max={2100} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Conclusão</Label>
+                <Input type="number" inputMode="numeric" value={String(fo.ano_conclusao ?? '')} onChange={e => setFormacao(i, 'ano_conclusao', e.target.value)} placeholder="Ano" className="h-9" min={1900} max={2100} />
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label className="text-xs">Situação</Label>
+                <select
+                  value={fo.situacao || ''}
+                  onChange={e => setFormacao(i, 'situacao', e.target.value)}
+                  className="w-full h-9 px-2 rounded-md border border-input bg-background text-sm"
+                >
+                  <option value="">—</option>
+                  {['Concluído', 'Cursando', 'Trancado', 'Incompleto'].map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1 sm:col-span-3 lg:col-span-3">
+                <Label className="text-xs">Observações</Label>
+                <Input value={fo.observacoes || ''} onChange={e => setFormacao(i, 'observacoes', e.target.value)} placeholder="Obs." className="h-9" />
+              </div>
+              <div className="flex items-end lg:col-span-1">
+                <Button type="button" variant="ghost" size="icon" onClick={() => removeFormacao(i)} className="h-9 w-9 text-destructive hover:text-destructive">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </div>
             </div>
           ))}

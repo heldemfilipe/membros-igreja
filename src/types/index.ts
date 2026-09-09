@@ -60,6 +60,17 @@ export interface Historico {
   observacoes?: string
 }
 
+export interface Formacao {
+  id?: number
+  membro_id?: number
+  curso: string
+  instituicao?: string
+  ano_inicio?: number | string | null
+  ano_conclusao?: number | string | null
+  situacao?: string
+  observacoes?: string
+}
+
 export interface Familiar {
   id?: number
   membro_id?: number

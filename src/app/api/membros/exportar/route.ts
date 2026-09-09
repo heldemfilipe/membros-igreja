@@ -64,9 +64,10 @@ export const GET = withAuth(async (req: NextRequest, user) => {
     }
 
     const idsMembros = membrosRes.rows.map(m => m.id)
-    const [historicosRes, familiaresRes] = await Promise.all([
+    const [historicosRes, familiaresRes, formacoesRes] = await Promise.all([
       pool.query('SELECT * FROM historicos WHERE membro_id = ANY($1::int[])', [idsMembros]),
       pool.query('SELECT * FROM familiares WHERE membro_id = ANY($1::int[])', [idsMembros]),
+      pool.query('SELECT * FROM formacoes WHERE membro_id = ANY($1::int[])', [idsMembros]),
     ])
 
     const historicosMap: Record<number, string[]> = {}
@@ -80,6 +81,15 @@ export const GET = withAuth(async (req: NextRequest, user) => {
     familiaresRes.rows.forEach(f => {
       if (!familiaresMap[f.membro_id]) familiaresMap[f.membro_id] = []
       familiaresMap[f.membro_id].push(`${f.nome || ''} (${f.parentesco || ''})`)
+    })
+
+    const formacoesMap: Record<number, string[]> = {}
+    formacoesRes.rows.forEach(fo => {
+      if (!formacoesMap[fo.membro_id]) formacoesMap[fo.membro_id] = []
+      const anos = [fo.ano_inicio, fo.ano_conclusao].filter(Boolean).join('–')
+      formacoesMap[fo.membro_id].push(
+        [fo.curso, fo.instituicao, anos, fo.situacao].filter(Boolean).join(' · '),
+      )
     })
 
     const dadosCompletos = membrosRes.rows.map(m => ({
@@ -128,6 +138,7 @@ export const GET = withAuth(async (req: NextRequest, user) => {
       'Tipo Participante': m.tipo_participante || '',
       'Informações Complementares': m.informacoes_complementares || '',
       'Histórico Eclesiástico': historicosMap[m.id]?.join(' | ') || '',
+      'Formação Teológica': formacoesMap[m.id]?.join(' | ') || '',
       'Familiares': familiaresMap[m.id]?.join(' | ') || '',
       'Data Cadastro': m.created_at ? new Date(m.created_at).toLocaleDateString('pt-BR') : '',
     }))

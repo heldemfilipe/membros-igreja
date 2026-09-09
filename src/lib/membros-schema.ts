@@ -28,6 +28,19 @@ const familiarSchema = z
   })
   .passthrough()
 
+const anoNum = z.union([z.number(), z.string(), z.null()]).optional()
+
+const formacaoSchema = z
+  .object({
+    curso: z.string().optional(),
+    instituicao: z.string().nullable().optional(),
+    ano_inicio: anoNum,
+    ano_conclusao: anoNum,
+    situacao: z.string().nullable().optional(),
+    observacoes: z.string().nullable().optional(),
+  })
+  .passthrough()
+
 const departamentoVinculoSchema = z
   .object({
     id: z.number().optional(),
@@ -82,6 +95,7 @@ export const membroSchema = z.object({
   funcao_igreja: str,
   historicos: z.array(historicoSchema).optional(),
   familiares: z.array(familiarSchema).optional(),
+  formacoes: z.array(formacaoSchema).optional(),
   departamentos: z.array(departamentoVinculoSchema).optional(),
 }).superRefine((data, ctx) => {
   // Familiares: linha totalmente em branco é ignorada; linha pela metade é erro.
@@ -111,6 +125,17 @@ export const membroSchema = z.object({
     if (!tipo) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['historicos', i, 'tipo'],
         message: `Histórico ${i + 1}: informe o tipo (ou remova a linha).` })
+    }
+  })
+  // Formação: linha com qualquer conteúdo precisa ter o nome do curso.
+  ;(data.formacoes ?? []).forEach((f, i) => {
+    const curso = (f.curso ?? '').trim()
+    const temAlgo = curso || (f.instituicao ?? '').toString().trim() ||
+      f.ano_inicio || f.ano_conclusao || (f.situacao ?? '').toString().trim() ||
+      (f.observacoes ?? '').toString().trim()
+    if (temAlgo && !curso) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['formacoes', i, 'curso'],
+        message: `Formação ${i + 1}: informe o curso (ou remova a linha).` })
     }
   })
 })

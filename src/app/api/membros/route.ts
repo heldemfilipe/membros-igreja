@@ -82,7 +82,7 @@ export const GET = withAuth(async (req: NextRequest, user) => {
 
 export const POST = withAuth(async (req: NextRequest, user) => {
   const body = await parseBody(req, membroSchema)
-  const { sexo, nome, data_nascimento, historicos = [], familiares = [], departamentos = [] } = body
+  const { sexo, nome, data_nascimento, historicos = [], familiares = [], formacoes = [], departamentos = [] } = body
 
   // Usuário restrito só cadastra membro na(s) própria(s) congregação(ões).
   await assertIgrejaNoEscopo(user, body.igreja, pool)
@@ -101,6 +101,18 @@ export const POST = withAuth(async (req: NextRequest, user) => {
       await client.query(
         'INSERT INTO historicos (membro_id, tipo, data, localidade, observacoes) VALUES ($1,$2,$3,$4,$5)',
         [membroId, h.tipo, toNull(h.data), toNull(h.localidade), toNull(h.observacoes)],
+      )
+    }
+
+    for (const fo of formacoes) {
+      if (!fo.curso?.trim()) continue
+      await client.query(
+        `INSERT INTO formacoes (membro_id, curso, instituicao, ano_inicio, ano_conclusao, situacao, observacoes)
+         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+        [membroId, fo.curso.trim(), toNull(fo.instituicao),
+         fo.ano_inicio ? Number(fo.ano_inicio) : null,
+         fo.ano_conclusao ? Number(fo.ano_conclusao) : null,
+         toNull(fo.situacao), toNull(fo.observacoes)],
       )
     }
 
