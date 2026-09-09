@@ -13,7 +13,7 @@ import {
   Loader2, DoorOpen, MessageCircle, Phone, Church, CalendarDays,
   Search, UserPlus, Trash2, Pencil, Send, MessageSquareText,
 } from 'lucide-react'
-import { formatarData, numeroWhatsApp } from '@/lib/utils'
+import { formatarData, numeroWhatsApp, calcularIdade } from '@/lib/utils'
 import { AvisoDirigente, type AvisoDados } from '@/components/recepcao/AvisoDirigente'
 import { AcompanhamentoModal, type VisitanteEdicao } from '@/components/recepcao/AcompanhamentoModal'
 import { EnviarMensagemModal, type AlvoMensagem } from '@/components/recepcao/EnviarMensagemModal'
@@ -350,6 +350,12 @@ function RecepcaoInner() {
                       )}
                       {!filtroCongregacao && v.igreja && (
                         <span className="flex items-center gap-1"><Church className="h-3 w-3" />{v.igreja}</span>
+                      )}
+                      {v.data_nascimento && (
+                        <span className="flex items-center gap-1">
+                          🎂 {formatarData(v.data_nascimento)}
+                          {calcularIdade(v.data_nascimento) !== null ? ` (${calcularIdade(v.data_nascimento)}a)` : ''}
+                        </span>
                       )}
                       <span>
                         {v.total_visitas} visita{v.total_visitas !== 1 ? 's' : ''}

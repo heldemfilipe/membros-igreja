@@ -169,7 +169,7 @@ export function AcompanhamentoModal({
                 <Input type="tel" value={f.telefone_principal} onChange={e => set('telefone_principal', e.target.value)} placeholder="(00) 00000-0000" className="h-9" />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Data de nascimento</Label>
+                <Label className="text-xs">Aniversário (nascimento)</Label>
                 <Input type="date" value={f.data_nascimento} onChange={e => set('data_nascimento', e.target.value)} className="h-9" />
               </div>
             </div>
