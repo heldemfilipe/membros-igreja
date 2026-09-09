@@ -5,8 +5,13 @@
 
 -- 1. Corrige o constraint de tipo do histórico eclesiástico
 --    (Valores conforme ficha padrão da igreja)
+--
+-- ORDEM IMPORTA: derruba o constraint ANTES de normalizar, senão os UPDATEs
+-- que gravam valores novos batem no constraint antigo (erro 23514).
 
--- Normaliza valores legados antes de aplicar o constraint:
+ALTER TABLE historicos DROP CONSTRAINT IF EXISTS historicos_tipo_check;
+
+-- Normaliza valores legados:
 -- 'Batismo' (do sistema antigo) → 'Batismo nas Águas'.
 UPDATE historicos SET tipo = 'Batismo nas Águas' WHERE tipo = 'Batismo';
 -- 'Consagração a Diácono(isa)' / 'Diaconisa' → 'Consagração a Diácono'
@@ -14,7 +19,6 @@ UPDATE historicos SET tipo = 'Batismo nas Águas' WHERE tipo = 'Batismo';
 UPDATE historicos SET tipo = 'Consagração a Diácono'
   WHERE tipo IN ('Consagração a Diácono(isa)', 'Consagração a Diaconisa');
 
-ALTER TABLE historicos DROP CONSTRAINT IF EXISTS historicos_tipo_check;
 ALTER TABLE historicos
   ADD CONSTRAINT historicos_tipo_check
   CHECK (tipo IN (
