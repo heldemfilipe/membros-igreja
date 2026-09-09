@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, Users, Building2, UserCog, Cake,
-  Menu, X, Church, LogOut, Shield, Loader2, Lock, Filter, ClipboardList, UserCircle,
+  Menu, X, Church, LogOut, Shield, Loader2, Lock, Filter, ClipboardList, ChevronRight,
 } from 'lucide-react'
 
 import { useEffect, useState } from 'react'
@@ -24,8 +24,6 @@ const adminItems = [
   { title: 'Usuários',  icon: UserCog,      href: '/usuarios' },
   { title: 'Registros', icon: ClipboardList, href: '/membros/registros' },
 ]
-
-const contaItem = { title: 'Minha Conta', icon: UserCircle, href: '/minha-conta' }
 
 export function Sidebar() {
   const pathname = usePathname()
@@ -146,7 +144,8 @@ export function Sidebar() {
             </div>
           ) : (
             <>
-              {[...menuItems.filter(item => temPermissao(item.permissao)), contaItem]
+              {menuItems
+                .filter(item => temPermissao(item.permissao))
                 .map((item) => {
                   const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
                   const Icon = item.icon
@@ -209,15 +208,20 @@ export function Sidebar() {
           )}
         </nav>
 
-        {/* Footer */}
+        {/* Footer — bloco de conta do usuário */}
         <div className="px-3 py-3 border-t border-border space-y-1 shrink-0">
           {user && (
-            <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg">
+            <div className="flex items-center gap-1">
               <Link
                 href="/minha-conta"
                 onClick={() => setIsOpen(false)}
-                className="flex items-center gap-2 flex-1 min-w-0 rounded-lg hover:bg-accent/60 transition-colors -mx-1 px-1 py-1"
                 title="Minha Conta"
+                className={cn(
+                  "group flex items-center gap-2.5 flex-1 min-w-0 rounded-lg px-2 py-2 transition-colors",
+                  pathname === '/minha-conta'
+                    ? "bg-accent text-accent-foreground"
+                    : "hover:bg-accent/60"
+                )}
               >
                 <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center text-xs font-bold text-primary">
                   {iniciais}
@@ -236,6 +240,12 @@ export function Sidebar() {
                     </p>
                   </div>
                 </div>
+                <ChevronRight className={cn(
+                  "h-4 w-4 shrink-0 transition-colors",
+                  pathname === '/minha-conta'
+                    ? "text-accent-foreground"
+                    : "text-muted-foreground/40 group-hover:text-muted-foreground"
+                )} />
               </Link>
               <ThemeToggle />
             </div>
