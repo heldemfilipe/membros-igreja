@@ -33,16 +33,25 @@ export const PUT = withAuthParams<{ id: string }>(async (req, user, { params }) 
   if (cong === undefined) return notFound('Perfil não encontrado')
   assertPerfilGerenciavel(user, cong) // gestor: só perfis da própria congregação
 
-  const { nome, descricao, permissoes } = await req.json()
+  const { nome, descricao, permissoes, congregacao_id } = await req.json()
   if (!nome?.trim()) throw new ApiError(400, 'Nome é obrigatório')
 
   const permissoesFinais = limitarPermissoesAoQueUsuarioTem(user, permissoes)
 
-  // Congregação do perfil é imutável aqui (não movemos perfil entre congregações).
-  await pool.query(
-    'UPDATE perfis_acesso SET nome=$1, descricao=$2, permissoes=$3 WHERE id=$4',
-    [nome.trim(), descricao || null, JSON.stringify(permissoesFinais), params.id],
-  )
+  if (user.tipo === 'admin') {
+    // Só o admin geral pode mover um perfil entre Global e uma congregação.
+    const novaCong = congregacao_id != null && congregacao_id !== '' ? Number(congregacao_id) : null
+    await pool.query(
+      'UPDATE perfis_acesso SET nome=$1, descricao=$2, permissoes=$3, congregacao_id=$4 WHERE id=$5',
+      [nome.trim(), descricao || null, JSON.stringify(permissoesFinais), novaCong, params.id],
+    )
+  } else {
+    // Gestor: congregação do perfil é imutável.
+    await pool.query(
+      'UPDATE perfis_acesso SET nome=$1, descricao=$2, permissoes=$3 WHERE id=$4',
+      [nome.trim(), descricao || null, JSON.stringify(permissoesFinais), params.id],
+    )
+  }
   return Response.json({ message: 'Perfil atualizado com sucesso' })
 }, { permissionStrict: 'usuarios_gerenciar' })
 

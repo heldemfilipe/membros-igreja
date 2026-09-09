@@ -750,23 +750,29 @@ export default function UsuariosPage() {
               />
             </div>
 
-            {/* Congregação do perfil (imutável na edição) */}
+            {/* Congregação do perfil — admin escolhe (inclusive Global) e pode
+                mover; gestor fica preso à congregação dele. */}
             <div className="space-y-2">
               <Label>Congregação</Label>
-              {editingPerfilId ? (
-                <div className="h-10 px-3 rounded-md border border-input bg-muted flex items-center gap-2 text-sm">
-                  <Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <span className="font-medium">
-                    {perfilForm.congregacao_id === '' || perfilForm.congregacao_id == null
-                      ? 'Global'
-                      : congregacoes.find(c => c.id === Number(perfilForm.congregacao_id))?.nome
-                        || `#${perfilForm.congregacao_id}`}
-                  </span>
-                </div>
-              ) : !isAdmin && congregacoesAtribuiveis.length === 1 ? (
+              {isAdmin ? (
+                <select
+                  value={perfilForm.congregacao_id}
+                  onChange={e => setPerfilForm(f => ({ ...f, congregacao_id: e.target.value }))}
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="">Global (todas as congregações)</option>
+                  {congregacoes.map(c => (
+                    <option key={c.id} value={c.id}>{c.nome}</option>
+                  ))}
+                </select>
+              ) : editingPerfilId || congregacoesAtribuiveis.length === 1 ? (
                 <div className="h-10 px-3 rounded-md border border-input bg-muted flex items-center gap-2 text-sm">
                   <Church className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <span className="font-medium">{congregacoesAtribuiveis[0].nome}</span>
+                  <span className="font-medium">
+                    {perfilForm.congregacao_id !== '' && perfilForm.congregacao_id != null
+                      ? congregacoes.find(c => c.id === Number(perfilForm.congregacao_id))?.nome || `#${perfilForm.congregacao_id}`
+                      : congregacoesAtribuiveis[0]?.nome}
+                  </span>
                 </div>
               ) : (
                 <select
@@ -774,8 +780,7 @@ export default function UsuariosPage() {
                   onChange={e => setPerfilForm(f => ({ ...f, congregacao_id: e.target.value }))}
                   className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 >
-                  {isAdmin && <option value="">Global (todas as congregações)</option>}
-                  {!isAdmin && <option value="">Selecione a congregação...</option>}
+                  <option value="">Selecione a congregação...</option>
                   {congregacoesAtribuiveis.map(c => (
                     <option key={c.id} value={c.id}>{c.nome}</option>
                   ))}
