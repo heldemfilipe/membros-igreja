@@ -161,7 +161,14 @@ export function MemberViewModal({ membro, open, onClose, onEdit, onVisitaRegistr
       ].filter(Boolean).join(', '),
     },
     membro.igreja && { icon: null, label: 'Igreja', value: membro.igreja },
-    membro.origem_religiosa && { icon: null, label: 'Origem Religiosa', value: membro.origem_religiosa },
+    membro.origem_religiosa && {
+      icon: null,
+      label: 'Origem Religiosa',
+      value: membro.origem_religiosa === 'Outra' && membro.origem_religiosa_detalhe
+        ? `Outra — ${membro.origem_religiosa_detalhe}`
+        : membro.origem_religiosa,
+    },
+    membro.convidado_por && { icon: null, label: 'Convidado por', value: membro.convidado_por },
   ].filter(Boolean) as {
     icon: React.ElementType | null; label: string; value: string; href?: string
   }[]
@@ -373,6 +380,29 @@ export function MemberViewModal({ membro, open, onClose, onEdit, onVisitaRegistr
                     </div>
                   ))}
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* Perfil espiritual */}
+          {(membro.dons_talentos || membro.dons_desejados || membro.observacao_religiosa) && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Perfil Espiritual</p>
+              {membro.dons_talentos && (
+                <div className="flex flex-wrap gap-1.5">
+                  {membro.dons_talentos.split(',').map(d => d.trim()).filter(Boolean).map((d, i) => (
+                    <Badge key={i} variant="secondary" className="text-xs">{d}</Badge>
+                  ))}
+                </div>
+              )}
+              {membro.dons_desejados && (
+                <p className="text-xs text-muted-foreground">
+                  <span className="font-medium">Gostaria de ter: </span>
+                  {membro.dons_desejados}
+                </p>
+              )}
+              {membro.observacao_religiosa && (
+                <p className="text-sm text-muted-foreground leading-relaxed">{membro.observacao_religiosa}</p>
               )}
             </div>
           )}

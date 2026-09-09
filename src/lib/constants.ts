@@ -4,6 +4,29 @@ export const CARGOS_ECLESIASTICOS = [
   'Cooperador', 'Obreiro',
 ]
 
+// Origem religiosa (de onde a pessoa veio antes desta igreja)
+export const ORIGENS_RELIGIOSAS = [
+  'Evangélico',
+  'Católico',
+  'Espírita',
+  'Matriz Africana',
+  'Testemunha de Jeová',
+  'Messiânico',
+  'Adventista',
+  'Judaísmo',
+  'Budismo / Oriental',
+  'Sem religião',
+  'Outra',
+]
+
+// Dons e talentos (para "possui" e "gostaria de ter")
+export const DONS_TALENTOS = [
+  'Ensino', 'Pregação', 'Música / Louvor', 'Intercessão', 'Evangelismo',
+  'Hospitalidade', 'Administração', 'Liderança', 'Serviço / Diaconia',
+  'Aconselhamento', 'Comunicação', 'Tecnologia / Mídia', 'Artes',
+  'Trabalho com crianças', 'Trabalho com jovens', 'Ação social',
+]
+
 // Cargos dentro dos departamentos
 export const CARGOS_DEPARTAMENTO = [
   'Líder', 'Vice-Líder', 'Regente', 'Secretário(a)', 'Tesoureiro(a)',

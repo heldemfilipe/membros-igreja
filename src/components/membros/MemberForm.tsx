@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, Plus, Trash2, Search, X, AlertTriangle, UserPlus, Lock } from 'lucide-react'
-import { CARGOS_ECLESIASTICOS, CARGOS_DEPARTAMENTO } from '@/lib/constants'
+import { CARGOS_ECLESIASTICOS, CARGOS_DEPARTAMENTO, ORIGENS_RELIGIOSAS, DONS_TALENTOS } from '@/lib/constants'
 import { normalizar } from '@/lib/utils'
 
 type DeptSelecao = { id: number; nome: string; cargo_departamento: string }
@@ -30,7 +30,9 @@ const defaultForm: MemberFormData = {
   titulo_eleitor_zona: '', titulo_eleitor_secao: '', tipo_sanguineo: '',
   cert_nascimento_casamento: '', reservista: '', carteira_motorista: '',
   chefe_familiar: false, data_casamento: '', naturalidade: '', uf_naturalidade: '',
-  nacionalidade: 'Brasileira', origem_religiosa: '', tipo_participante: 'Membro',
+  nacionalidade: 'Brasileira', origem_religiosa: '', origem_religiosa_detalhe: '',
+  observacao_religiosa: '', convidado_por: '', dons_talentos: '', dons_desejados: '',
+  tipo_participante: 'Membro',
   informacoes_complementares: '', funcao_igreja: '',
   historicos: [], familiares: [],
 }
@@ -62,6 +64,8 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
   } | null>(null)
   const [quickRegSaving, setQuickRegSaving] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [donsInput, setDonsInput] = useState('')
+  const [desejInput, setDesejInput] = useState('')
 
   // Carrega todos os dados necessários em paralelo para minimizar tempo de espera
   useEffect(() => {
@@ -572,6 +576,56 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
     </div>
   )
 
+  // Campo de "chips": lista guardada como texto separado por vírgula.
+  const donsField = (
+    label: string,
+    fieldName: 'dons_talentos' | 'dons_desejados',
+    inputVal: string,
+    setInput: (s: string) => void,
+  ) => {
+    const atuais = String(form[fieldName] ?? '').split(',').map(s => s.trim()).filter(Boolean)
+    const disponiveis = DONS_TALENTOS.filter(d => !atuais.includes(d))
+    const setLista = (arr: string[]) => set(fieldName, arr.join(', '))
+    const add = (d: string) => { const v = d.trim(); if (v && !atuais.includes(v)) setLista([...atuais, v]) }
+    const remove = (d: string) => setLista(atuais.filter(x => x !== d))
+    return (
+      <div className="space-y-2 sm:col-span-2 lg:col-span-3">
+        <Label>{label}</Label>
+        {atuais.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {atuais.map(d => (
+              <button key={d} type="button" onClick={() => remove(d)}
+                className="px-2.5 py-1 rounded-full text-xs bg-primary text-primary-foreground inline-flex items-center gap-1 hover:bg-primary/90 transition-colors">
+                {d} <X className="h-3 w-3" />
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="flex flex-wrap gap-1.5">
+          {disponiveis.map(d => (
+            <button key={d} type="button" onClick={() => add(d)}
+              className="px-2.5 py-1 rounded-full text-xs border border-input bg-background text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
+              + {d}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <Input
+            value={inputVal}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add(inputVal); setInput('') } }}
+            placeholder="Outro dom/talento..."
+            className="h-9"
+          />
+          <Button type="button" variant="outline" size="sm" className="shrink-0"
+            onClick={() => { add(inputVal); setInput('') }}>
+            Adicionar
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Identificação */}
@@ -671,7 +725,9 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
           </div>
           {selectField('Cargo', 'cargo', CARGOS_ECLESIASTICOS, undefined, 'Nenhum')}
           {field('Função na Igreja', 'funcao_igreja')}
-          {field('Origem Religiosa', 'origem_religiosa')}
+          {selectField('Origem Religiosa', 'origem_religiosa', ORIGENS_RELIGIOSAS, undefined, 'Não informada')}
+          {form.origem_religiosa === 'Outra' && field('Qual origem?', 'origem_religiosa_detalhe')}
+          {field('Convidado por / conhecidos na igreja', 'convidado_por')}
         </CardContent>
       </Card>
 
@@ -808,6 +864,24 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
               rows={3}
             />
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Perfil Espiritual */}
+      <Card>
+        <CardHeader><CardTitle className="text-base">Perfil Espiritual</CardTitle></CardHeader>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="space-y-2 sm:col-span-2 lg:col-span-3">
+            <Label>Informação religiosa (pactos, vínculos, histórico espiritual)</Label>
+            <Textarea
+              value={form.observacao_religiosa || ''}
+              onChange={e => set('observacao_religiosa', e.target.value)}
+              placeholder="Ex.: participou de..., fez voto/pacto de..., libertação de..., etc."
+              rows={3}
+            />
+          </div>
+          {donsField('Dons e talentos que possui', 'dons_talentos', donsInput, setDonsInput)}
+          {donsField('Dons e talentos que gostaria de ter', 'dons_desejados', desejInput, setDesejInput)}
         </CardContent>
       </Card>
 

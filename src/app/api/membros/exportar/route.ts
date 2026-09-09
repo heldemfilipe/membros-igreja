@@ -118,7 +118,13 @@ export const GET = withAuth(async (req: NextRequest, user) => {
       'Naturalidade': m.naturalidade || '',
       'UF Naturalidade': m.uf_naturalidade || '',
       'Nacionalidade': m.nacionalidade || '',
-      'Origem Religiosa': m.origem_religiosa || '',
+      'Origem Religiosa': m.origem_religiosa === 'Outra' && m.origem_religiosa_detalhe
+        ? `Outra — ${m.origem_religiosa_detalhe}`
+        : (m.origem_religiosa || ''),
+      'Convidado Por': m.convidado_por || '',
+      'Info Religiosa / Pactos': m.observacao_religiosa || '',
+      'Dons e Talentos': m.dons_talentos || '',
+      'Dons que Gostaria de Ter': m.dons_desejados || '',
       'Tipo Participante': m.tipo_participante || '',
       'Informações Complementares': m.informacoes_complementares || '',
       'Histórico Eclesiástico': historicosMap[m.id]?.join(' | ') || '',

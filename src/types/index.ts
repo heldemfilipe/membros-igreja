@@ -36,6 +36,11 @@ export interface Membro {
   uf_naturalidade?: string
   nacionalidade?: string
   origem_religiosa?: string
+  origem_religiosa_detalhe?: string
+  observacao_religiosa?: string
+  convidado_por?: string
+  dons_talentos?: string
+  dons_desejados?: string
   tipo_participante: 'Membro' | 'Congregado' | 'Visitante'
   ativo?: boolean
   informacoes_complementares?: string
