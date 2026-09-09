@@ -248,6 +248,9 @@ export interface VisitanteRecepcao extends Acompanhamento {
   membro_id: number
   nome: string
   telefone_principal: string | null
+  email: string | null
+  data_nascimento: string | null
+  informacoes_complementares: string | null
   igreja: string | null
   total_visitas: number
   ultima_visita: string

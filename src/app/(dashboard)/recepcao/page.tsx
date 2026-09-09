@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 import { formatarData, numeroWhatsApp } from '@/lib/utils'
 import { AvisoDirigente, type AvisoDados } from '@/components/recepcao/AvisoDirigente'
-import { AcompanhamentoModal } from '@/components/recepcao/AcompanhamentoModal'
+import { AcompanhamentoModal, type VisitanteEdicao } from '@/components/recepcao/AcompanhamentoModal'
 import { EnviarMensagemModal, type AlvoMensagem } from '@/components/recepcao/EnviarMensagemModal'
 import { FrasesProntas } from '@/components/recepcao/FrasesProntas'
 import type { VisitanteRecepcao, Acompanhamento } from '@/types'
@@ -169,6 +169,33 @@ function RecepcaoInner() {
       toast({ title: 'Erro ao salvar. Recarregando…', variant: 'destructive' })
       carregar()
     }
+  }
+
+  const salvarVisitante = async (membroId: number, dados: VisitanteEdicao) => {
+    try {
+      const res = await fetch(`/api/recepcao/visitante/${membroId}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nome: dados.nome,
+          telefone_principal: dados.telefone_principal,
+          email: dados.email,
+          data_nascimento: dados.data_nascimento,
+          informacoes_complementares: dados.informacoes_complementares,
+        }),
+      })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        throw new Error(d.error)
+      }
+    } catch (e) {
+      toast({ title: e instanceof Error && e.message ? e.message : 'Erro ao salvar os dados.', variant: 'destructive' })
+      carregar()
+      return
+    }
+    // optimistic da lista (todos os campos) + PUT do acompanhamento
+    await salvarAcomp(membroId, dados)
+    toast({ title: 'Visitante atualizado.' })
   }
 
   const removerVisitante = async (membroId: number, nome: string) => {
@@ -395,7 +422,7 @@ function RecepcaoInner() {
       <AcompanhamentoModal
         visitante={editando}
         onClose={() => setEditando(null)}
-        onSalvar={dados => salvarAcomp(editando!.membro_id, dados)}
+        onSalvar={dados => salvarVisitante(editando!.membro_id, dados)}
       />
       <EnviarMensagemModal
         alvo={enviando}
