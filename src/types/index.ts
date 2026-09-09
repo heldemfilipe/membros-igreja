@@ -221,6 +221,7 @@ export interface VisitanteFrequente {
 
 export interface Acompanhamento {
   voltou_culto: boolean
+  voltou_culto_data: string | null
   visita_casa_data: string | null
   visita_casa_feita: boolean
   discipulado: boolean

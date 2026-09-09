@@ -21,6 +21,8 @@ export const POST = withAuth(async (req: NextRequest, user) => {
   const dataVisita = body.data_visita || new Date().toISOString().split('T')[0]
   const obs = (body.observacoes || '').trim() || null
 
+  // Tudo na MESMA conexão (o pool é max:1 em serverless — não dá para abrir
+  // um segundo pool.query enquanto a transação segura a conexão).
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
@@ -34,9 +36,8 @@ export const POST = withAuth(async (req: NextRequest, user) => {
       'INSERT INTO visitas (membro_id, data_visita, observacoes) VALUES ($1,$2,$3)',
       [membroId, dataVisita, obs],
     )
-    await client.query('COMMIT')
 
-    const cong = await pool.query(
+    const cong = await client.query(
       `SELECT c.notificar_whatsapp, dm.nome AS dirigente_nome,
               COALESCE(NULLIF(dm.telefone_principal, ''), c.dirigente_telefone) AS dirigente_telefone
        FROM congregacoes c
@@ -44,6 +45,9 @@ export const POST = withAuth(async (req: NextRequest, user) => {
        WHERE c.nome = $1`,
       [igreja],
     )
+
+    await client.query('COMMIT')
+
     const row = cong.rows[0]
     return Response.json({
       id: membroId,

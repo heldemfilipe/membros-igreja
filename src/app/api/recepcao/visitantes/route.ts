@@ -18,6 +18,7 @@ export const GET = withAuth(async (req: NextRequest, user) => {
   const result = await pool.query(
     `SELECT m.id AS membro_id, m.nome, m.telefone_principal, m.igreja,
             COALESCE(av.voltou_culto, false)      AS voltou_culto,
+            av.voltou_culto_data::text            AS voltou_culto_data,
             av.visita_casa_data::text             AS visita_casa_data,
             COALESCE(av.visita_casa_feita, false) AS visita_casa_feita,
             COALESCE(av.discipulado, false)       AS discipulado,
@@ -30,7 +31,7 @@ export const GET = withAuth(async (req: NextRequest, user) => {
      LEFT JOIN visitas v ON v.membro_id = m.id
      WHERE m.tipo_participante = 'Visitante' AND m.ativo = TRUE${where}
      GROUP BY m.id, m.nome, m.telefone_principal, m.igreja,
-              av.voltou_culto, av.visita_casa_data, av.visita_casa_feita,
+              av.voltou_culto, av.voltou_culto_data, av.visita_casa_data, av.visita_casa_feita,
               av.discipulado, av.discipulador, av.observacoes
      ORDER BY MAX(v.data_visita) DESC NULLS LAST, m.nome
      LIMIT 200`,

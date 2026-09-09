@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
   Loader2, DoorOpen, MessageCircle, Phone, Church, CalendarDays,
-  Search, UserPlus, CheckCircle2,
+  Search, UserPlus, CheckCircle2, Trash2,
 } from 'lucide-react'
 import { formatarData } from '@/lib/utils'
 import type { VisitanteRecepcao } from '@/types'
@@ -53,7 +53,14 @@ function RecepcaoInner() {
   const { token, filtroCongregacao, filtroCongregacaoNome, congregacoesAcesso } = useAuth()
   const { toast } = useToast()
 
-  const [congs, setCongs] = useState<{ id: number; nome: string }[]>([])
+  type Cong = {
+    id: number
+    nome: string
+    notificar_whatsapp?: boolean
+    dirigente_nome?: string | null
+    dirigente_telefone_efetivo?: string | null
+  }
+  const [congs, setCongs] = useState<Cong[]>([])
   const [lista, setLista] = useState<VisitanteRecepcao[]>([])
   const [loading, setLoading] = useState(true)
   const [busca, setBusca] = useState('')
@@ -82,7 +89,7 @@ function RecepcaoInner() {
     if (!token) return
     fetch('/api/congregacoes', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : [])
-      .then((data: { id: number; nome: string }[]) => {
+      .then((data: Cong[]) => {
         const l = data || []
         setCongs(l)
         setForm(f => {
@@ -153,6 +160,7 @@ function RecepcaoInner() {
         body: JSON.stringify({
           membro_id: membroId,
           voltou_culto: merged.voltou_culto,
+          voltou_culto_data: merged.voltou_culto_data,
           visita_casa_data: merged.visita_casa_data,
           visita_casa_feita: merged.visita_casa_feita,
           discipulado: merged.discipulado,
@@ -165,6 +173,38 @@ function RecepcaoInner() {
       toast({ title: 'Erro ao salvar. Recarregando…', variant: 'destructive' })
       carregar()
     }
+  }
+
+  const removerVisitante = async (membroId: number, nome: string) => {
+    if (!confirm(`Remover o visitante "${nome}"?\n\nApaga o registro e o histórico de visitas dele.`)) return
+    setLista(prev => prev.filter(v => v.membro_id !== membroId))
+    try {
+      const res = await fetch(`/api/recepcao/visitante/${membroId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) throw new Error()
+      toast({ title: 'Visitante removido.' })
+    } catch {
+      toast({ title: 'Erro ao remover. Recarregando…', variant: 'destructive' })
+      carregar()
+    }
+  }
+
+  /** URL do wa.me para avisar o dirigente sobre este visitante — '' se não dá. */
+  const linkAviso = (v: VisitanteRecepcao): string => {
+    const cong = congs.find(c => c.nome === v.igreja)
+    if (cong?.notificar_whatsapp === false) return ''
+    const numero = numeroWhatsApp(cong?.dirigente_telefone_efetivo)
+    if (!numero) return ''
+    const texto =
+      `🙋 *Visitante* — ${v.igreja || ''}\n\n` +
+      `Nome: ${v.nome}\n` +
+      `Telefone: ${v.telefone_principal || '—'}\n` +
+      `Visitas: ${v.total_visitas}${v.ultima_visita ? ` · última ${formatarData(v.ultima_visita)}` : ''}\n` +
+      `Voltou no culto: ${v.voltou_culto ? 'sim' : 'não'}${v.voltou_culto_data ? ` (${formatarData(v.voltou_culto_data)})` : ''}\n` +
+      `Discipulado: ${v.discipulado ? 'sim' : 'não'}${v.discipulador ? ` · ${v.discipulador}` : ''}`
+    return `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`
   }
 
   const filtrados = busca.trim()
@@ -302,11 +342,34 @@ function RecepcaoInner() {
                       </span>
                     </div>
                   </div>
-                  {v.total_visitas >= 3 && (
-                    <Badge variant="outline" className="text-[10px] text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700">
-                      frequente
-                    </Badge>
-                  )}
+                  <div className="flex items-center gap-1 shrink-0">
+                    {v.total_visitas >= 3 && (
+                      <Badge variant="outline" className="text-[10px] text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700">
+                        frequente
+                      </Badge>
+                    )}
+                    {(() => {
+                      const link = linkAviso(v)
+                      return link ? (
+                        <a
+                          href={link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Avisar dirigente no WhatsApp"
+                          className="h-8 w-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950 transition-colors"
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                        </a>
+                      ) : null
+                    })()}
+                    <button
+                      onClick={() => removerVisitante(v.membro_id, v.nome)}
+                      title="Remover visitante"
+                      className="h-8 w-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Checklist */}
@@ -314,6 +377,16 @@ function RecepcaoInner() {
                   <Chip on={v.voltou_culto} onClick={() => salvarAcomp(v.membro_id, { voltou_culto: !v.voltou_culto })}>
                     Voltou no culto
                   </Chip>
+                  <input
+                    type="date"
+                    value={v.voltou_culto_data ? v.voltou_culto_data.split('T')[0] : ''}
+                    onChange={e => salvarAcomp(v.membro_id, {
+                      voltou_culto_data: e.target.value || null,
+                      voltou_culto: e.target.value ? true : v.voltou_culto,
+                    })}
+                    title="Data em que voltou ao culto"
+                    className="h-7 px-2 rounded-md border border-input bg-background text-xs"
+                  />
 
                   <Chip on={v.visita_casa_feita} onClick={() => salvarAcomp(v.membro_id, { visita_casa_feita: !v.visita_casa_feita })}>
                     Visita na casa
