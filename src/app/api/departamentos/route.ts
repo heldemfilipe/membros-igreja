@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import pool from '@/lib/db'
 import { withAuth, ApiError } from '@/lib/api'
-import { escopoCongregacoes, assertCongregacaoNoEscopo } from '@/lib/scope'
+import { assertCongregacaoNoEscopo } from '@/lib/scope'
 
 export const GET = withAuth(async (req: NextRequest, user) => {
   const { searchParams } = new URL(req.url)
@@ -25,8 +25,9 @@ export const GET = withAuth(async (req: NextRequest, user) => {
   }
   if (effectiveCong) {
     params.push(effectiveCong)
-    // Departamentos da congregação OU sem congregação atribuída
-    conditions.push(`(d.congregacao_id = ANY($${params.length}::int[]) OR d.congregacao_id IS NULL)`)
+    // Usuário restrito vê só os departamentos da(s) sua(s) congregação(ões).
+    // Departamentos sem congregação ("legados") ficam visíveis apenas para o admin.
+    conditions.push(`d.congregacao_id = ANY($${params.length}::int[])`)
   }
 
   const where = conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : ''
@@ -48,18 +49,15 @@ export const POST = withAuth(async (req: NextRequest, user) => {
   const { nome, descricao, congregacao_id } = await req.json()
   if (!nome) throw new ApiError(400, 'Nome é obrigatório')
 
-  const escopo = escopoCongregacoes(user)
-  if (escopo) {
-    // Usuário restrito: departamento tem de nascer dentro da(s) sua(s) congregação(ões).
-    if (congregacao_id == null) {
-      throw new ApiError(400, 'Selecione a congregação do departamento.')
-    }
-    assertCongregacaoNoEscopo(user, Number(congregacao_id))
+  // Todo departamento pertence a uma congregação — não existe departamento "global".
+  if (congregacao_id == null || congregacao_id === '') {
+    throw new ApiError(400, 'Selecione a congregação do departamento.')
   }
+  assertCongregacaoNoEscopo(user, Number(congregacao_id))
 
   const result = await pool.query(
     'INSERT INTO departamentos (nome, descricao, congregacao_id) VALUES ($1, $2, $3) RETURNING id',
-    [nome, descricao || null, congregacao_id || null],
+    [nome, descricao || null, Number(congregacao_id)],
   )
   return Response.json({ id: result.rows[0].id, message: 'Departamento criado com sucesso' })
 }, { permission: 'departamentos_editar' })

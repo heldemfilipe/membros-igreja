@@ -46,7 +46,7 @@ export function assertCongregacaoNoEscopo(user: AuthUser, congId: number | null 
 /**
  * Verifica se o departamento `deptId` está dentro do escopo do usuário
  * (restrição de departamento E de congregação). Lança 403/404 caso não.
- * Departamento sem congregação atribuída ("global") continua acessível.
+ * Departamento sem congregação (legado) só é acessível pelo admin.
  */
 export async function assertDepartamentoNoEscopo(
   user: AuthUser,
@@ -66,8 +66,8 @@ export async function assertDepartamentoNoEscopo(
   const { rows } = await db.query('SELECT congregacao_id FROM departamentos WHERE id = $1', [deptId])
   if (rows.length === 0) throw new ApiError(404, 'Departamento não encontrado.')
   const congId = rows[0].congregacao_id
-  if (congId != null && !escopoCong.includes(Number(congId))) {
-    throw new ApiError(403, 'Acesso restrito: departamento de outra congregação.')
+  if (congId == null || !escopoCong.includes(Number(congId))) {
+    throw new ApiError(403, 'Acesso restrito: departamento fora da sua congregação.')
   }
 }
 
@@ -112,7 +112,7 @@ export async function departamentosPermitidos(
   const { rows } = await db.query(
     `SELECT id FROM departamentos
      WHERE id = ANY($1::int[])
-       AND (congregacao_id IS NULL OR congregacao_id = ANY($2::int[]))`,
+       AND congregacao_id = ANY($2::int[])`,
     [ids, escopoCong],
   )
   return rows.map(r => Number(r.id))

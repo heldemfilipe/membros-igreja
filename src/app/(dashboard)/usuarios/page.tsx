@@ -173,6 +173,12 @@ export default function UsuariosPage() {
       toast({ title: 'Senha obrigatória para novo usuário.', variant: 'destructive' })
       return
     }
+    // Gestor de congregação: usuário sempre com um perfil (nada de "acesso total" solto).
+    const perfilForaDaLista = userForm.perfil_id !== '' && !perfis.some(p => p.id === Number(userForm.perfil_id))
+    if (!isAdmin && userForm.perfil_id === '' && !perfilForaDaLista) {
+      toast({ title: 'Selecione um perfil de acesso para o usuário.', variant: 'destructive' })
+      return
+    }
 
     setSavingUser(true)
     try {
@@ -536,7 +542,22 @@ export default function UsuariosPage() {
             </div>
             <div className="space-y-2">
               <Label>{editingUserId ? 'Nova Senha (deixe em branco para manter)' : 'Senha *'}</Label>
-              <Input type="password" value={userForm.senha} onChange={e => setUserForm(f => ({ ...f, senha: e.target.value }))} placeholder="••••••••" />
+              <Input
+                type="password"
+                value={userForm.senha}
+                onChange={e => setUserForm(f => ({
+                  ...f,
+                  senha: e.target.value,
+                  // Ao definir uma senha nova, já marca "exigir troca no próximo acesso".
+                  deve_trocar_senha: e.target.value ? true : f.deve_trocar_senha,
+                }))}
+                placeholder="••••••••"
+              />
+              {editingUserId && userForm.senha && (
+                <p className="text-xs text-muted-foreground">
+                  Como você definiu uma senha, o usuário será obrigado a trocá-la no próximo acesso.
+                </p>
+              )}
             </div>
 
             {/* Exigir troca de senha no próximo acesso */}
@@ -600,21 +621,31 @@ export default function UsuariosPage() {
 
                   return (
                 <div className="space-y-2">
-                  <Label>Perfil de Acesso</Label>
+                  <Label>Perfil de Acesso {!isAdmin && '*'}</Label>
                   <select
                     value={userForm.perfil_id}
                     onChange={e => setUserForm(f => ({ ...f, perfil_id: e.target.value }))}
                     className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   >
-                    <option value="">Sem perfil (acesso total)</option>
+                    <option value="">
+                      {isAdmin ? 'Sem perfil (acesso total)' : 'Selecione um perfil...'}
+                    </option>
                     {opcoes.map(p => (
                       <option key={p.id} value={p.id}>
                         {p.nome}{p.congregacao_id == null ? ' · Global' : ` · ${p.congregacao_nome || ''}`}
                       </option>
                     ))}
                   </select>
-                  {userForm.perfil_id === '' && (
+                  {isAdmin && userForm.perfil_id === '' && (
                     <p className="text-xs text-muted-foreground">Sem perfil = acesso total ao sistema</p>
+                  )}
+                  {!isAdmin && opcoes.length === 0 && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                      Crie um perfil para a sua congregação antes de cadastrar usuários (botão &quot;Novo Perfil&quot; acima).
+                    </p>
+                  )}
+                  {!isAdmin && opcoes.length > 0 && (
+                    <p className="text-xs text-muted-foreground">Todo usuário da congregação precisa de um perfil.</p>
                   )}
                 </div>
                   )

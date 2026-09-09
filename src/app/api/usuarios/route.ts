@@ -77,6 +77,10 @@ export const POST = withAuth(async (req: NextRequest, user) => {
     if (escopoCongregacoes(user) && (!congAcesso || congAcesso.length === 0)) {
       throw new ApiError(400, 'Selecione ao menos uma congregação para o usuário.')
     }
+    // Gestor: usuário sempre com um perfil (sem "acesso total" acidental).
+    if (perfilId == null) {
+      throw new ApiError(400, 'Selecione um perfil de acesso para o usuário.')
+    }
   }
 
   // Perfil precisa ser global ou de uma congregação a que o gestor e o novo

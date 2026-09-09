@@ -250,10 +250,10 @@ export default function RegistrosPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2 mb-0.5">
-          📋 Completude de Registros
+          📋 Completude de Cadastro
         </h1>
         <p className="text-sm text-muted-foreground">
-          Controle de membros com e sem datas cadastradas
+          Quais membros ainda estão sem data de nascimento ou de casamento
         </p>
       </div>
 

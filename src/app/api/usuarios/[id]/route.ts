@@ -64,6 +64,9 @@ export const PUT = withAuthParams<{ id: string }>(async (req, user, { params }) 
     if (escopoCongregacoes(user) && (!congAcesso || congAcesso.length === 0)) {
       throw new ApiError(400, 'Selecione ao menos uma congregação para o usuário.')
     }
+    if (perfilId == null) {
+      throw new ApiError(400, 'Selecione um perfil de acesso para o usuário.')
+    }
   }
 
   const deveTrocarSenha: boolean | undefined =

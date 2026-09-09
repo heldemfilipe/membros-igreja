@@ -21,8 +21,8 @@ const menuItems = [
 ]
 
 const adminItems = [
-  { title: 'Usuários',  icon: UserCog,      href: '/usuarios' },
-  { title: 'Registros', icon: ClipboardList, href: '/membros/registros' },
+  { title: 'Usuários',    icon: UserCog,       href: '/usuarios' },
+  { title: 'Completude',  icon: ClipboardList, href: '/membros/registros' },
 ]
 
 export function Sidebar() {

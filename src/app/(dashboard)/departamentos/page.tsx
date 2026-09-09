@@ -105,6 +105,7 @@ export default function DepartamentosPage() {
 
   const saveDept = async () => {
     if (!deptForm.nome.trim()) { toast({ title: 'Nome obrigatório.', variant: 'destructive' }); return }
+    if (!deptForm.congregacao_id) { toast({ title: 'Selecione a congregação do departamento.', variant: 'destructive' }); return }
     setSavingDept(true)
     try {
       const url = editingDeptId ? `/api/departamentos/${editingDeptId}` : '/api/departamentos'
@@ -114,7 +115,7 @@ export default function DepartamentosPage() {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...deptForm,
-          congregacao_id: deptForm.congregacao_id ? parseInt(deptForm.congregacao_id) : null,
+          congregacao_id: parseInt(deptForm.congregacao_id),
         }),
       })
       const data = await res.json()
@@ -263,9 +264,13 @@ export default function DepartamentosPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-semibold">{d.nome}</p>
-                        {d.congregacao_nome && (
+                        {d.congregacao_nome ? (
                           <Badge variant="outline" className="text-xs h-5 font-normal">
                             {d.congregacao_nome}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs h-5 font-normal text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700">
+                            ⚠ Sem congregação — edite para vincular
                           </Badge>
                         )}
                       </div>
@@ -394,21 +399,22 @@ export default function DepartamentosPage() {
               <Label>Descrição</Label>
               <Input value={deptForm.descricao} onChange={e => setDeptForm(f => ({ ...f, descricao: e.target.value }))} placeholder="Descrição (opcional)" />
             </div>
-            {congregacoes.length > 0 && (
-              <div className="space-y-2">
-                <Label>Congregação</Label>
-                <select
-                  value={deptForm.congregacao_id}
-                  onChange={e => setDeptForm(f => ({ ...f, congregacao_id: e.target.value }))}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  <option value="">Sem congregação específica</option>
-                  {congregacoes.map(c => (
-                    <option key={c.id} value={c.id}>{c.nome}</option>
-                  ))}
-                </select>
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label>Congregação *</Label>
+              <select
+                value={deptForm.congregacao_id}
+                onChange={e => setDeptForm(f => ({ ...f, congregacao_id: e.target.value }))}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">Selecione a congregação...</option>
+                {congregacoes.map(c => (
+                  <option key={c.id} value={c.id}>{c.nome}</option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground">
+                Todo departamento pertence a uma congregação.
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeptModal(false)}>Cancelar</Button>

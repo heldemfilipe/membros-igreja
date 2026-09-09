@@ -815,7 +815,7 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
       {(() => {
         const congSel = congregacoes.find(c => c.nome === form.igreja)
         const departamentosFiltrados = congSel
-          ? departamentosDisponiveis.filter(d => !d.congregacao_id || d.congregacao_id === congSel.id)
+          ? departamentosDisponiveis.filter(d => d.congregacao_id === congSel.id)
           : departamentosDisponiveis
         if (!congSel || departamentosFiltrados.length === 0) return null
         return (
@@ -1168,7 +1168,7 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
               {(() => {
                 const congSel = congregacoes.find(c => c.nome === form.igreja)
                 const deptosFiltrados = congSel
-                  ? departamentosDisponiveis.filter(d => !d.congregacao_id || d.congregacao_id === congSel.id)
+                  ? departamentosDisponiveis.filter(d => d.congregacao_id === congSel.id)
                   : departamentosDisponiveis
                 if (deptosFiltrados.length === 0) return null
                 return (
