@@ -109,6 +109,8 @@ export interface PerfilAcesso {
   nome: string
   descricao?: string
   permissoes: Permissoes
+  congregacao_id?: number | null
+  congregacao_nome?: string | null
   created_at?: string
 }
 

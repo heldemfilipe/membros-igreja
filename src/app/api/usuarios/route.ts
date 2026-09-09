@@ -6,6 +6,7 @@ import {
   escopoCongregacoes,
   departamentosPermitidos,
   sanitizarAcessoDeGestor,
+  assertPerfilAtribuivel,
 } from '@/lib/scope'
 
 const SELECT_COLS = `u.id, u.nome, u.email, u.tipo, u.ativo, u.created_at, u.ultimo_acesso,
@@ -77,6 +78,10 @@ export const POST = withAuth(async (req: NextRequest, user) => {
       throw new ApiError(400, 'Selecione ao menos uma congregação para o usuário.')
     }
   }
+
+  // Perfil precisa ser global ou de uma congregação a que o gestor e o novo
+  // usuário têm acesso.
+  await assertPerfilAtribuivel(user, perfilId, congAcesso, pool)
 
   const senhaCriptografada = await bcrypt.hash(senha, 10)
   const result = await pool.query(

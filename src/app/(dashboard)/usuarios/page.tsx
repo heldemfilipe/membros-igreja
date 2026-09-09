@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog'
-import { Loader2, Plus, Pencil, Trash2, Shield, User, UserCog, Lock, ChevronDown, ChevronUp, Check, KeyRound } from 'lucide-react'
+import { Loader2, Plus, Pencil, Trash2, Shield, User, UserCog, Lock, ChevronDown, ChevronUp, Check, KeyRound, Globe, Church } from 'lucide-react'
 import { formatarData } from '@/lib/utils'
 import { PERMISSOES_DISPONIVEIS } from '@/lib/constants'
 
@@ -34,15 +34,21 @@ const defaultPerfilForm = {
   nome: '',
   descricao: '',
   permissoes: {} as Permissoes,
+  congregacao_id: '' as string | number, // '' = Global (só admin)
 }
 
 // ─── Página ──────────────────────────────────────────────────────────────────
 
 export default function UsuariosPage() {
-  const { token, isAdmin, permissoes, congregacoesAcesso } = useAuth()
+  const { token, user, isAdmin, permissoes, congregacoesAcesso } = useAuth()
   const { toast } = useToast()
   // "strict": não vale a retrocompat "sem perfil = acesso total" para gestão de usuários.
   const podeGerenciar = isAdmin || permissoes.usuarios_gerenciar === true
+  // Um gestor com perfil só concede as permissões que ele mesmo tem.
+  const podeConcederTudo = isAdmin || !user?.perfil_id
+  const permissoesConcediveis = podeConcederTudo
+    ? PERMISSOES_DISPONIVEIS
+    : PERMISSOES_DISPONIVEIS.filter(p => permissoes[p.key] === true)
 
   // Usuários
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
@@ -120,6 +126,12 @@ export default function UsuariosPage() {
   const congregacoesAtribuiveis = isAdmin || !congregacoesAcesso?.length
     ? congregacoes
     : congregacoes.filter(c => congregacoesAcesso.includes(c.id))
+
+  // Um perfil é gerenciável (editar/excluir) por: admin sempre; gestor só os da
+  // própria congregação (nunca os globais).
+  const perfilGerenciavel = (p: PerfilAcesso) =>
+    isAdmin || (p.congregacao_id != null &&
+      (!congregacoesAcesso?.length || congregacoesAcesso.includes(p.congregacao_id)))
 
   // ─── CRUD Usuários ────────────────────────────────────────────────────────
 
@@ -232,19 +244,30 @@ export default function UsuariosPage() {
   const openNewPerfil = (e: React.MouseEvent) => {
     e.stopPropagation()
     setEditingPerfilId(null)
-    setPerfilForm(defaultPerfilForm)
+    // Gestor com 1 congregação: já vincula a ela. Admin: começa "Global".
+    const congIni = !isAdmin && congregacoesAcesso?.length === 1 ? congregacoesAcesso[0] : ''
+    setPerfilForm({ ...defaultPerfilForm, congregacao_id: congIni })
     setPerfilDialog(true)
   }
 
   const openEditPerfil = (p: PerfilAcesso) => {
     setEditingPerfilId(p.id)
-    setPerfilForm({ nome: p.nome, descricao: p.descricao || '', permissoes: { ...p.permissoes } })
+    setPerfilForm({
+      nome: p.nome,
+      descricao: p.descricao || '',
+      permissoes: { ...p.permissoes },
+      congregacao_id: p.congregacao_id ?? '',
+    })
     setPerfilDialog(true)
   }
 
   const handleSavePerfil = async () => {
     if (!perfilForm.nome.trim()) {
       toast({ title: 'Nome do perfil é obrigatório.', variant: 'destructive' })
+      return
+    }
+    if (!isAdmin && !editingPerfilId && perfilForm.congregacao_id === '') {
+      toast({ title: 'Selecione a congregação do perfil.', variant: 'destructive' })
       return
     }
     setSavingPerfil(true)
@@ -254,7 +277,10 @@ export default function UsuariosPage() {
       const res = await fetch(url, {
         method,
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(perfilForm),
+        body: JSON.stringify({
+          ...perfilForm,
+          congregacao_id: perfilForm.congregacao_id === '' ? null : Number(perfilForm.congregacao_id),
+        }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -311,8 +337,8 @@ export default function UsuariosPage() {
         </Button>
       </div>
 
-      {/* ─── Seção: Perfis de Acesso (somente admin) ─────────────────────── */}
-      {isAdmin && (
+      {/* ─── Seção: Perfis de Acesso ─────────────────────────────────────── */}
+      {podeGerenciar && (
       <Card>
         <CardHeader
           className="cursor-pointer select-none"
@@ -343,6 +369,12 @@ export default function UsuariosPage() {
 
         {perfisExpanded && (
           <CardContent className="pt-0">
+            {!isAdmin && (
+              <p className="text-xs text-muted-foreground pb-3">
+                Você cria e edita perfis da sua congregação. Perfis <strong>Globais</strong> são
+                definidos pelo administrador geral — você pode usá-los, mas não alterá-los.
+              </p>
+            )}
             {loadingPerfis ? (
               <div className="flex justify-center py-6">
                 <Loader2 className="h-5 w-5 animate-spin text-primary" />
@@ -355,11 +387,17 @@ export default function UsuariosPage() {
               <div className="space-y-3">
                 {perfis.map(p => {
                   const permsAtivas = PERMISSOES_DISPONIVEIS.filter(pd => p.permissoes[pd.key])
+                  const gerenciavel = perfilGerenciavel(p)
                   return (
                     <div key={p.id} className="flex items-start gap-3 p-3 rounded-lg border bg-muted/30">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-semibold text-sm">{p.nome}</p>
+                          <Badge variant="outline" className="text-[10px] h-4 px-1.5 gap-1">
+                            {p.congregacao_id == null
+                              ? <><Globe className="h-2.5 w-2.5" />Global</>
+                              : <><Church className="h-2.5 w-2.5" />{p.congregacao_nome || `#${p.congregacao_id}`}</>}
+                          </Badge>
                           {permsAtivas.length > 0 && (
                             <span className="text-xs text-muted-foreground">
                               {permsAtivas.length} permissão{permsAtivas.length !== 1 ? 'ões' : ''}
@@ -382,17 +420,21 @@ export default function UsuariosPage() {
                           <p className="text-xs text-muted-foreground mt-1 italic">Sem permissões ativas</p>
                         )}
                       </div>
-                      <div className="flex gap-1 shrink-0">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditPerfil(p)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={() => handleDeletePerfil(p.id, p.nome)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
+                      {gerenciavel ? (
+                        <div className="flex gap-1 shrink-0">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditPerfil(p)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"
+                            onClick={() => handleDeletePerfil(p.id, p.nome)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-1.5" />
+                      )}
                     </div>
                   )
                 })}
@@ -535,9 +577,18 @@ export default function UsuariosPage() {
                     className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="">Sem perfil (acesso total)</option>
-                    {perfis.map(p => (
-                      <option key={p.id} value={p.id}>{p.nome}</option>
-                    ))}
+                    {perfis
+                      .filter(p =>
+                        p.congregacao_id == null ||
+                        userForm.congregacoes_acesso.length === 0 ||
+                        userForm.congregacoes_acesso.includes(p.congregacao_id) ||
+                        p.id === Number(userForm.perfil_id)
+                      )
+                      .map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.nome}{p.congregacao_id == null ? ' · Global' : ` · ${p.congregacao_nome || ''}`}
+                        </option>
+                      ))}
                   </select>
                   {userForm.perfil_id === '' && (
                     <p className="text-xs text-muted-foreground">Sem perfil = acesso total ao sistema</p>
@@ -675,10 +726,50 @@ export default function UsuariosPage() {
               />
             </div>
 
+            {/* Congregação do perfil (imutável na edição) */}
+            <div className="space-y-2">
+              <Label>Congregação</Label>
+              {editingPerfilId ? (
+                <div className="h-10 px-3 rounded-md border border-input bg-muted flex items-center gap-2 text-sm">
+                  <Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <span className="font-medium">
+                    {perfilForm.congregacao_id === '' || perfilForm.congregacao_id == null
+                      ? 'Global'
+                      : congregacoes.find(c => c.id === Number(perfilForm.congregacao_id))?.nome
+                        || `#${perfilForm.congregacao_id}`}
+                  </span>
+                </div>
+              ) : !isAdmin && congregacoesAtribuiveis.length === 1 ? (
+                <div className="h-10 px-3 rounded-md border border-input bg-muted flex items-center gap-2 text-sm">
+                  <Church className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <span className="font-medium">{congregacoesAtribuiveis[0].nome}</span>
+                </div>
+              ) : (
+                <select
+                  value={perfilForm.congregacao_id}
+                  onChange={e => setPerfilForm(f => ({ ...f, congregacao_id: e.target.value }))}
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  {isAdmin && <option value="">Global (todas as congregações)</option>}
+                  {!isAdmin && <option value="">Selecione a congregação...</option>}
+                  {congregacoesAtribuiveis.map(c => (
+                    <option key={c.id} value={c.id}>{c.nome}</option>
+                  ))}
+                </select>
+              )}
+              {!editingPerfilId && (
+                <p className="text-xs text-muted-foreground">
+                  {isAdmin
+                    ? 'Global = usado por qualquer congregação. Ou escolha uma congregação específica.'
+                    : 'O perfil ficará disponível apenas para usuários desta congregação.'}
+                </p>
+              )}
+            </div>
+
             <div className="space-y-2">
               <Label>Permissões</Label>
               <div className="border rounded-md divide-y">
-                {PERMISSOES_DISPONIVEIS.map(pd => {
+                {permissoesConcediveis.map(pd => {
                   const ativo = !!perfilForm.permissoes[pd.key]
                   return (
                     <label

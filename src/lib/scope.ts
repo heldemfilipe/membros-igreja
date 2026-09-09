@@ -150,6 +150,71 @@ export function assertUsuarioAlvoNoEscopo(manager: AuthUser, alvo: UsuarioAlvo):
   }
 }
 
+// ─── Perfis de acesso por congregação ───────────────────────────────────────
+
+/**
+ * Perfil que o usuário pode VER e ATRIBUIR: perfil global (congregacao_id null)
+ * ou perfil de uma congregação do seu escopo. Admin vê tudo.
+ */
+export function perfilVisivel(user: AuthUser, perfilCongId: number | null | undefined): boolean {
+  if (user.tipo === 'admin') return true
+  if (perfilCongId == null) return true
+  const escopo = escopoCongregacoes(user)
+  if (!escopo) return true
+  return escopo.includes(Number(perfilCongId))
+}
+
+/**
+ * Perfil que o gestor pode CRIAR/EDITAR/EXCLUIR: apenas os da(s) própria(s)
+ * congregação(ões). Perfis globais são exclusivos do administrador geral.
+ */
+export function assertPerfilGerenciavel(user: AuthUser, perfilCongId: number | null | undefined): void {
+  if (user.tipo === 'admin') return
+  if (perfilCongId == null) {
+    throw new ApiError(403, 'Perfis globais são gerenciados apenas pelo administrador geral.')
+  }
+  const escopo = escopoCongregacoes(user)
+  if (escopo && !escopo.includes(Number(perfilCongId))) {
+    throw new ApiError(403, 'Este perfil pertence a outra congregação.')
+  }
+}
+
+/**
+ * Um gestor não-admin só concede num perfil as permissões que ele próprio tem.
+ * Gestor sem perfil (retrocompat "acesso total") pode conceder qualquer uma.
+ */
+export function limitarPermissoesAoQueUsuarioTem(
+  user: AuthUser,
+  permissoes: Record<string, unknown> | null | undefined,
+): Record<string, boolean> {
+  const marcadas = Object.entries(permissoes ?? {}).filter(([, v]) => v === true).map(([k]) => k)
+  const podeTudo = user.tipo === 'admin' || !user.perfil_id
+  const finais = podeTudo ? marcadas : marcadas.filter(k => user.permissoes[k] === true)
+  return Object.fromEntries(finais.map(k => [k, true]))
+}
+
+/**
+ * Valida que `perfilId` pode ser atribuído a um usuário cujo acesso a
+ * congregações é `congregacoesDoUsuario`. Lança 400/403 caso não.
+ */
+export async function assertPerfilAtribuivel(
+  user: AuthUser,
+  perfilId: number | null | undefined,
+  congregacoesDoUsuario: number[] | null,
+  db: DB,
+): Promise<void> {
+  if (perfilId == null) return
+  const { rows } = await db.query('SELECT congregacao_id FROM perfis_acesso WHERE id = $1', [perfilId])
+  if (rows.length === 0) throw new ApiError(400, 'Perfil inexistente.')
+  const congId: number | null = rows[0].congregacao_id
+  if (!perfilVisivel(user, congId)) {
+    throw new ApiError(403, 'Você não pode atribuir um perfil de outra congregação.')
+  }
+  if (congId != null && !(congregacoesDoUsuario ?? []).includes(Number(congId))) {
+    throw new ApiError(400, 'O usuário precisa ter acesso à congregação do perfil.')
+  }
+}
+
 /**
  * Normaliza o que um gestor (não-admin) pode gravar num usuário:
  *  - nunca cria/promove admin;

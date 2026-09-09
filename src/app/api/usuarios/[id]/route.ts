@@ -7,6 +7,7 @@ import {
   departamentosPermitidos,
   sanitizarAcessoDeGestor,
   assertUsuarioAlvoNoEscopo,
+  assertPerfilAtribuivel,
 } from '@/lib/scope'
 
 async function carregarAlvo(id: string) {
@@ -71,6 +72,8 @@ export const PUT = withAuthParams<{ id: string }>(async (req, user, { params }) 
   if (senha && (typeof senha !== 'string' || senha.length < 6)) {
     throw new ApiError(400, 'A senha deve ter pelo menos 6 caracteres')
   }
+
+  await assertPerfilAtribuivel(user, perfilId, congAcesso, pool)
 
   const sets = [
     'nome=$1', 'email=$2', 'tipo=$3', 'ativo=$4',
