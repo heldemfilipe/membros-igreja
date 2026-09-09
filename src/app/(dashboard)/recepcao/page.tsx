@@ -14,6 +14,7 @@ import {
   Search, UserPlus, CheckCircle2, Trash2,
 } from 'lucide-react'
 import { formatarData } from '@/lib/utils'
+import { AvisoDirigente, type AvisoDados } from '@/components/recepcao/AvisoDirigente'
 import type { VisitanteRecepcao } from '@/types'
 
 function hoje(): string {
@@ -69,7 +70,7 @@ function RecepcaoInner() {
     nome: '', congregacao_nome: '', telefone: '', data_visita: hoje(), obs: '',
   })
   const [saving, setSaving] = useState(false)
-  const [aviso, setAviso] = useState<{ texto: string; numero: string; dirigente: string } | null>(null)
+  const [aviso, setAviso] = useState<AvisoDados | null>(null)
 
   const carregar = useCallback(async () => {
     if (!token) return
@@ -129,17 +130,20 @@ function RecepcaoInner() {
       const data = await res.json()
       if (!res.ok) { toast({ title: data.error || 'Erro ao registrar.', variant: 'destructive' }); return }
 
+      toast({ title: '✓ Visitante registrado!' })
       const numero = numeroWhatsApp(data.dirigente?.telefone)
       if (numero) {
-        const texto =
-          `🙋 *Novo visitante* — ${cong}\n\n` +
-          `Nome: ${form.nome.trim()}\n` +
-          `Telefone: ${form.telefone.trim() || '—'}\n` +
-          `Data da visita: ${dataBR(form.data_visita || hoje())}\n` +
-          `Como conheceu / obs.: ${form.obs.trim() || '—'}`
-        setAviso({ texto, numero, dirigente: data.dirigente?.nome || 'o dirigente' })
-      } else {
-        toast({ title: '✓ Visitante registrado!' })
+        setAviso({
+          numero,
+          dirigenteNome: data.dirigente?.nome || null,
+          congregacao: cong,
+          campos: [
+            { key: 'nome', label: 'Nome', valor: form.nome.trim() },
+            { key: 'telefone', label: 'Telefone', valor: form.telefone.trim() },
+            { key: 'data_visita', label: 'Data da visita', valor: dataBR(form.data_visita || hoje()) },
+            { key: 'observacoes', label: 'Observações', valor: form.obs.trim() },
+          ],
+        })
       }
       setForm(f => ({ ...f, nome: '', telefone: '', obs: '' }))
       carregar()
@@ -191,20 +195,30 @@ function RecepcaoInner() {
     }
   }
 
-  /** URL do wa.me para avisar o dirigente sobre este visitante — '' se não dá. */
-  const linkAviso = (v: VisitanteRecepcao): string => {
+  /** Número do dirigente da congregação do visitante — '' se não dá para avisar. */
+  const numeroDirigente = (v: VisitanteRecepcao): string => {
     const cong = congs.find(c => c.nome === v.igreja)
     if (cong?.notificar_whatsapp === false) return ''
-    const numero = numeroWhatsApp(cong?.dirigente_telefone_efetivo)
-    if (!numero) return ''
-    const texto =
-      `🙋 *Visitante* — ${v.igreja || ''}\n\n` +
-      `Nome: ${v.nome}\n` +
-      `Telefone: ${v.telefone_principal || '—'}\n` +
-      `Visitas: ${v.total_visitas}${v.ultima_visita ? ` · última ${formatarData(v.ultima_visita)}` : ''}\n` +
-      `Voltou no culto: ${v.voltou_culto ? 'sim' : 'não'}${v.voltou_culto_data ? ` (${formatarData(v.voltou_culto_data)})` : ''}\n` +
-      `Discipulado: ${v.discipulado ? 'sim' : 'não'}${v.discipulador ? ` · ${v.discipulador}` : ''}`
-    return `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`
+    return numeroWhatsApp(cong?.dirigente_telefone_efetivo)
+  }
+
+  const abrirAviso = (v: VisitanteRecepcao) => {
+    const numero = numeroDirigente(v)
+    if (!numero) return
+    const cong = congs.find(c => c.nome === v.igreja)
+    setAviso({
+      numero,
+      dirigenteNome: cong?.dirigente_nome || null,
+      congregacao: v.igreja,
+      campos: [
+        { key: 'nome', label: 'Nome', valor: v.nome },
+        { key: 'telefone', label: 'Telefone', valor: v.telefone_principal || '' },
+        { key: 'visitas', label: 'Visitas', valor: `${v.total_visitas}${v.ultima_visita ? ` · última ${formatarData(v.ultima_visita)}` : ''}` },
+        { key: 'voltou', label: 'Voltou no culto', valor: v.voltou_culto ? (v.voltou_culto_data ? formatarData(v.voltou_culto_data) : 'sim') : 'não' },
+        { key: 'discipulado', label: 'Discipulado', valor: v.discipulado ? (v.discipulador || 'sim') : 'não' },
+        { key: 'observacoes', label: 'Observações', valor: v.observacoes || '' },
+      ],
+    })
   }
 
   const filtrados = busca.trim()
@@ -225,30 +239,7 @@ function RecepcaoInner() {
       <Card>
         <CardHeader><CardTitle className="text-base flex items-center gap-2"><UserPlus className="h-4 w-4" />Novo visitante</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          {aviso ? (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm font-medium text-emerald-700 dark:text-emerald-400">
-                <CheckCircle2 className="h-5 w-5" /> Visitante registrado!
-              </div>
-              <div className="rounded-lg border bg-muted/30 p-3 text-sm whitespace-pre-wrap text-muted-foreground">
-                {aviso.texto}
-              </div>
-              <div className="flex gap-2">
-                <a
-                  href={`https://wa.me/${aviso.numero}?text=${encodeURIComponent(aviso.texto)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setAviso(null)}
-                  className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-colors"
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  Avisar {aviso.dirigente} no WhatsApp
-                </a>
-                <Button variant="outline" onClick={() => setAviso(null)}>Fechar</Button>
-              </div>
-            </div>
-          ) : (
-            <>
+          <>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label>Nome *</Label>
@@ -293,8 +284,7 @@ function RecepcaoInner() {
                   Registrar visitante
                 </Button>
               </div>
-            </>
-          )}
+          </>
         </CardContent>
       </Card>
 
@@ -348,20 +338,15 @@ function RecepcaoInner() {
                         frequente
                       </Badge>
                     )}
-                    {(() => {
-                      const link = linkAviso(v)
-                      return link ? (
-                        <a
-                          href={link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="Avisar dirigente no WhatsApp"
-                          className="h-8 w-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950 transition-colors"
-                        >
-                          <MessageCircle className="h-4 w-4" />
-                        </a>
-                      ) : null
-                    })()}
+                    {numeroDirigente(v) && (
+                      <button
+                        onClick={() => abrirAviso(v)}
+                        title="Avisar dirigente no WhatsApp"
+                        className="h-8 w-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950 transition-colors"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                      </button>
+                    )}
                     <button
                       onClick={() => removerVisitante(v.membro_id, v.nome)}
                       title="Remover visitante"
@@ -418,6 +403,8 @@ function RecepcaoInner() {
           ))}
         </div>
       )}
+
+      <AvisoDirigente aviso={aviso} onClose={() => setAviso(null)} />
     </div>
   )
 }

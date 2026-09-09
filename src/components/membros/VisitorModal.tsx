@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog'
-import { Loader2, CalendarDays, Lock, MessageCircle, CheckCircle2 } from 'lucide-react'
+import { Loader2, CalendarDays, Lock } from 'lucide-react'
+import { AvisoDirigente, type AvisoDados } from '@/components/recepcao/AvisoDirigente'
 
 interface Props {
   open: boolean
@@ -56,8 +57,7 @@ export function VisitorModal({ open, onClose, onSuccess, token }: Props) {
     congregacao_nome: '',
   })
   const [saving, setSaving] = useState(false)
-  // Tela de sucesso com o aviso ao dirigente
-  const [aviso, setAviso] = useState<{ texto: string; numero: string; dirigente: string } | null>(null)
+  const [aviso, setAviso] = useState<AvisoDados | null>(null)
 
   useEffect(() => {
     if (!token || !open) return
@@ -128,21 +128,24 @@ export function VisitorModal({ open, onClose, onSuccess, token }: Props) {
       }
 
       onSuccess()
+      toast({ title: '✓ Visitante registrado!' })
 
       // Aviso ao dirigente no WhatsApp, se a congregação tiver isso configurado
       const cong = congregacoes.find(c => c.nome === form.congregacao_nome)
       const numero = cong?.notificar_whatsapp !== false ? numeroWhatsApp(cong?.dirigente_telefone_efetivo) : ''
       if (numero) {
-        const texto =
-          `🙋 *Novo visitante* — ${form.congregacao_nome}\n\n` +
-          `Nome: ${form.nome.trim()}\n` +
-          `Telefone: ${form.telefone_principal || '—'}\n` +
-          `Data da visita: ${dataBR(form.data_visita || hoje())}\n` +
-          `Como conheceu / obs.: ${form.informacoes_complementares || '—'}`
-        setAviso({ texto, numero, dirigente: cong?.dirigente_nome || 'o dirigente' })
-        toast({ title: '✓ Visitante registrado!' })
+        setAviso({
+          numero,
+          dirigenteNome: cong?.dirigente_nome || null,
+          congregacao: form.congregacao_nome,
+          campos: [
+            { key: 'nome', label: 'Nome', valor: form.nome.trim() },
+            { key: 'telefone', label: 'Telefone', valor: form.telefone_principal.trim() },
+            { key: 'data_visita', label: 'Data da visita', valor: dataBR(form.data_visita || hoje()) },
+            { key: 'observacoes', label: 'Observações', valor: form.informacoes_complementares.trim() },
+          ],
+        })
       } else {
-        toast({ title: '✓ Visitante registrado!' })
         reset()
         onClose()
       }
@@ -157,42 +160,10 @@ export function VisitorModal({ open, onClose, onSuccess, token }: Props) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <>
+    <Dialog open={open && !aviso} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
-        {aviso ? (
-          <>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                Visitante registrado
-              </DialogTitle>
-              <DialogDescription>
-                Avise {aviso.dirigente} pelo WhatsApp com a mensagem já pronta.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="rounded-lg border bg-muted/30 p-3 text-sm whitespace-pre-wrap text-muted-foreground">
-              {aviso.texto}
-            </div>
-
-            <DialogFooter className="flex-col sm:flex-row gap-2">
-              <Button variant="outline" onClick={handleClose} className="w-full sm:w-auto">
-                Concluir
-              </Button>
-              <a
-                href={`https://wa.me/${aviso.numero}?text=${encodeURIComponent(aviso.texto)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setTimeout(handleClose, 300)}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 h-10 px-4 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-colors"
-              >
-                <MessageCircle className="h-4 w-4" />
-                Avisar no WhatsApp
-              </a>
-            </DialogFooter>
-          </>
-        ) : (
-          <>
+        <>
             <DialogHeader>
               <DialogTitle>Cadastro Rápido — Visitante</DialogTitle>
               <DialogDescription>
@@ -304,9 +275,11 @@ export function VisitorModal({ open, onClose, onSuccess, token }: Props) {
                 Cadastrar e Vincular
               </Button>
             </DialogFooter>
-          </>
-        )}
+        </>
       </DialogContent>
     </Dialog>
+
+    <AvisoDirigente aviso={aviso} onClose={handleClose} />
+    </>
   )
 }
