@@ -151,6 +151,7 @@ export interface DashboardData {
   total_membros: number
   total_congregados: number
   total_geral: number
+  visitantes?: { semana: number; a_discipular: number; retornaram: number }
   por_sexo: { sexo: string; total: string }[]
   por_tipo: { tipo_participante: string; total: string }[]
   por_cargo: { cargo: string; total: string }[]

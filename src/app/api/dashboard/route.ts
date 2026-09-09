@@ -98,7 +98,38 @@ export const GET = withAuth(async (req: NextRequest, user) => {
       // ignora se tabela não existir
     }
 
+    // ─── Visitantes (Recepção) ───────────────────────────────────────────
+    let visitantes = { semana: 0, a_discipular: 0, retornaram: 0 }
+    try {
+      const { where: fm, params: fmp } = buildAccessWhere(user, congregacaoParam, { tableAlias: 'm' })
+      const [sem, disc, ret] = await Promise.all([
+        pool.query(
+          `SELECT COUNT(DISTINCT m.id)::int AS n
+           FROM membros m JOIN visitas v ON v.membro_id = m.id
+           WHERE m.tipo_participante = 'Visitante'
+             AND v.data_visita >= CURRENT_DATE - 7${fm}`,
+          fmp,
+        ),
+        pool.query(
+          `SELECT COUNT(*)::int AS n
+           FROM membros m JOIN acompanhamento_visitante av ON av.membro_id = m.id
+           WHERE m.tipo_participante = 'Visitante' AND av.discipulado = TRUE${fm}`,
+          fmp,
+        ),
+        pool.query(
+          `SELECT COUNT(*)::int AS n
+           FROM membros m JOIN acompanhamento_visitante av ON av.membro_id = m.id
+           WHERE m.tipo_participante = 'Visitante' AND av.voltou_culto = TRUE${fm}`,
+          fmp,
+        ),
+      ])
+      visitantes = { semana: sem.rows[0].n, a_discipular: disc.rows[0].n, retornaram: ret.rows[0].n }
+    } catch {
+      // ignora se a tabela acompanhamento_visitante ainda não existir
+    }
+
     return Response.json({
+      visitantes,
       total_membros: parseInt(totalMembros.rows[0].total),
       total_congregados: parseInt(totalCongregados.rows[0].total),
       total_geral: parseInt(totalGeral.rows[0].total),

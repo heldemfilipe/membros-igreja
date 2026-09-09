@@ -14,7 +14,7 @@ import {
 } from 'recharts'
 import {
   Users, UserCheck, UserCircle, Loader2, Cake, CalendarDays,
-  TrendingUp, Activity, UserPlus, Church, MessageCircle,
+  TrendingUp, Activity, UserPlus, Church, MessageCircle, DoorOpen, BookOpen,
 } from 'lucide-react'
 import Link from 'next/link'
 import { getDiaDoMes } from '@/lib/utils'
@@ -452,6 +452,15 @@ export default function DashboardPage() {
         <StatCard title="Membros" value={data.total_membros} icon={UserCheck} colorClass="bg-emerald-500" description="membros efetivos" href="/membros?tipo=Membro" />
         <StatCard title="Congregados" value={data.total_congregados} icon={UserCircle} colorClass="bg-violet-500" description="frequentadores regulares" href="/membros?tipo=Congregado" />
       </div>
+
+      {/* ─── Visitantes (Recepção) ───────────────────────────────────────── */}
+      {data.visitantes && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <StatCard title="Visitantes na semana" value={data.visitantes.semana} icon={DoorOpen} colorClass="bg-amber-500" description="visitas nos últimos 7 dias" href="/recepcao" />
+          <StatCard title="A discipular" value={data.visitantes.a_discipular} icon={BookOpen} colorClass="bg-sky-500" description="marcados para discipulado" href="/recepcao" />
+          <StatCard title="Retornaram" value={data.visitantes.retornaram} icon={Activity} colorClass="bg-emerald-500" description="voltaram ao culto" href="/recepcao" />
+        </div>
+      )}
 
       {/* ─── Visitantes Frequentes — sugestão de promoção ────────────────── */}
       {visitantesFrequentes.length > 0 && (
