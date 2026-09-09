@@ -73,7 +73,7 @@ export const PUT = withAuthParams<{ id: string }>(async (req, user, { params }) 
     throw new ApiError(400, 'A senha deve ter pelo menos 6 caracteres')
   }
 
-  await assertPerfilAtribuivel(user, perfilId, congAcesso, pool)
+  await assertPerfilAtribuivel(user, perfilId, congAcesso, pool, alvo.perfil_id ?? null)
 
   const sets = [
     'nome=$1', 'email=$2', 'tipo=$3', 'ativo=$4',

@@ -57,6 +57,9 @@ export default function UsuariosPage() {
   const [editingUserId, setEditingUserId] = useState<number | null>(null)
   const [userForm, setUserForm] = useState(defaultUserForm)
   const [savingUser, setSavingUser] = useState(false)
+  // Nome do perfil atual do usuário em edição (para exibir quando o gestor
+  // não pode gerenciar aquele perfil — ex.: perfil definido pelo admin).
+  const [perfilAtualLabel, setPerfilAtualLabel] = useState<string | null>(null)
 
   // Perfis
   const [perfis, setPerfis] = useState<PerfilAcesso[]>([])
@@ -137,6 +140,7 @@ export default function UsuariosPage() {
 
   const openNewUser = () => {
     setEditingUserId(null)
+    setPerfilAtualLabel(null)
     // Gestor de congregação: já deixa vinculado à(s) congregação(ões) dele.
     const congsIniciais = !isAdmin && congregacoesAcesso?.length ? [...congregacoesAcesso] : []
     setUserForm({ ...defaultUserForm, congregacoes_acesso: congsIniciais })
@@ -145,6 +149,7 @@ export default function UsuariosPage() {
 
   const openEditUser = (u: Usuario) => {
     setEditingUserId(u.id)
+    setPerfilAtualLabel(u.perfil_nome ?? null)
     setUserForm({
       nome: u.nome,
       email: u.email,
@@ -371,8 +376,8 @@ export default function UsuariosPage() {
           <CardContent className="pt-0">
             {!isAdmin && (
               <p className="text-xs text-muted-foreground pb-3">
-                Você cria e edita perfis da sua congregação. Perfis <strong>Globais</strong> são
-                definidos pelo administrador geral — você pode usá-los, mas não alterá-los.
+                Estes são os perfis da sua congregação. Você cria, edita e usa apenas os seus —
+                perfis de nível administrador são gerenciados pelo administrador geral.
               </p>
             )}
             {loadingPerfis ? (
@@ -569,6 +574,31 @@ export default function UsuariosPage() {
             {/* Perfil de Acesso (só para não-admins) */}
             {userForm.tipo !== 'admin' && (
               <>
+                {(() => {
+                  const opcoes = perfis.filter(p =>
+                    userForm.congregacoes_acesso.length === 0 ||
+                    (p.congregacao_id != null && userForm.congregacoes_acesso.includes(p.congregacao_id))
+                  )
+                  const perfilForaDaLista =
+                    userForm.perfil_id !== '' && !perfis.some(p => p.id === Number(userForm.perfil_id))
+
+                  // Perfil definido pelo admin que o gestor não pode gerenciar: só exibe, travado.
+                  if (perfilForaDaLista) {
+                    return (
+                      <div className="space-y-2">
+                        <Label>Perfil de Acesso</Label>
+                        <div className="h-10 px-3 rounded-md border border-input bg-muted flex items-center gap-2 text-sm">
+                          <Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                          <span className="font-medium">{perfilAtualLabel || 'Perfil do administrador'}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Perfil definido pelo administrador geral — não pode ser alterado aqui.
+                        </p>
+                      </div>
+                    )
+                  }
+
+                  return (
                 <div className="space-y-2">
                   <Label>Perfil de Acesso</Label>
                   <select
@@ -577,32 +607,26 @@ export default function UsuariosPage() {
                     className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="">Sem perfil (acesso total)</option>
-                    {perfis
-                      .filter(p =>
-                        p.congregacao_id == null ||
-                        userForm.congregacoes_acesso.length === 0 ||
-                        userForm.congregacoes_acesso.includes(p.congregacao_id) ||
-                        p.id === Number(userForm.perfil_id)
-                      )
-                      .map(p => (
-                        <option key={p.id} value={p.id}>
-                          {p.nome}{p.congregacao_id == null ? ' · Global' : ` · ${p.congregacao_nome || ''}`}
-                        </option>
-                      ))}
+                    {opcoes.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.nome}{p.congregacao_id == null ? ' · Global' : ` · ${p.congregacao_nome || ''}`}
+                      </option>
+                    ))}
                   </select>
                   {userForm.perfil_id === '' && (
                     <p className="text-xs text-muted-foreground">Sem perfil = acesso total ao sistema</p>
                   )}
                 </div>
+                  )
+                })()}
 
-                {/* Restrição de congregações */}
-                {congregacoesAtribuiveis.length > 0 && (
+                {/* Restrição de congregações — só o admin escolhe.
+                    Para o gestor, o usuário já nasce vinculado à(s) congregação(ões) dele. */}
+                {isAdmin && congregacoesAtribuiveis.length > 0 && (
                   <div className="space-y-2">
                     <Label>Congregações com Acesso</Label>
                     <p className="text-xs text-muted-foreground">
-                      {isAdmin
-                        ? 'Deixe vazio para permitir acesso a todas as congregações.'
-                        : 'O usuário terá acesso apenas à(s) congregação(ões) marcada(s).'}
+                      Deixe vazio para permitir acesso a todas as congregações.
                     </p>
                     <div className="max-h-40 overflow-y-auto border rounded-md p-2 space-y-1">
                       {congregacoesAtribuiveis.map(c => (

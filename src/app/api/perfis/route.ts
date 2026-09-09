@@ -12,18 +12,30 @@ const SELECT = `p.id, p.nome, p.descricao, p.permissoes, p.congregacao_id,
 
 // GET /api/perfis
 // admin  → todos os perfis (globais + de todas as congregações)
-// gestor → perfis globais + os da(s) sua(s) congregação(ões)
+// gestor → SOMENTE os da(s) sua(s) congregação(ões) — perfis globais são do admin
 export const GET = withAuth(async (_req, user) => {
-  const escopo = user.tipo === 'admin' ? null : escopoCongregacoes(user)
+  let where = ''
+  const params: unknown[] = []
 
-  const where = escopo ? 'WHERE p.congregacao_id IS NULL OR p.congregacao_id = ANY($1::int[])' : ''
+  if (user.tipo !== 'admin') {
+    const escopo = escopoCongregacoes(user)
+    if (escopo) {
+      where = 'WHERE p.congregacao_id = ANY($1::int[])'
+      params.push(escopo)
+    } else {
+      // Gestor sem restrição de congregação: vê todos os perfis de congregação,
+      // mas nenhum global.
+      where = 'WHERE p.congregacao_id IS NOT NULL'
+    }
+  }
+
   const result = await pool.query(
     `SELECT ${SELECT}
      FROM perfis_acesso p
      LEFT JOIN congregacoes c ON p.congregacao_id = c.id
      ${where}
      ORDER BY p.congregacao_id NULLS FIRST, p.nome`,
-    escopo ? [escopo] : [],
+    params,
   )
   return Response.json(result.rows)
 }, { permissionStrict: 'usuarios_gerenciar' })

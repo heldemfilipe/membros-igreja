@@ -153,12 +153,15 @@ export function assertUsuarioAlvoNoEscopo(manager: AuthUser, alvo: UsuarioAlvo):
 // ─── Perfis de acesso por congregação ───────────────────────────────────────
 
 /**
- * Perfil que o usuário pode VER e ATRIBUIR: perfil global (congregacao_id null)
- * ou perfil de uma congregação do seu escopo. Admin vê tudo.
+ * Perfil que o usuário pode VER e ATRIBUIR.
+ * - Admin: qualquer perfil.
+ * - Não-admin: apenas perfis DA(S) SUA(S) CONGREGAÇÃO(ÕES). Perfis globais
+ *   (congregacao_id null) são exclusivos do administrador geral — o gestor
+ *   nem vê, nem usa.
  */
 export function perfilVisivel(user: AuthUser, perfilCongId: number | null | undefined): boolean {
   if (user.tipo === 'admin') return true
-  if (perfilCongId == null) return true
+  if (perfilCongId == null) return false
   const escopo = escopoCongregacoes(user)
   if (!escopo) return true
   return escopo.includes(Number(perfilCongId))
@@ -196,19 +199,26 @@ export function limitarPermissoesAoQueUsuarioTem(
 /**
  * Valida que `perfilId` pode ser atribuído a um usuário cujo acesso a
  * congregações é `congregacoesDoUsuario`. Lança 400/403 caso não.
+ *
+ * `perfilAtual` = perfil que o usuário-alvo já tem; se `perfilId` não mudou,
+ * a validação é pulada (assim um gestor consegue editar nome/senha de um
+ * usuário que o admin deixou com um perfil global, sem trombar em 403).
  */
 export async function assertPerfilAtribuivel(
   user: AuthUser,
   perfilId: number | null | undefined,
   congregacoesDoUsuario: number[] | null,
   db: DB,
+  perfilAtual?: number | null,
 ): Promise<void> {
-  if (perfilId == null) return
-  const { rows } = await db.query('SELECT congregacao_id FROM perfis_acesso WHERE id = $1', [perfilId])
+  const novo = perfilId ?? null
+  if (perfilAtual !== undefined && novo === (perfilAtual ?? null)) return
+  if (novo == null) return
+  const { rows } = await db.query('SELECT congregacao_id FROM perfis_acesso WHERE id = $1', [novo])
   if (rows.length === 0) throw new ApiError(400, 'Perfil inexistente.')
   const congId: number | null = rows[0].congregacao_id
   if (!perfilVisivel(user, congId)) {
-    throw new ApiError(403, 'Você não pode atribuir um perfil de outra congregação.')
+    throw new ApiError(403, 'Você não pode atribuir este perfil (global ou de outra congregação).')
   }
   if (congId != null && !(congregacoesDoUsuario ?? []).includes(Number(congId))) {
     throw new ApiError(400, 'O usuário precisa ter acesso à congregação do perfil.')
