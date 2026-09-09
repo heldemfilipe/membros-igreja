@@ -44,6 +44,44 @@ export function assertCongregacaoNoEscopo(user: AuthUser, congId: number | null 
 }
 
 /**
+ * Conjunto EFETIVO de congregações que o usuário enxerga:
+ *  1. `congregacoes_acesso`, se definido;
+ *  2. senão, as congregações dos seus `departamentos_acesso`, se definido
+ *     (usuário preso só a departamento só vê a congregação daqueles deptos);
+ *  3. senão, `null` = sem restrição.
+ * `[]` (vazio) = restrito e sem nenhuma congregação visível.
+ */
+export async function congregacoesEfetivas(user: AuthUser, db: DB): Promise<number[] | null> {
+  if (user.tipo === 'admin') return null
+  const cong = escopoCongregacoes(user)
+  if (cong) return cong
+  const dept = escopoDepartamentos(user)
+  if (!dept) return null
+  const { rows } = await db.query(
+    'SELECT DISTINCT congregacao_id FROM departamentos WHERE id = ANY($1::int[]) AND congregacao_id IS NOT NULL',
+    [dept],
+  )
+  return rows.map(r => Number(r.congregacao_id))
+}
+
+/**
+ * Como `assertCongregacaoNoEscopo`, mas também respeita a restrição derivada
+ * de `departamentos_acesso` (para o usuário preso só a departamento).
+ */
+export async function assertCongregacaoNoEscopoDb(
+  user: AuthUser,
+  congId: number | null | undefined,
+  db: DB,
+): Promise<void> {
+  if (user.tipo === 'admin') return
+  const efetivas = await congregacoesEfetivas(user, db)
+  if (!efetivas) return
+  if (congId == null || !efetivas.includes(Number(congId))) {
+    throw new ApiError(403, 'Acesso restrito: congregação fora do seu escopo.')
+  }
+}
+
+/**
  * Verifica se o departamento `deptId` está dentro do escopo do usuário
  * (restrição de departamento E de congregação). Lança 403/404 caso não.
  * Departamento sem congregação (legado) só é acessível pelo admin.

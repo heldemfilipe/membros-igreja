@@ -201,7 +201,7 @@ export const PERMISSOES_DISPONIVEIS = [
   { key: 'departamentos_editar', label: 'Departamentos — Editar', descricao: 'Criar e editar departamentos' },
   { key: 'aniversariantes_ver', label: 'Aniversariantes',         descricao: 'Ver aniversariantes' },
   { key: 'congregacoes_ver',    label: 'Congregações — Ver',      descricao: 'Ver aba de congregações' },
-  { key: 'congregacoes_editar', label: 'Congregações — Editar',   descricao: 'Criar, editar e excluir congregações' },
+  // 'congregacoes_editar' saiu da lista: criar/editar/excluir congregação é só do admin geral.
   { key: 'registros_ver',       label: 'Lista Aniversários — Ver',    descricao: 'Ver quais membros estão sem data de nascimento ou casamento' },
   { key: 'registros_editar',    label: 'Lista Aniversários — Editar', descricao: 'Preencher datas de nascimento e casamento direto na lista' },
   { key: 'usuarios_gerenciar',  label: 'Usuários — Gerenciar',     descricao: 'Criar e editar usuários vinculados à(s) sua(s) congregação(ões)' },

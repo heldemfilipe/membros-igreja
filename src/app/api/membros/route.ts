@@ -60,10 +60,14 @@ export const GET = withAuth(async (req: NextRequest, user) => {
 
   const result = await pool.query(query, params)
 
+  // Usuário preso a departamentos só enxerga os vínculos dos seus departamentos.
+  const deptAcesso = user.departamentos_acesso?.length ? user.departamentos_acesso : null
   const deptResult = await pool.query(
     `SELECT md.membro_id, md.departamento_id as dept_id, d.nome as dept_nome, md.cargo_departamento
      FROM membro_departamentos md
-     INNER JOIN departamentos d ON md.departamento_id = d.id`,
+     INNER JOIN departamentos d ON md.departamento_id = d.id
+     ${deptAcesso ? 'WHERE md.departamento_id = ANY($1::int[])' : ''}`,
+    deptAcesso ? [deptAcesso] : [],
   )
 
   const deptMap: Record<number, { dept_id: number; dept_nome: string; cargo_departamento: string }[]> = {}

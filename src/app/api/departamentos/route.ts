@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import pool from '@/lib/db'
 import { withAuth, ApiError } from '@/lib/api'
-import { assertCongregacaoNoEscopo } from '@/lib/scope'
+import { assertCongregacaoNoEscopoDb } from '@/lib/scope'
 
 export const GET = withAuth(async (req: NextRequest, user) => {
   const { searchParams } = new URL(req.url)
@@ -53,7 +53,7 @@ export const POST = withAuth(async (req: NextRequest, user) => {
   if (congregacao_id == null || congregacao_id === '') {
     throw new ApiError(400, 'Selecione a congregação do departamento.')
   }
-  assertCongregacaoNoEscopo(user, Number(congregacao_id))
+  await assertCongregacaoNoEscopoDb(user, Number(congregacao_id), pool)
 
   const result = await pool.query(
     'INSERT INTO departamentos (nome, descricao, congregacao_id) VALUES ($1, $2, $3) RETURNING id',

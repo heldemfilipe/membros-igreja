@@ -1,7 +1,8 @@
 import pool from '@/lib/db'
 import { withAuthParams, ApiError } from '@/lib/api'
-import { notFound } from '@/lib/auth'
+import { notFound, forbidden } from '@/lib/auth'
 import { assertDepartamentoNoEscopo } from '@/lib/scope'
+import { membroAcessivel } from '@/lib/access'
 
 export const GET = withAuthParams<{ id: string }>(async (_req, user, { params }) => {
   const { id } = params
@@ -21,18 +22,33 @@ export const GET = withAuthParams<{ id: string }>(async (_req, user, { params })
   return Response.json(result.rows)
 })
 
-export const POST = withAuthParams<{ id: string }>(async (req, _user, { params }) => {
+export const POST = withAuthParams<{ id: string }>(async (req, user, { params }) => {
   const { membro_id, cargo_departamento } = await req.json()
+  if (!membro_id) throw new ApiError(400, 'membro_id é obrigatório')
+
+  // O departamento tem de estar no escopo do usuário e o membro tem de ser
+  // acessível a ele (mesma congregação / departamento).
+  await assertDepartamentoNoEscopo(user, params.id, pool)
+  if (!(await membroAcessivel(user, membro_id, pool))) {
+    return forbidden('Este membro não está no seu escopo de acesso.')
+  }
+
   await pool.query(
-    'INSERT INTO membro_departamentos (membro_id, departamento_id, cargo_departamento) VALUES ($1, $2, $3)',
+    `INSERT INTO membro_departamentos (membro_id, departamento_id, cargo_departamento)
+     VALUES ($1, $2, $3) ON CONFLICT (membro_id, departamento_id) DO NOTHING`,
     [membro_id, params.id, cargo_departamento || null],
   )
   return Response.json({ message: 'Membro adicionado ao departamento' })
-}, { adminOnly: true })
+}, { permission: 'departamentos_editar' })
 
-export const PUT = withAuthParams<{ id: string }>(async (req, _user, { params }) => {
+export const PUT = withAuthParams<{ id: string }>(async (req, user, { params }) => {
   const { membro_id, cargo_departamento } = await req.json()
   if (!membro_id) throw new ApiError(400, 'membro_id é obrigatório')
+
+  await assertDepartamentoNoEscopo(user, params.id, pool)
+  if (!(await membroAcessivel(user, membro_id, pool))) {
+    return forbidden('Este membro não está no seu escopo de acesso.')
+  }
 
   const result = await pool.query(
     'UPDATE membro_departamentos SET cargo_departamento = $1 WHERE membro_id = $2 AND departamento_id = $3',
@@ -40,4 +56,4 @@ export const PUT = withAuthParams<{ id: string }>(async (req, _user, { params })
   )
   if (result.rowCount === 0) return notFound('Membro não encontrado neste departamento')
   return Response.json({ message: 'Cargo atualizado com sucesso' })
-}, { adminOnly: true })
+}, { permission: 'departamentos_editar' })

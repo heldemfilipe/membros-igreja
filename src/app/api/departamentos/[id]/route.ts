@@ -1,6 +1,6 @@
 import pool from '@/lib/db'
 import { withAuthParams, ApiError } from '@/lib/api'
-import { assertDepartamentoNoEscopo, assertCongregacaoNoEscopo } from '@/lib/scope'
+import { assertDepartamentoNoEscopo, assertCongregacaoNoEscopoDb } from '@/lib/scope'
 
 export const PUT = withAuthParams<{ id: string }>(async (req, user, { params }) => {
   await assertDepartamentoNoEscopo(user, params.id, pool)
@@ -11,7 +11,7 @@ export const PUT = withAuthParams<{ id: string }>(async (req, user, { params }) 
     throw new ApiError(400, 'Selecione a congregação do departamento.')
   }
   // Não deixa mover o departamento para fora do escopo do usuário.
-  assertCongregacaoNoEscopo(user, Number(congregacao_id))
+  await assertCongregacaoNoEscopoDb(user, Number(congregacao_id), pool)
 
   await pool.query(
     'UPDATE departamentos SET nome = $1, descricao = $2, congregacao_id = $3 WHERE id = $4',

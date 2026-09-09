@@ -1,14 +1,20 @@
 import { NextRequest } from 'next/server'
 import pool from '@/lib/db'
 import { withAuth, ApiError } from '@/lib/api'
+import { congregacoesEfetivas } from '@/lib/scope'
 
 export const GET = withAuth(async (_req, user) => {
-  // Restrição por congregações
-  const congAcesso = user.congregacoes_acesso?.length ? user.congregacoes_acesso : null
+  // Restrição por congregações — inclui a restrição derivada de departamento
+  // (usuário preso só a departamento vê apenas a congregação daqueles deptos).
+  const efetivas = await congregacoesEfetivas(user, pool)
 
   const params: unknown[] = []
-  const congWhere = congAcesso ? `WHERE c.id = ANY($1::int[])` : ''
-  if (congAcesso) params.push(congAcesso)
+  let congWhere = ''
+  if (efetivas) {
+    if (efetivas.length === 0) return Response.json([])
+    congWhere = 'WHERE c.id = ANY($1::int[])'
+    params.push(efetivas)
+  }
 
   const result = await pool.query(`
     SELECT c.id, c.nome, c.cidade, c.estado, c.observacoes,
@@ -31,4 +37,4 @@ export const POST = withAuth(async (req: NextRequest) => {
     [nome.trim(), cidade || null, estado || null, observacoes || null],
   )
   return Response.json(result.rows[0], { status: 201 })
-}, { permission: 'congregacoes_editar' })
+}, { adminOnly: true })

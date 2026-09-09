@@ -53,6 +53,9 @@ export const GET = withAuthParams<{ id: string }>(async (req, user, { params }) 
 
   if (membroResult.rows.length === 0) return notFound('Membro não encontrado')
 
+  // NOTA: `departamentos` vem completo de propósito — o formulário de edição
+  // reescreve os vínculos (delete+insert), então filtrar aqui removeria o
+  // membro dos departamentos que o usuário não enxerga.
   return Response.json({
     ...membroResult.rows[0],
     historicos: historicosResult.rows,
