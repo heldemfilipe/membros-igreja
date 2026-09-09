@@ -138,7 +138,7 @@ export const GET = withAuth(async (req: NextRequest, user) => {
       'Tipo Participante': m.tipo_participante || '',
       'Informações Complementares': m.informacoes_complementares || '',
       'Histórico Eclesiástico': historicosMap[m.id]?.join(' | ') || '',
-      'Formação Teológica': formacoesMap[m.id]?.join(' | ') || '',
+      'Formação Acadêmica': formacoesMap[m.id]?.join(' | ') || '',
       'Familiares': familiaresMap[m.id]?.join(' | ') || '',
       'Data Cadastro': m.created_at ? new Date(m.created_at).toLocaleDateString('pt-BR') : '',
     }))

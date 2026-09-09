@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Loader2, Plus, Trash2, Search, X, AlertTriangle, UserPlus, Lock } from 'lucide-react'
+import { Loader2, Plus, Trash2, Search, X, AlertTriangle, UserPlus, Lock, ChevronDown, ChevronRight } from 'lucide-react'
 import { CARGOS_ECLESIASTICOS, CARGOS_DEPARTAMENTO, ORIGENS_RELIGIOSAS, DONS_TALENTOS, TIPOS_HISTORICO } from '@/lib/constants'
 import { normalizar } from '@/lib/utils'
 
@@ -67,6 +67,23 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [donsInput, setDonsInput] = useState('')
   const [desejInput, setDesejInput] = useState('')
+
+  // Seções recolhíveis do formulário
+  const SECOES_IDS = [
+    'identificacao', 'eclesiastico', 'contato', 'endereco', 'documentos',
+    'complementares', 'espiritual', 'departamentos', 'historico', 'formacao', 'familiares',
+  ] as const
+  const [abertas, setAbertas] = useState<Record<string, boolean>>({
+    identificacao: true, eclesiastico: true, contato: true,
+  })
+  const toggleSecao = (id: string) => setAbertas(a => ({ ...a, [id]: !a[id] }))
+  const setTodasSecoes = (v: boolean) => setAbertas(
+    Object.fromEntries(SECOES_IDS.map(k => [k, v])),
+  )
+  const chevron = (id: string) => abertas[id]
+    ? <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+    : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+  const secClass = (id: string, base: string) => `${base}${abertas[id] ? '' : ' hidden'}`
 
   // Carrega todos os dados necessários em paralelo para minimizar tempo de espera
   useEffect(() => {
@@ -150,6 +167,20 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
           setDeptosSelecionados(
             (depts || []).map(d => ({ id: d.id, nome: d.nome, cargo_departamento: d.cargo_departamento || '' }))
           )
+          // Ao editar, já abre as seções que têm conteúdo.
+          const r = rest as Record<string, unknown>
+          const tem = (...ks: string[]) => ks.some(k => !!r[k])
+          setAbertas(a => ({
+            ...a,
+            endereco: tem('cep', 'logradouro', 'bairro', 'cidade'),
+            documentos: tem('cpf', 'identidade', 'titulo_eleitor', 'tipo_sanguineo', 'reservista', 'carteira_motorista'),
+            complementares: tem('profissao', 'grau_instrucao', 'informacoes_complementares'),
+            espiritual: tem('observacao_religiosa', 'dons_talentos', 'dons_desejados'),
+            historico: (data.historicos || []).length > 0,
+            formacao: (data.formacoes || []).length > 0,
+            familiares: (data.familiares || []).length > 0,
+            departamentos: (depts || []).length > 0,
+          }))
         }
         setLoading(false)
       }
@@ -420,6 +451,15 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
     })
 
     if (Object.keys(faltando).length > 0) {
+      // Abre as seções recolhidas que têm erro, senão o vermelho fica escondido.
+      const abrir: Record<string, boolean> = {}
+      if (faltando.nome) abrir.identificacao = true
+      if (faltando.igreja) abrir.eclesiastico = true
+      const ks = Object.keys(faltando)
+      if (ks.some(k => k.startsWith('fam_'))) abrir.familiares = true
+      if (ks.some(k => k.startsWith('hist_'))) abrir.historico = true
+      if (ks.some(k => k.startsWith('form_'))) abrir.formacao = true
+      setAbertas(a => ({ ...a, ...abrir }))
       toast({ title: 'Preencha os campos obrigatórios destacados em vermelho.', variant: 'destructive' })
       return
     }
@@ -657,11 +697,24 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Controle de seções */}
+      <div className="flex justify-end gap-3 text-xs">
+        <button type="button" onClick={() => setTodasSecoes(true)} className="text-muted-foreground hover:text-foreground transition-colors">
+          Expandir tudo
+        </button>
+        <span className="text-muted-foreground/40">·</span>
+        <button type="button" onClick={() => setTodasSecoes(false)} className="text-muted-foreground hover:text-foreground transition-colors">
+          Recolher tudo
+        </button>
+      </div>
+
       {/* Identificação */}
       <Card>
-        <CardHeader><CardTitle className="text-base">Identificação</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <CardHeader className="cursor-pointer select-none" onClick={() => toggleSecao('identificacao')}>
+          <CardTitle className="text-base flex items-center gap-2">{chevron('identificacao')}Identificação</CardTitle>
+        </CardHeader>
+        <CardContent className={secClass('identificacao', 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4')}>
           <div className="space-y-2 sm:col-span-2">
             <Label>Nome Completo *</Label>
             <Input
@@ -701,8 +754,10 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
 
       {/* Eclesiástico */}
       <Card>
-        <CardHeader><CardTitle className="text-base">Dados Eclesiásticos</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <CardHeader className="cursor-pointer select-none" onClick={() => toggleSecao('eclesiastico')}>
+          <CardTitle className="text-base flex items-center gap-2">{chevron('eclesiastico')}Dados Eclesiásticos</CardTitle>
+        </CardHeader>
+        <CardContent className={secClass('eclesiastico', 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4')}>
           {/* Congregação — bloqueada se filtro global ativo ou só 1 disponível */}
           <div className="space-y-2">
             <Label>Congregação *</Label>
@@ -763,8 +818,10 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
 
       {/* Contato */}
       <Card>
-        <CardHeader><CardTitle className="text-base">Contato</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <CardHeader className="cursor-pointer select-none" onClick={() => toggleSecao('contato')}>
+          <CardTitle className="text-base flex items-center gap-2">{chevron('contato')}Contato</CardTitle>
+        </CardHeader>
+        <CardContent className={secClass('contato', 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4')}>
           <div className="space-y-1">
             <Label>Telefone Principal</Label>
             <Input
@@ -797,8 +854,10 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
 
       {/* Endereço */}
       <Card>
-        <CardHeader><CardTitle className="text-base">Endereço</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <CardHeader className="cursor-pointer select-none" onClick={() => toggleSecao('endereco')}>
+          <CardTitle className="text-base flex items-center gap-2">{chevron('endereco')}Endereço</CardTitle>
+        </CardHeader>
+        <CardContent className={secClass('endereco', 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4')}>
           <div className="space-y-1">
             <Label>CEP</Label>
             <div className="flex gap-2">
@@ -835,8 +894,10 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
 
       {/* Documentos */}
       <Card>
-        <CardHeader><CardTitle className="text-base">Documentos</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <CardHeader className="cursor-pointer select-none" onClick={() => toggleSecao('documentos')}>
+          <CardTitle className="text-base flex items-center gap-2">{chevron('documentos')}Documentos</CardTitle>
+        </CardHeader>
+        <CardContent className={secClass('documentos', 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4')}>
           <div className="space-y-1">
             <Label>CPF</Label>
             <Input
@@ -878,8 +939,10 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
 
       {/* Outros */}
       <Card>
-        <CardHeader><CardTitle className="text-base">Dados Complementares</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <CardHeader className="cursor-pointer select-none" onClick={() => toggleSecao('complementares')}>
+          <CardTitle className="text-base flex items-center gap-2">{chevron('complementares')}Dados Complementares</CardTitle>
+        </CardHeader>
+        <CardContent className={secClass('complementares', 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4')}>
           {field('Profissão', 'profissao', 'text', undefined, true)}
           {selectField('Grau de Instrução', 'grau_instrucao', [
             'Fundamental Incompleto', 'Fundamental Completo', 'Médio Incompleto', 'Médio Completo',
@@ -899,8 +962,10 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
 
       {/* Perfil Espiritual */}
       <Card>
-        <CardHeader><CardTitle className="text-base">Perfil Espiritual</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <CardHeader className="cursor-pointer select-none" onClick={() => toggleSecao('espiritual')}>
+          <CardTitle className="text-base flex items-center gap-2">{chevron('espiritual')}Perfil Espiritual</CardTitle>
+        </CardHeader>
+        <CardContent className={secClass('espiritual', 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4')}>
           <div className="space-y-2 sm:col-span-2 lg:col-span-3">
             <Label>Informação religiosa (pactos, vínculos, histórico espiritual)</Label>
             <Textarea
@@ -924,8 +989,10 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
         if (!congSel || departamentosFiltrados.length === 0) return null
         return (
         <Card>
-          <CardHeader><CardTitle className="text-base">Departamentos</CardTitle></CardHeader>
-          <CardContent>
+          <CardHeader className="cursor-pointer select-none" onClick={() => toggleSecao('departamentos')}>
+            <CardTitle className="text-base flex items-center gap-2">{chevron('departamentos')}Departamentos</CardTitle>
+          </CardHeader>
+          <CardContent className={secClass('departamentos', '')}>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {departamentosFiltrados.map(d => {
                 const sel = deptosSelecionados.find(s => s.id === d.id)
@@ -970,15 +1037,15 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
 
       {/* Histórico Eclesiástico */}
       <Card>
-        <CardHeader>
+        <CardHeader className="cursor-pointer select-none" onClick={() => toggleSecao('historico')}>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Histórico Eclesiástico</CardTitle>
-            <Button type="button" variant="outline" size="sm" onClick={addHistorico}>
+            <CardTitle className="text-base flex items-center gap-2">{chevron('historico')}Histórico Eclesiástico</CardTitle>
+            <Button type="button" variant="outline" size="sm" onClick={e => { e.stopPropagation(); addHistorico() }}>
               <Plus className="h-4 w-4" /> Adicionar
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className={secClass('historico', 'space-y-4')}>
           {form.historicos.length === 0 && (
             <p className="text-sm text-muted-foreground">Nenhum histórico adicionado.</p>
           )}
@@ -1026,19 +1093,22 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
         </CardContent>
       </Card>
 
-      {/* Formação Teológica / Cursos */}
+      {/* Formação Acadêmica / Cursos */}
       <Card>
-        <CardHeader>
+        <CardHeader className="cursor-pointer select-none" onClick={() => toggleSecao('formacao')}>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Formação Teológica / Cursos</CardTitle>
-            <Button type="button" variant="outline" size="sm" onClick={addFormacao}>
+            <CardTitle className="text-base flex items-center gap-2">{chevron('formacao')}Formação Acadêmica / Cursos</CardTitle>
+            <Button type="button" variant="outline" size="sm" onClick={e => { e.stopPropagation(); addFormacao() }}>
               <Plus className="h-4 w-4" /> Adicionar
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className={secClass('formacao', 'space-y-4')}>
           {form.formacoes.length === 0 && (
-            <p className="text-sm text-muted-foreground">Nenhuma formação adicionada (faculdade, seminário, curso livre...).</p>
+            <p className="text-sm text-muted-foreground">
+              Nenhuma formação adicionada. Clique em &quot;Adicionar&quot; para incluir faculdade,
+              seminário, curso técnico, curso livre, etc.
+            </p>
           )}
           {form.formacoes.map((fo, i) => (
             <div key={i} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 p-3 border rounded-lg">
@@ -1091,15 +1161,15 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
 
       {/* Familiares */}
       <Card>
-        <CardHeader>
+        <CardHeader className="cursor-pointer select-none" onClick={() => toggleSecao('familiares')}>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Familiares</CardTitle>
-            <Button type="button" variant="outline" size="sm" onClick={addFamiliar}>
+            <CardTitle className="text-base flex items-center gap-2">{chevron('familiares')}Familiares</CardTitle>
+            <Button type="button" variant="outline" size="sm" onClick={e => { e.stopPropagation(); addFamiliar() }}>
               <Plus className="h-4 w-4" /> Adicionar
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className={secClass('familiares', 'space-y-4')}>
           {form.familiares.length === 0 && (
             <p className="text-sm text-muted-foreground">Nenhum familiar adicionado.</p>
           )}

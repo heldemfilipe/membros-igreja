@@ -304,7 +304,7 @@ export function MemberViewModal({ membro, open, onClose, onEdit, onVisitaRegistr
           {formacoes.length > 0 && (
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
-                <BookOpen className="h-3.5 w-3.5" /> Formação Teológica / Cursos
+                <BookOpen className="h-3.5 w-3.5" /> Formação Acadêmica / Cursos
               </p>
               <div className="space-y-1.5">
                 {formacoes.map((fo, i) => (
