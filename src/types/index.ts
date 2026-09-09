@@ -117,6 +117,7 @@ export interface Permissoes {
   registros_ver?: boolean
   registros_editar?: boolean
   usuarios_gerenciar?: boolean
+  recepcao?: boolean
   [key: string]: boolean | undefined
 }
 
@@ -212,6 +213,25 @@ export interface VisitanteFrequente {
   membro_id: number
   nome: string
   telefone_principal?: string
+  total_visitas: number
+  ultima_visita: string
+  primeira_visita: string
+}
+
+export interface Acompanhamento {
+  voltou_culto: boolean
+  visita_casa_data: string | null
+  visita_casa_feita: boolean
+  discipulado: boolean
+  discipulador: string | null
+  observacoes: string | null
+}
+
+export interface VisitanteRecepcao extends Acompanhamento {
+  membro_id: number
+  nome: string
+  telefone_principal: string | null
+  igreja: string | null
   total_visitas: number
   ultima_visita: string
   primeira_visita: string

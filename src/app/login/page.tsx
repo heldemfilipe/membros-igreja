@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Church, Eye, EyeOff, LogIn, Loader2 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { rotaInicial } from '@/lib/constants'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -16,7 +17,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!loading && user) {
-      router.replace('/dashboard')
+      router.replace(rotaInicial(user))
     }
   }, [user, loading, router])
 
@@ -45,7 +46,7 @@ export default function LoginPage() {
       }
 
       login(data.token, data.usuario)
-      router.replace('/dashboard')
+      router.replace(rotaInicial(data.usuario))
     } catch {
       setError('Erro de conexão. Tente novamente.')
     } finally {

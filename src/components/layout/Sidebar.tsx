@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
-  LayoutDashboard, Users, Building2, UserCog, Cake,
+  LayoutDashboard, Users, Building2, UserCog, Cake, DoorOpen,
   Menu, X, Church, LogOut, Shield, Loader2, Lock, Filter, ClipboardList, ChevronRight,
 } from 'lucide-react'
 
@@ -15,6 +15,7 @@ import { ThemeToggle } from '@/components/ui/theme-toggle'
 const menuItems = [
   { title: 'Dashboard',       icon: LayoutDashboard, href: '/dashboard',       permissao: 'dashboard' },
   { title: 'Membros',         icon: Users,            href: '/membros',         permissao: 'membros_ver' },
+  { title: 'Recepção',        icon: DoorOpen,         href: '/recepcao',        permissao: 'recepcao' },
   { title: 'Aniversariantes', icon: Cake,             href: '/aniversariantes', permissao: 'aniversariantes_ver' },
   { title: 'Departamentos',   icon: Building2,        href: '/departamentos',   permissao: 'departamentos_ver' },
   { title: 'Congregações',    icon: Church,           href: '/congregacoes',    permissao: 'congregacoes_ver' },

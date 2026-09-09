@@ -205,6 +205,29 @@ export const PERMISSOES_DISPONIVEIS = [
   { key: 'registros_ver',       label: 'Lista Aniversários — Ver',    descricao: 'Ver quais membros estão sem data de nascimento ou casamento' },
   { key: 'registros_editar',    label: 'Lista Aniversários — Editar', descricao: 'Preencher datas de nascimento e casamento direto na lista' },
   { key: 'usuarios_gerenciar',  label: 'Usuários — Gerenciar',     descricao: 'Criar e editar usuários vinculados à(s) sua(s) congregação(ões)' },
+  { key: 'recepcao',            label: 'Recepção',                descricao: 'Cadastrar visitantes e acompanhar (tela de Recepção)' },
 ] as const
 
 export type PermissaoKey = (typeof PERMISSOES_DISPONIVEIS)[number]['key']
+
+// ─── Rota inicial conforme permissões ─────────────────────────────────────────
+
+/** Ordem em que procuramos a primeira tela que o usuário pode ver. */
+export const ROTAS_MENU: { href: string; permissao: string }[] = [
+  { href: '/dashboard',       permissao: 'dashboard' },
+  { href: '/membros',         permissao: 'membros_ver' },
+  { href: '/recepcao',        permissao: 'recepcao' },
+  { href: '/aniversariantes', permissao: 'aniversariantes_ver' },
+  { href: '/departamentos',   permissao: 'departamentos_ver' },
+  { href: '/congregacoes',    permissao: 'congregacoes_ver' },
+]
+
+/** Primeira rota acessível para o usuário (fallback: Minha Conta). */
+export function rotaInicial(u: {
+  tipo?: string
+  perfil_id?: number | null
+  permissoes?: Record<string, boolean | undefined>
+}): string {
+  const tem = (k: string) => u.tipo === 'admin' || !u.perfil_id || !!u.permissoes?.[k]
+  return ROTAS_MENU.find(r => tem(r.permissao))?.href ?? '/minha-conta'
+}
