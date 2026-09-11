@@ -18,6 +18,7 @@ import { getCargoStyle } from '@/lib/constants'
 type Congregacao = {
   id: number
   nome: string
+  nome_oficial?: string | null
   cidade?: string
   estado?: string
   observacoes?: string
@@ -59,7 +60,7 @@ export default function CongregacoesPage() {
   const [modal, setModal] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [form, setForm] = useState({
-    nome: '', cidade: '', estado: '', observacoes: '',
+    nome: '', nome_oficial: '', cidade: '', estado: '', observacoes: '',
     dirigente_membro_id: '' as string | number,
     dirigente_telefone: '',
     notificar_whatsapp: true,
@@ -101,7 +102,7 @@ export default function CongregacoesPage() {
     setEditingId(null)
     setMembrosDoModal([])
     setForm({
-      nome: '', cidade: '', estado: '', observacoes: '',
+      nome: '', nome_oficial: '', cidade: '', estado: '', observacoes: '',
       dirigente_membro_id: '', dirigente_telefone: '', notificar_whatsapp: true,
     })
     setModal(true)
@@ -111,6 +112,7 @@ export default function CongregacoesPage() {
     setEditingId(c.id)
     setForm({
       nome: c.nome,
+      nome_oficial: c.nome_oficial || '',
       cidade: c.cidade || '',
       estado: c.estado || '',
       observacoes: c.observacoes || '',
@@ -332,6 +334,17 @@ export default function CongregacoesPage() {
                 onChange={e => setForm(f => ({ ...f, nome: e.target.value }))}
                 placeholder="Nome da congregação"
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Nome completo (para mensagens)</Label>
+              <Input
+                value={form.nome_oficial}
+                onChange={e => setForm(f => ({ ...f, nome_oficial: e.target.value }))}
+                placeholder="Ex.: Assembleia de Deus — Ministério Belém de Rio Claro"
+              />
+              <p className="text-xs text-muted-foreground">
+                Usado no lugar do nome curto ao enviar mensagens de WhatsApp. Se deixar em branco, usa o Nome acima.
+              </p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">

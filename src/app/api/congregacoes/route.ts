@@ -17,7 +17,7 @@ export const GET = withAuth(async (_req, user) => {
   }
 
   const result = await pool.query(`
-    SELECT c.id, c.nome, c.cidade, c.estado, c.observacoes,
+    SELECT c.id, c.nome, c.nome_oficial, c.cidade, c.estado, c.observacoes,
       c.dirigente_membro_id, c.dirigente_telefone, c.notificar_whatsapp, c.mensagem_boas_vindas,
       dm.nome AS dirigente_nome,
       COALESCE(NULLIF(dm.telefone_principal, ''), c.dirigente_telefone) AS dirigente_telefone_efetivo,
@@ -26,7 +26,7 @@ export const GET = withAuth(async (_req, user) => {
     LEFT JOIN membros m ON m.igreja = c.nome
     LEFT JOIN membros dm ON dm.id = c.dirigente_membro_id
     ${congWhere}
-    GROUP BY c.id, c.nome, c.cidade, c.estado, c.observacoes,
+    GROUP BY c.id, c.nome, c.nome_oficial, c.cidade, c.estado, c.observacoes,
       c.dirigente_membro_id, c.dirigente_telefone, c.notificar_whatsapp, c.mensagem_boas_vindas,
       dm.nome, dm.telefone_principal
     ORDER BY c.nome
@@ -35,12 +35,12 @@ export const GET = withAuth(async (_req, user) => {
 })
 
 export const POST = withAuth(async (req: NextRequest) => {
-  const { nome, cidade, estado, observacoes } = await req.json()
+  const { nome, cidade, estado, observacoes, nome_oficial } = await req.json()
   if (!nome?.trim()) throw new ApiError(400, 'Nome é obrigatório.')
 
   const result = await pool.query(
-    'INSERT INTO congregacoes (nome, cidade, estado, observacoes) VALUES ($1,$2,$3,$4) RETURNING *',
-    [nome.trim(), cidade || null, estado || null, observacoes || null],
+    'INSERT INTO congregacoes (nome, cidade, estado, observacoes, nome_oficial) VALUES ($1,$2,$3,$4,$5) RETURNING *',
+    [nome.trim(), cidade || null, estado || null, observacoes || null, (nome_oficial || '').trim() || null],
   )
   return Response.json(result.rows[0], { status: 201 })
 }, { adminOnly: true })

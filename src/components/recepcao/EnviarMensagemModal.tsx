@@ -15,6 +15,7 @@ import type { MensagemModelo } from '@/types'
 export interface AlvoMensagem {
   nome: string
   telefone: string | null
+  congregacao?: string | null
 }
 
 export function EnviarMensagemModal({
@@ -55,6 +56,7 @@ export function EnviarMensagemModal({
     setTexto(
       modelo.texto
         .replace(/\{nome\}/g, primeiroNome)
+        .replace(/\{congregacao\}/g, alvo.congregacao || '')
         .replace(/\{data\}/g, data || '{data}')
         .replace(/\{hora\}/g, hora || '{hora}'),
     )

@@ -95,8 +95,9 @@ export function FrasesProntas({
         <DialogHeader>
           <DialogTitle>Frases prontas</DialogTitle>
           <DialogDescription>
-            Use <code className="text-xs">{'{nome}'}</code>, <code className="text-xs">{'{data}'}</code> e{' '}
-            <code className="text-xs">{'{hora}'}</code> no texto — são preenchidos na hora de enviar.
+            Use <code className="text-xs">{'{nome}'}</code>, <code className="text-xs">{'{congregacao}'}</code>,{' '}
+            <code className="text-xs">{'{data}'}</code> e <code className="text-xs">{'{hora}'}</code> no texto —
+            são preenchidos na hora de enviar.
           </DialogDescription>
         </DialogHeader>
 

@@ -46,6 +46,7 @@ function RecepcaoInner() {
   type Cong = {
     id: number
     nome: string
+    nome_oficial?: string | null
     notificar_whatsapp?: boolean
     dirigente_nome?: string | null
     dirigente_telefone_efetivo?: string | null
@@ -394,7 +395,10 @@ function RecepcaoInner() {
                     )}
                     {numeroWhatsApp(v.telefone_principal) && (
                       <button
-                        onClick={() => setEnviando({ nome: v.nome, telefone: v.telefone_principal })}
+                        onClick={() => {
+                          const cong = congs.find(c => c.nome === v.igreja)
+                          setEnviando({ nome: v.nome, telefone: v.telefone_principal, congregacao: cong?.nome_oficial || cong?.nome || v.igreja || null })
+                        }}
                         title="Enviar mensagem ao visitante"
                         className="h-8 w-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950 transition-colors"
                       >
