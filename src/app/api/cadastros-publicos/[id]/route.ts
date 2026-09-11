@@ -44,25 +44,47 @@ export const PATCH = withAuthParams<{ id: string }>(async (req: NextRequest, use
       const m = await client.query(
         `INSERT INTO membros (
            nome, telefone_principal, email, data_nascimento, igreja, tipo_participante,
-           logradouro, data_casamento, estado_civil, grau_instrucao, profissao,
+           cep, logradouro, numero, complemento, bairro, cidade, estado,
+           data_casamento, estado_civil, grau_instrucao, profissao,
            dons_talentos, dons_desejados, batizado_espirito_santo, batizado_aguas,
            vida_ministerial, origem_religiosa, origem_religiosa_detalhe,
+           cpf, identidade, tipo_sanguineo, naturalidade, uf_naturalidade,
            desafios_pessoais, convidado_por, informacoes_complementares
          ) VALUES (
-           $1,$2,$3,$4,$5,'Visitante',$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20
+           $1,$2,$3,$4,$5,'Visitante',$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,
+           $21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31
          ) RETURNING id`,
         [
           c.nome, c.telefone || null, d.email || null, d.data_nascimento || null, igreja,
-          d.endereco || null, d.data_casamento || null, d.estado_civil || null,
+          d.cep || null, d.logradouro || null, d.numero || null, d.complemento || null,
+          d.bairro || null, d.cidade || null, d.estado || null,
+          d.data_casamento || null, d.estado_civil || null,
           d.grau_instrucao || null, d.profissao || null,
           d.dons_talentos || null, d.dons_desejados || null,
           d.batizado_espirito_santo ?? null, d.batizado_aguas ?? null,
           d.vida_ministerial || null, d.origem_religiosa || null, d.origem_religiosa_detalhe || null,
+          d.cpf || null, d.identidade || null, d.tipo_sanguineo || null,
+          d.naturalidade || null, d.uf_naturalidade || null,
           d.desafios_pessoais || null, d.convidado_por || null, d.informacoes_complementares || null,
         ],
       )
       membroId = m.rows[0].id
       await client.query('INSERT INTO visitas (membro_id, data_visita) VALUES ($1, CURRENT_DATE)', [membroId])
+
+      // Se a pessoa informou data do batismo, isso vira um registro no
+      // Histórico Eclesiástico do membro (igual a qualquer outro membro).
+      if (d.batizado_espirito_santo && d.data_batismo_espirito_santo) {
+        await client.query(
+          'INSERT INTO historicos (membro_id, tipo, data, localidade) VALUES ($1,$2,$3,$4)',
+          [membroId, 'Batismo no Espírito Santo', d.data_batismo_espirito_santo, d.local_batismo_espirito_santo || null],
+        )
+      }
+      if (d.batizado_aguas && d.data_batismo_aguas) {
+        await client.query(
+          'INSERT INTO historicos (membro_id, tipo, data, localidade) VALUES ($1,$2,$3,$4)',
+          [membroId, 'Batismo nas Águas', d.data_batismo_aguas, d.local_batismo_aguas || null],
+        )
+      }
     }
 
     await client.query(

@@ -172,10 +172,11 @@ export function Sidebar() {
               {(() => {
                 const podeUsuarios = isAdmin || permissoes.usuarios_gerenciar === true
                 const podeRegistros = isAdmin || temPermissao('registros_ver') || temPermissao('registros_editar')
-                if (!podeUsuarios && !podeRegistros && !isAdmin) return null
+                const podeCadastroPublico = isAdmin || permissoes.cadastro_publico === true
+                if (!podeUsuarios && !podeRegistros && !podeCadastroPublico) return null
                 const itensAdmin = adminItems.filter(item => {
                   if (item.href === '/membros/registros') return podeRegistros
-                  if (item.href === '/formulario-publico') return isAdmin
+                  if (item.href === '/formulario-publico') return podeCadastroPublico
                   return podeUsuarios
                 })
                 return (

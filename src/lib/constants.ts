@@ -194,6 +194,23 @@ export const ESTADO_CIVIL_ABREV: Record<string, string> = {
   'União Estável':'U.E.',
 }
 
+// ─── Cadastro público (Linha C) ────────────────────────────────────────────────
+
+/** Usado quando a congregação ainda não tem uma linha em formulario_publico_config. */
+export const FORMULARIO_PUBLICO_CONFIG_PADRAO = {
+  endereco: true,
+  nascimento: true,
+  estado_civil: true,
+  escolaridade_area: true,
+  dons_talentos: true,
+  vida_espiritual: true,
+  origem_religiosa: true,
+  documentos: true,
+  desafios_pessoais: false,
+  convidado_por: true,
+  observacoes: true,
+}
+
 // ─── Permissões do sistema ────────────────────────────────────────────────────
 
 export const PERMISSOES_DISPONIVEIS = [
@@ -211,6 +228,7 @@ export const PERMISSOES_DISPONIVEIS = [
   { key: 'registros_editar',    label: 'Lista Aniversários — Editar', descricao: 'Preencher datas de nascimento e casamento direto na lista' },
   { key: 'usuarios_gerenciar',  label: 'Usuários — Gerenciar',     descricao: 'Criar e editar usuários vinculados à(s) sua(s) congregação(ões)' },
   { key: 'recepcao',            label: 'Recepção',                descricao: 'Cadastrar visitantes e acompanhar (tela de Recepção)' },
+  { key: 'cadastro_publico',    label: 'Cadastro Público — Gerenciar', descricao: 'Configurar o formulário público e pegar o link de cadastro da(s) sua(s) congregação(ões)' },
 ] as const
 
 export type PermissaoKey = (typeof PERMISSOES_DISPONIVEIS)[number]['key']

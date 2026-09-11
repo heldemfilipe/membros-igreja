@@ -1,34 +1,49 @@
 import { NextRequest } from 'next/server'
 import pool from '@/lib/db'
-import { withAuth } from '@/lib/api'
+import { withAuth, ApiError } from '@/lib/api'
+import { assertCongregacaoNoEscopoDb } from '@/lib/scope'
+import { FORMULARIO_PUBLICO_CONFIG_PADRAO } from '@/lib/constants'
 
 /**
- * Configuração (linha única) de quais blocos aparecem no formulário público
- * de autocadastro. Só o admin geral mexe — afeta o que qualquer visitante
- * pode enviar por um link sem login.
+ * Configuração de quais blocos aparecem no formulário público de
+ * autocadastro — uma linha por congregação. Quem tem a permissão
+ * `cadastro_publico` só enxerga/edita a config da(s) sua(s) congregação(ões)
+ * (igual a qualquer outra tela escopada por congregação nesta app).
  */
-export const GET = withAuth(async () => {
-  const result = await pool.query('SELECT * FROM formulario_publico_config WHERE id = 1')
-  const { id: _id, ...campos } = result.rows[0] || {}
+export const GET = withAuth(async (req: NextRequest, user) => {
+  const congId = Number(new URL(req.url).searchParams.get('congregacao_id'))
+  if (!congId) throw new ApiError(400, 'Informe a congregação.')
+  await assertCongregacaoNoEscopoDb(user, congId, pool)
+
+  const result = await pool.query('SELECT * FROM formulario_publico_config WHERE congregacao_id = $1', [congId])
+  const { congregacao_id: _cid, ...campos } = result.rows[0] || { ...FORMULARIO_PUBLICO_CONFIG_PADRAO, congregacao_id: congId }
   return Response.json(campos)
-}, { adminOnly: true })
+}, { permission: 'cadastro_publico' })
 
-export const PUT = withAuth(async (req: NextRequest) => {
+export const PUT = withAuth(async (req: NextRequest, user) => {
   const body = await req.json()
-  const b = (v: unknown) => v === true
+  const congId = Number(body.congregacao_id)
+  if (!congId) throw new ApiError(400, 'Informe a congregação.')
+  await assertCongregacaoNoEscopoDb(user, congId, pool)
 
+  const b = (v: unknown) => v === true
   const result = await pool.query(
-    `UPDATE formulario_publico_config SET
-       endereco=$1, nascimento=$2, estado_civil=$3, escolaridade_area=$4,
-       dons_talentos=$5, vida_espiritual=$6, origem_religiosa=$7,
-       desafios_pessoais=$8, convidado_por=$9, observacoes=$10
-     WHERE id = 1 RETURNING *`,
+    `INSERT INTO formulario_publico_config (
+       congregacao_id, endereco, nascimento, estado_civil, escolaridade_area,
+       dons_talentos, vida_espiritual, origem_religiosa, documentos,
+       desafios_pessoais, convidado_por, observacoes
+     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+     ON CONFLICT (congregacao_id) DO UPDATE SET
+       endereco=$2, nascimento=$3, estado_civil=$4, escolaridade_area=$5,
+       dons_talentos=$6, vida_espiritual=$7, origem_religiosa=$8, documentos=$9,
+       desafios_pessoais=$10, convidado_por=$11, observacoes=$12
+     RETURNING *`,
     [
-      b(body.endereco), b(body.nascimento), b(body.estado_civil), b(body.escolaridade_area),
-      b(body.dons_talentos), b(body.vida_espiritual), b(body.origem_religiosa),
+      congId, b(body.endereco), b(body.nascimento), b(body.estado_civil), b(body.escolaridade_area),
+      b(body.dons_talentos), b(body.vida_espiritual), b(body.origem_religiosa), b(body.documentos),
       b(body.desafios_pessoais), b(body.convidado_por), b(body.observacoes),
     ],
   )
-  const { id: _id, ...campos } = result.rows[0]
+  const { congregacao_id: _cid, ...campos } = result.rows[0]
   return Response.json(campos)
-}, { adminOnly: true })
+}, { permission: 'cadastro_publico' })

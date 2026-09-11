@@ -122,6 +122,7 @@ export interface Permissoes {
   registros_editar?: boolean
   usuarios_gerenciar?: boolean
   recepcao?: boolean
+  cadastro_publico?: boolean
   [key: string]: boolean | undefined
 }
 
@@ -278,6 +279,7 @@ export interface FormularioPublicoConfig {
   dons_talentos: boolean
   vida_espiritual: boolean
   origem_religiosa: boolean
+  documentos: boolean
   desafios_pessoais: boolean
   convidado_por: boolean
   observacoes: boolean
@@ -286,7 +288,13 @@ export interface FormularioPublicoConfig {
 export interface CadastroPublicoDados {
   email?: string
   data_nascimento?: string
-  endereco?: string
+  cep?: string
+  logradouro?: string
+  numero?: string
+  complemento?: string
+  bairro?: string
+  cidade?: string
+  estado?: string
   data_casamento?: string
   estado_civil?: string
   grau_instrucao?: string
@@ -294,10 +302,19 @@ export interface CadastroPublicoDados {
   dons_talentos?: string
   dons_desejados?: string
   batizado_espirito_santo?: boolean
+  data_batismo_espirito_santo?: string
+  local_batismo_espirito_santo?: string
   batizado_aguas?: boolean
+  data_batismo_aguas?: string
+  local_batismo_aguas?: string
   vida_ministerial?: string
   origem_religiosa?: string
   origem_religiosa_detalhe?: string
+  cpf?: string
+  identidade?: string
+  tipo_sanguineo?: string
+  naturalidade?: string
+  uf_naturalidade?: string
   desafios_pessoais?: string
   convidado_por?: string
   informacoes_complementares?: string

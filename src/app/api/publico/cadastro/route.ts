@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import pool from '@/lib/db'
 import { ApiError, errorResponse } from '@/lib/api'
+import { FORMULARIO_PUBLICO_CONFIG_PADRAO } from '@/lib/constants'
 import type { FormularioPublicoConfig, CadastroPublicoDados } from '@/types'
 
 /**
@@ -30,8 +31,8 @@ export async function POST(req: NextRequest) {
     const cong = await pool.query('SELECT id FROM congregacoes WHERE id = $1', [congregacaoId])
     if (cong.rows.length === 0) throw new ApiError(404, 'Congregação não encontrada.')
 
-    const configResult = await pool.query('SELECT * FROM formulario_publico_config WHERE id = 1')
-    const config = (configResult.rows[0] || {}) as FormularioPublicoConfig
+    const configResult = await pool.query('SELECT * FROM formulario_publico_config WHERE congregacao_id = $1', [congregacaoId])
+    const config = (configResult.rows[0] || FORMULARIO_PUBLICO_CONFIG_PADRAO) as FormularioPublicoConfig
 
     const str = (v: unknown): string | undefined => {
       const s = typeof v === 'string' ? v.trim() : ''
@@ -44,8 +45,11 @@ export async function POST(req: NextRequest) {
     if (email) dados.email = email
 
     if (config.endereco) {
-      const v = str(body.endereco)
-      if (v) dados.endereco = v
+      const campos = ['cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'estado'] as const
+      for (const c of campos) {
+        const v = str(body[c])
+        if (v) dados[c] = v
+      }
     }
     if (config.nascimento) {
       const v = str(body.data_nascimento)
@@ -72,8 +76,20 @@ export async function POST(req: NextRequest) {
     if (config.vida_espiritual) {
       const bes = bool(body.batizado_espirito_santo)
       if (bes !== undefined) dados.batizado_espirito_santo = bes
+      if (bes) {
+        const d = str(body.data_batismo_espirito_santo)
+        if (d) dados.data_batismo_espirito_santo = d
+        const l = str(body.local_batismo_espirito_santo)
+        if (l) dados.local_batismo_espirito_santo = l
+      }
       const ba = bool(body.batizado_aguas)
       if (ba !== undefined) dados.batizado_aguas = ba
+      if (ba) {
+        const d = str(body.data_batismo_aguas)
+        if (d) dados.data_batismo_aguas = d
+        const l = str(body.local_batismo_aguas)
+        if (l) dados.local_batismo_aguas = l
+      }
       const vm = str(body.vida_ministerial)
       if (vm) dados.vida_ministerial = vm
     }
@@ -82,6 +98,18 @@ export async function POST(req: NextRequest) {
       if (v) dados.origem_religiosa = v
       const d = str(body.origem_religiosa_detalhe)
       if (d) dados.origem_religiosa_detalhe = d
+    }
+    if (config.documentos) {
+      const cpf = str(body.cpf)
+      if (cpf) dados.cpf = cpf
+      const identidade = str(body.identidade)
+      if (identidade) dados.identidade = identidade
+      const tipoSanguineo = str(body.tipo_sanguineo)
+      if (tipoSanguineo) dados.tipo_sanguineo = tipoSanguineo
+      const naturalidade = str(body.naturalidade)
+      if (naturalidade) dados.naturalidade = naturalidade
+      const ufNaturalidade = str(body.uf_naturalidade)
+      if (ufNaturalidade) dados.uf_naturalidade = ufNaturalidade
     }
     if (config.desafios_pessoais) {
       const v = str(body.desafios_pessoais)

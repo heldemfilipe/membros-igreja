@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Church, Loader2, CheckCircle2, User, MapPin, GraduationCap, Sparkles,
-  Cross, BookOpen, HeartHandshake, UserPlus, MessageSquare, X, Check,
+  Cross, BookOpen, HeartHandshake, UserPlus, MessageSquare, X, Check, Search, FileText,
 } from 'lucide-react'
 import { DONS_TALENTOS, ORIGENS_RELIGIOSAS } from '@/lib/constants'
 import type { FormularioPublicoConfig } from '@/types'
@@ -19,7 +19,13 @@ type Form = {
   telefone: string
   email: string
   data_nascimento: string
-  endereco: string
+  cep: string
+  logradouro: string
+  numero: string
+  complemento: string
+  bairro: string
+  cidade: string
+  estado: string
   estado_civil: string
   data_casamento: string
   grau_instrucao: string
@@ -27,22 +33,54 @@ type Form = {
   dons_talentos: string
   dons_desejados: string
   batizado_espirito_santo: boolean | null
+  data_batismo_espirito_santo: string
+  local_batismo_espirito_santo: string
   batizado_aguas: boolean | null
+  data_batismo_aguas: string
+  local_batismo_aguas: string
   vida_ministerial: string
   origem_religiosa: string
   origem_religiosa_detalhe: string
+  cpf: string
+  identidade: string
+  tipo_sanguineo: string
+  naturalidade: string
+  uf_naturalidade: string
   desafios_pessoais: string
   convidado_por: string
   informacoes_complementares: string
 }
 
 const vazio: Form = {
-  nome: '', telefone: '', email: '', data_nascimento: '', endereco: '',
+  nome: '', telefone: '', email: '', data_nascimento: '',
+  cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '',
   estado_civil: '', data_casamento: '', grau_instrucao: '', profissao: '',
   dons_talentos: '', dons_desejados: '',
-  batizado_espirito_santo: null, batizado_aguas: null, vida_ministerial: '',
+  batizado_espirito_santo: null, data_batismo_espirito_santo: '', local_batismo_espirito_santo: '',
+  batizado_aguas: null, data_batismo_aguas: '', local_batismo_aguas: '',
+  vida_ministerial: '',
   origem_religiosa: '', origem_religiosa_detalhe: '',
+  cpf: '', identidade: '', tipo_sanguineo: '', naturalidade: '', uf_naturalidade: '',
   desafios_pessoais: '', convidado_por: '', informacoes_complementares: '',
+}
+
+const maskCEP = (v: string) => {
+  const d = v.replace(/\D/g, '').slice(0, 8)
+  return d.length <= 5 ? d : `${d.slice(0, 5)}-${d.slice(5)}`
+}
+const maskCPF = (v: string) => {
+  const d = v.replace(/\D/g, '').slice(0, 11)
+  if (d.length <= 3) return d
+  if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`
+  if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`
+  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`
+}
+const maskRG = (v: string) => {
+  const d = v.replace(/[^0-9Xx]/g, '').toUpperCase().slice(0, 9)
+  if (d.length <= 2) return d
+  if (d.length <= 5) return `${d.slice(0, 2)}.${d.slice(2)}`
+  if (d.length <= 8) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5)}`
+  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}-${d.slice(8)}`
 }
 
 function Secao({ icon: Icon, titulo, children }: { icon: typeof User; titulo: string; children: React.ReactNode }) {
@@ -76,6 +114,23 @@ function SimNao({ label, valor, onChange }: { label: string; valor: boolean | nu
           }`}>
           Não
         </button>
+      </div>
+    </div>
+  )
+}
+
+function DataLocal({ data, local, onData, onLocal }: {
+  data: string; local: string; onData: (v: string) => void; onLocal: (v: string) => void
+}) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-1 -mt-1 pb-1">
+      <div className="space-y-1.5">
+        <Label className="text-xs text-muted-foreground">Quando?</Label>
+        <Input type="date" value={data} onChange={e => onData(e.target.value)} className="h-10" />
+      </div>
+      <div className="space-y-1.5">
+        <Label className="text-xs text-muted-foreground">Onde?</Label>
+        <Input value={local} onChange={e => onLocal(e.target.value)} placeholder="Igreja, cidade..." className="h-10" />
       </div>
     </div>
   )
@@ -130,6 +185,7 @@ export default function CadastroPublicoPage() {
   const [congNome, setCongNome] = useState('')
   const [campos, setCampos] = useState<FormularioPublicoConfig | null>(null)
   const [form, setForm] = useState<Form>(vazio)
+  const [buscandoCep, setBuscandoCep] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const [enviado, setEnviado] = useState(false)
   const [erroCampo, setErroCampo] = useState<string | null>(null)
@@ -146,6 +202,27 @@ export default function CadastroPublicoPage() {
   }, [params.congregacaoId])
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm(f => ({ ...f, [k]: v }))
+
+  const buscarCep = async () => {
+    const cep = form.cep.replace(/\D/g, '')
+    if (cep.length !== 8) return
+    setBuscandoCep(true)
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`)
+      const data = await res.json()
+      if (!data.erro) {
+        setForm(f => ({
+          ...f,
+          logradouro: data.logradouro || f.logradouro,
+          bairro: data.bairro || f.bairro,
+          cidade: data.localidade || f.cidade,
+          estado: data.uf || f.estado,
+        }))
+      }
+    } catch { /* ignore */ } finally {
+      setBuscandoCep(false)
+    }
+  }
 
   const enviar = async () => {
     if (!form.nome.trim()) { setErroCampo('Informe seu nome completo.'); return }
@@ -241,8 +318,79 @@ export default function CadastroPublicoPage() {
 
         {c.endereco && (
           <Secao icon={MapPin} titulo="Endereço">
-            <Textarea value={form.endereco} onChange={e => set('endereco', e.target.value)} rows={2}
-              placeholder="Rua, número, bairro, cidade..." />
+            <div className="space-y-1.5">
+              <Label className="text-sm">CEP</Label>
+              <div className="flex gap-2">
+                <Input value={form.cep} onChange={e => set('cep', maskCEP(e.target.value))} onBlur={buscarCep}
+                  placeholder="00000-000" maxLength={9} className="h-11" />
+                <Button type="button" variant="outline" size="icon" className="h-11 w-11 shrink-0" onClick={buscarCep} disabled={buscandoCep}>
+                  {buscandoCep ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-sm">Logradouro</Label>
+                <Input value={form.logradouro} onChange={e => set('logradouro', e.target.value)} placeholder="Rua, Av..." className="h-11" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm">Número</Label>
+                <Input value={form.numero} onChange={e => set('numero', e.target.value)} className="h-11" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-sm">Complemento</Label>
+                <Input value={form.complemento} onChange={e => set('complemento', e.target.value)} className="h-11" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm">Bairro</Label>
+                <Input value={form.bairro} onChange={e => set('bairro', e.target.value)} className="h-11" />
+              </div>
+            </div>
+            <div className="grid grid-cols-[1fr_auto] gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-sm">Cidade</Label>
+                <Input value={form.cidade} onChange={e => set('cidade', e.target.value)} className="h-11" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm">UF</Label>
+                <Input value={form.estado} onChange={e => set('estado', e.target.value.toUpperCase().slice(0, 2))} maxLength={2} className="h-11 w-16" />
+              </div>
+            </div>
+          </Secao>
+        )}
+
+        {c.documentos && (
+          <Secao icon={FileText} titulo="Documentos">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-sm">CPF</Label>
+                <Input value={form.cpf} onChange={e => set('cpf', maskCPF(e.target.value))} placeholder="000.000.000-00" maxLength={14} className="h-11" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm">RG / Identidade</Label>
+                <Input value={form.identidade} onChange={e => set('identidade', maskRG(e.target.value))} placeholder="00.000.000-0" maxLength={12} className="h-11" />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm">Tipo sanguíneo</Label>
+              <select value={form.tipo_sanguineo} onChange={e => set('tipo_sanguineo', e.target.value)}
+                className="w-full h-11 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                <option value="">Selecione...</option>
+                {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(v => <option key={v} value={v}>{v}</option>)}
+              </select>
+            </div>
+            <div className="grid grid-cols-[1fr_auto] gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-sm">Naturalidade (cidade onde nasceu)</Label>
+                <Input value={form.naturalidade} onChange={e => set('naturalidade', e.target.value)} className="h-11" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm">UF</Label>
+                <Input value={form.uf_naturalidade} onChange={e => set('uf_naturalidade', e.target.value.toUpperCase().slice(0, 2))} maxLength={2} className="h-11 w-16" />
+              </div>
+            </div>
           </Secao>
         )}
 
@@ -301,8 +449,20 @@ export default function CadastroPublicoPage() {
           <Secao icon={Cross} titulo="Vida espiritual">
             <SimNao label="É batizado(a) com o Espírito Santo?" valor={form.batizado_espirito_santo}
               onChange={v => set('batizado_espirito_santo', v)} />
+            {form.batizado_espirito_santo === true && (
+              <DataLocal
+                data={form.data_batismo_espirito_santo} local={form.local_batismo_espirito_santo}
+                onData={v => set('data_batismo_espirito_santo', v)} onLocal={v => set('local_batismo_espirito_santo', v)}
+              />
+            )}
             <SimNao label="É batizado(a) nas águas?" valor={form.batizado_aguas}
               onChange={v => set('batizado_aguas', v)} />
+            {form.batizado_aguas === true && (
+              <DataLocal
+                data={form.data_batismo_aguas} local={form.local_batismo_aguas}
+                onData={v => set('data_batismo_aguas', v)} onLocal={v => set('local_batismo_aguas', v)}
+              />
+            )}
             <div className="space-y-1.5 pt-1">
               <Label className="text-sm">
                 Tem algum dom espiritual? Já pregou? Já discipulou ou foi discipulado(a)? É obreiro(a)? Qual função?
