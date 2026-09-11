@@ -21,14 +21,21 @@ export const GET = withAuth(async (_req, user) => {
       c.dirigente_membro_id, c.dirigente_telefone, c.notificar_whatsapp, c.mensagem_boas_vindas,
       dm.nome AS dirigente_nome,
       COALESCE(NULLIF(dm.telefone_principal, ''), c.dirigente_telefone) AS dirigente_telefone_efetivo,
-      COUNT(m.id)::int AS total_membros
+      COUNT(m.id)::int AS total_membros,
+      COALESCE(cu.cultos, '[]'::jsonb) AS cultos
     FROM congregacoes c
     LEFT JOIN membros m ON m.igreja = c.nome
     LEFT JOIN membros dm ON dm.id = c.dirigente_membro_id
+    LEFT JOIN (
+      SELECT congregacao_id,
+        jsonb_agg(jsonb_build_object('id', id, 'nome', nome, 'dia_semana', dia_semana, 'horario', horario) ORDER BY dia_semana, horario) AS cultos
+      FROM cultos
+      GROUP BY congregacao_id
+    ) cu ON cu.congregacao_id = c.id
     ${congWhere}
     GROUP BY c.id, c.nome, c.nome_oficial, c.cidade, c.estado, c.observacoes,
       c.dirigente_membro_id, c.dirigente_telefone, c.notificar_whatsapp, c.mensagem_boas_vindas,
-      dm.nome, dm.telefone_principal
+      dm.nome, dm.telefone_principal, cu.cultos
     ORDER BY c.nome
   `, params)
   return Response.json(result.rows)

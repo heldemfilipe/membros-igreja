@@ -11,14 +11,16 @@ import { Badge } from '@/components/ui/badge'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
-import { Loader2, Plus, Pencil, Trash2, Church, Users, ChevronDown, ChevronUp, MapPin, MessageCircle } from 'lucide-react'
+import { Loader2, Plus, Pencil, Trash2, Church, Users, ChevronDown, ChevronUp, MapPin, MessageCircle, Clock, X } from 'lucide-react'
 import { calcularIdade } from '@/lib/utils'
-import { getCargoStyle } from '@/lib/constants'
+import { getCargoStyle, DIAS_SEMANA } from '@/lib/constants'
+import type { Culto } from '@/types'
 
 type Congregacao = {
   id: number
   nome: string
   nome_oficial?: string | null
+  cultos?: Culto[]
   cidade?: string
   estado?: string
   observacoes?: string
@@ -47,6 +49,35 @@ const TIPO_STYLE: Record<string, { card: string; avatar: string }> = {
   Visitante:  { card: 'border-l-4 border-l-amber-500',   avatar: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' },
 }
 
+function NovoCulto({ onAdd }: { onAdd: (c: Culto) => void }) {
+  const [dia, setDia] = useState(0)
+  const [horario, setHorario] = useState('')
+  const [nome, setNome] = useState('')
+
+  const add = () => {
+    if (!horario || !nome.trim()) return
+    onAdd({ nome: nome.trim(), dia_semana: dia, horario })
+    setNome(''); setHorario('')
+  }
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1.3fr_auto] gap-2">
+      <select
+        value={dia}
+        onChange={e => setDia(Number(e.target.value))}
+        className="h-9 px-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+      >
+        {DIAS_SEMANA.map((d, i) => <option key={i} value={i}>{d}</option>)}
+      </select>
+      <Input type="time" value={horario} onChange={e => setHorario(e.target.value)} className="h-9 sm:w-28" />
+      <Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex.: Culto de Celebração" className="h-9" />
+      <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={add}>
+        <Plus className="h-3.5 w-3.5" /> Adicionar
+      </Button>
+    </div>
+  )
+}
+
 export default function CongregacoesPage() {
   const { token, isAdmin } = useAuth()
   const { toast } = useToast()
@@ -64,6 +95,7 @@ export default function CongregacoesPage() {
     dirigente_membro_id: '' as string | number,
     dirigente_telefone: '',
     notificar_whatsapp: true,
+    cultos: [] as Culto[],
   })
   const [saving, setSaving] = useState(false)
   // Membros da congregação em edição (para escolher o dirigente)
@@ -104,6 +136,7 @@ export default function CongregacoesPage() {
     setForm({
       nome: '', nome_oficial: '', cidade: '', estado: '', observacoes: '',
       dirigente_membro_id: '', dirigente_telefone: '', notificar_whatsapp: true,
+      cultos: [],
     })
     setModal(true)
   }
@@ -119,6 +152,7 @@ export default function CongregacoesPage() {
       dirigente_membro_id: c.dirigente_membro_id ?? '',
       dirigente_telefone: c.dirigente_telefone || '',
       notificar_whatsapp: c.notificar_whatsapp !== false,
+      cultos: c.cultos || [],
     })
     setModal(true)
     // Carrega os membros para o seletor de dirigente
@@ -432,6 +466,41 @@ export default function CongregacoesPage() {
               <p className="text-xs text-muted-foreground">
                 Salve a congregação e cadastre os membros; depois edite aqui para definir o dirigente e o aviso no WhatsApp.
               </p>
+            )}
+
+            {/* Cultos da semana */}
+            {editingId && (
+              <div className="space-y-3 rounded-lg border p-3 bg-muted/20">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-semibold">Cultos da semana</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Usados no seletor &quot;Próximo culto&quot; e nos placeholders <code className="text-xs">{'{culto}'}</code> e{' '}
+                  <code className="text-xs">{'{horarios}'}</code> das frases prontas.
+                </p>
+
+                {form.cultos.length > 0 && (
+                  <div className="space-y-1.5">
+                    {form.cultos.map((cu, i) => (
+                      <div key={i} className="flex items-center gap-2 bg-background border rounded-md px-2.5 py-1.5">
+                        <span className="text-sm flex-1 min-w-0 truncate">
+                          <strong>{DIAS_SEMANA[cu.dia_semana]}</strong> às {cu.horario} — {cu.nome}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setForm(f => ({ ...f, cultos: f.cultos.filter((_, idx) => idx !== i) }))}
+                          className="h-7 w-7 shrink-0 rounded-md flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <NovoCulto onAdd={cu => setForm(f => ({ ...f, cultos: [...f.cultos, cu] }))} />
+              </div>
             )}
           </div>
           <DialogFooter>

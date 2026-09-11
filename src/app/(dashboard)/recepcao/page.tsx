@@ -19,7 +19,7 @@ import { AvisoDirigente, type AvisoDados } from '@/components/recepcao/AvisoDiri
 import { AcompanhamentoModal, type VisitanteEdicao } from '@/components/recepcao/AcompanhamentoModal'
 import { EnviarMensagemModal, type AlvoMensagem } from '@/components/recepcao/EnviarMensagemModal'
 import { FrasesProntas } from '@/components/recepcao/FrasesProntas'
-import type { VisitanteRecepcao, Acompanhamento, CadastroPublico } from '@/types'
+import type { VisitanteRecepcao, Acompanhamento, CadastroPublico, Culto } from '@/types'
 
 const LABELS_CADASTRO_PUBLICO: Record<string, string> = {
   email: 'E-mail',
@@ -80,6 +80,7 @@ function RecepcaoInner() {
     notificar_whatsapp?: boolean
     dirigente_nome?: string | null
     dirigente_telefone_efetivo?: string | null
+    cultos?: Culto[]
   }
   const [congs, setCongs] = useState<Cong[]>([])
   const [lista, setLista] = useState<VisitanteRecepcao[]>([])
@@ -530,7 +531,11 @@ function RecepcaoInner() {
                       <button
                         onClick={() => {
                           const cong = congs.find(c => c.nome === v.igreja)
-                          setEnviando({ nome: v.nome, telefone: v.telefone_principal, congregacao: cong?.nome_oficial || cong?.nome || v.igreja || null })
+                          setEnviando({
+                            nome: v.nome, telefone: v.telefone_principal,
+                            congregacao: cong?.nome_oficial || cong?.nome || v.igreja || null,
+                            cultos: cong?.cultos || [],
+                          })
                         }}
                         title="Enviar mensagem ao visitante"
                         className="h-8 w-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950 transition-colors"

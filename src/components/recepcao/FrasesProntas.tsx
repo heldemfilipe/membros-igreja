@@ -96,8 +96,9 @@ export function FrasesProntas({
           <DialogTitle>Frases prontas</DialogTitle>
           <DialogDescription>
             Use <code className="text-xs">{'{nome}'}</code>, <code className="text-xs">{'{congregacao}'}</code>,{' '}
-            <code className="text-xs">{'{data}'}</code> e <code className="text-xs">{'{hora}'}</code> no texto —
-            são preenchidos na hora de enviar.
+            <code className="text-xs">{'{culto}'}</code>, <code className="text-xs">{'{data}'}</code>,{' '}
+            <code className="text-xs">{'{hora}'}</code> e <code className="text-xs">{'{horarios}'}</code> (lista
+            completa dos cultos) no texto — são preenchidos na hora de enviar.
           </DialogDescription>
         </DialogHeader>
 

@@ -241,6 +241,13 @@ export interface Acompanhamento {
   observacoes: string | null
 }
 
+export interface Culto {
+  id?: number
+  nome: string
+  dia_semana: number
+  horario: string
+}
+
 export interface MensagemModelo {
   id: number
   titulo: string

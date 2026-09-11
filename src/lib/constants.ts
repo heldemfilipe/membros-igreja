@@ -19,6 +19,11 @@ export const ORIGENS_RELIGIOSAS = [
   'Outra',
 ]
 
+// Dias da semana (índice igual ao Date.getDay() do JS: 0=domingo ... 6=sábado)
+export const DIAS_SEMANA = [
+  'Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado',
+]
+
 // Dons e talentos (para "possui" e "gostaria de ter")
 export const DONS_TALENTOS = [
   'Ensino', 'Pregação', 'Música / Louvor', 'Intercessão', 'Evangelismo',

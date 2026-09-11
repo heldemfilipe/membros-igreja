@@ -46,6 +46,7 @@ const MIGRATIONS = [
   'migration-mensagem-modelo-extra.sql',
   'migration-indexes.sql',
   'migration-cadastro-publico.sql',
+  'migration-cultos.sql',
   'migration-rls-enable.sql',
 ]
 
