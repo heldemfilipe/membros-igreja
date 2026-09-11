@@ -41,6 +41,10 @@ export interface Membro {
   convidado_por?: string
   dons_talentos?: string
   dons_desejados?: string
+  batizado_espirito_santo?: boolean | null
+  batizado_aguas?: boolean | null
+  vida_ministerial?: string | null
+  desafios_pessoais?: string | null
   tipo_participante: 'Membro' | 'Congregado' | 'Visitante'
   ativo?: boolean
   informacoes_complementares?: string
@@ -255,4 +259,51 @@ export interface VisitanteRecepcao extends Acompanhamento {
   total_visitas: number
   ultima_visita: string
   primeira_visita: string
+}
+
+// ─── Cadastro público (Linha C) ────────────────────────────────────────────
+
+export interface FormularioPublicoConfig {
+  endereco: boolean
+  nascimento: boolean
+  estado_civil: boolean
+  escolaridade_area: boolean
+  dons_talentos: boolean
+  vida_espiritual: boolean
+  origem_religiosa: boolean
+  desafios_pessoais: boolean
+  convidado_por: boolean
+  observacoes: boolean
+}
+
+export interface CadastroPublicoDados {
+  email?: string
+  data_nascimento?: string
+  endereco?: string
+  data_casamento?: string
+  estado_civil?: string
+  grau_instrucao?: string
+  profissao?: string
+  dons_talentos?: string
+  dons_desejados?: string
+  batizado_espirito_santo?: boolean
+  batizado_aguas?: boolean
+  vida_ministerial?: string
+  origem_religiosa?: string
+  origem_religiosa_detalhe?: string
+  desafios_pessoais?: string
+  convidado_por?: string
+  informacoes_complementares?: string
+}
+
+export interface CadastroPublico {
+  id: number
+  congregacao_id: number | null
+  congregacao_nome?: string | null
+  nome: string
+  telefone: string | null
+  dados: CadastroPublicoDados
+  status: 'pendente' | 'aprovado' | 'rejeitado'
+  membro_id: number | null
+  created_at: string
 }

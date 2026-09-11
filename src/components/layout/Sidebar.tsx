@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, Users, Building2, UserCog, Cake, DoorOpen,
-  Menu, X, Church, LogOut, Shield, Loader2, Lock, Filter, ClipboardList, ChevronRight,
+  Menu, X, Church, LogOut, Shield, Loader2, Lock, Filter, ClipboardList, ChevronRight, Link2,
 } from 'lucide-react'
 
 import { useEffect, useState } from 'react'
@@ -24,6 +24,7 @@ const menuItems = [
 const adminItems = [
   { title: 'Usuários',          icon: UserCog,       href: '/usuarios' },
   { title: 'Lista Aniversários', icon: ClipboardList, href: '/membros/registros' },
+  { title: 'Cadastro Público',  icon: Link2,         href: '/formulario-publico' },
 ]
 
 export function Sidebar() {
@@ -171,10 +172,12 @@ export function Sidebar() {
               {(() => {
                 const podeUsuarios = isAdmin || permissoes.usuarios_gerenciar === true
                 const podeRegistros = isAdmin || temPermissao('registros_ver') || temPermissao('registros_editar')
-                if (!podeUsuarios && !podeRegistros) return null
-                const itensAdmin = adminItems.filter(item =>
-                  item.href === '/membros/registros' ? podeRegistros : podeUsuarios
-                )
+                if (!podeUsuarios && !podeRegistros && !isAdmin) return null
+                const itensAdmin = adminItems.filter(item => {
+                  if (item.href === '/membros/registros') return podeRegistros
+                  if (item.href === '/formulario-publico') return isAdmin
+                  return podeUsuarios
+                })
                 return (
                   <>
                     <div className="pt-4 pb-1 px-1">
