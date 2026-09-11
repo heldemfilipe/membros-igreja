@@ -44,6 +44,7 @@ const MIGRATIONS = [
   'migration-mensagem-modelo.sql',
   'migration-mensagem-modelo-extra.sql',
   'migration-indexes.sql',
+  'migration-rls-enable.sql',
 ]
 
 async function main() {
