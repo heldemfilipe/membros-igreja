@@ -73,15 +73,30 @@ function dataBR(iso: string): string {
   return dd && m && y ? `${dd}/${m}/${y}` : iso
 }
 
+const ITENS_ACOMPANHAMENTO: { key: keyof VisitanteRecepcao; label: string }[] = [
+  { key: 'contato_feito', label: 'Contato feito' },
+  { key: 'visita_agendada', label: 'Visita marcada' },
+  { key: 'visita_casa_feita', label: 'Visita realizada' },
+  { key: 'voltou_culto', label: 'Voltou ao culto' },
+  { key: 'discipulado', label: 'Discipulado' },
+  { key: 'batizado', label: 'Batizado' },
+]
+
 function statusTags(v: VisitanteRecepcao): string[] {
-  return [
-    v.contato_feito && 'Contato feito',
-    v.visita_agendada && 'Visita marcada',
-    v.visita_casa_feita && 'Visita realizada',
-    v.voltou_culto && 'Voltou ao culto',
-    v.discipulado && 'Discipulado',
-    v.batizado && 'Batizado',
-  ].filter(Boolean) as string[]
+  return ITENS_ACOMPANHAMENTO.filter(i => v[i.key]).map(i => i.label)
+}
+
+function StatusItem({ done, label }: { done: boolean; label: string }) {
+  return (
+    <div className="flex items-center gap-1.5 text-xs">
+      <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
+        done ? 'bg-emerald-500 text-white' : 'border border-muted-foreground/30'
+      }`}>
+        {done && <Check className="h-2.5 w-2.5" />}
+      </span>
+      <span className={done ? 'text-foreground' : 'text-muted-foreground'}>{label}</span>
+    </div>
+  )
 }
 
 function RecepcaoInner() {
@@ -112,6 +127,7 @@ function RecepcaoInner() {
   const [frasesOpen, setFrasesOpen] = useState(false)
   const [pendentes, setPendentes] = useState<CadastroPublico[]>([])
   const [expandidoPendente, setExpandidoPendente] = useState<number | null>(null)
+  const [expandidoAcomp, setExpandidoAcomp] = useState<number | null>(null)
   const [processandoPendente, setProcessandoPendente] = useState<number | null>(null)
 
   const carregar = useCallback(async () => {
@@ -585,17 +601,46 @@ function RecepcaoInner() {
                 </div>
 
                 {/* Status do acompanhamento */}
-                <div className="flex flex-wrap items-center gap-1.5 pl-12">
-                  {statusTags(v).length === 0 ? (
-                    <button onClick={() => setEditando(v)} className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2">
-                      registrar acompanhamento
-                    </button>
-                  ) : (
-                    statusTags(v).map(t => (
-                      <Badge key={t} variant="outline" className="text-[10px] text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700">
-                        {t}
-                      </Badge>
-                    ))
+                <div className="pl-12">
+                  <button
+                    type="button"
+                    onClick={() => setExpandidoAcomp(expandidoAcomp === v.membro_id ? null : v.membro_id)}
+                    className="w-full flex items-center gap-2 -mx-2 px-2 py-1.5 rounded-md hover:bg-accent/40 transition-colors text-left"
+                  >
+                    <div className="flex-1 min-w-0">
+                      {statusTags(v).length === 0 ? (
+                        <span className="text-xs text-muted-foreground">Nenhum acompanhamento registrado ainda</span>
+                      ) : (
+                        <div className="flex flex-wrap gap-1.5">
+                          {statusTags(v).map(t => (
+                            <Badge key={t} variant="outline" className="text-[10px] text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700">
+                              {t}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {expandidoAcomp === v.membro_id
+                      ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
+                      : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
+                  </button>
+
+                  {expandidoAcomp === v.membro_id && (
+                    <div className="mt-1.5 pb-1 space-y-2.5">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-1.5">
+                        {ITENS_ACOMPANHAMENTO.map(i => (
+                          <StatusItem key={i.key} done={!!v[i.key]} label={i.label} />
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setEditando(v)}
+                        className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-input text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        Registrar acompanhamento
+                      </button>
+                    </div>
                   )}
                 </div>
               </CardContent>
