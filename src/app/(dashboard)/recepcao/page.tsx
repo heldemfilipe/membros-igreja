@@ -73,12 +73,18 @@ function dataBR(iso: string): string {
   return dd && m && y ? `${dd}/${m}/${y}` : iso
 }
 
-const ITENS_ACOMPANHAMENTO: { key: keyof VisitanteRecepcao; label: string }[] = [
-  { key: 'contato_feito', label: 'Contato feito' },
-  { key: 'visita_agendada', label: 'Visita marcada' },
+/** Junta partes não-vazias com " · " (ex.: "Heldem · 11/09/2025"). */
+function juntar(...partes: (string | null | undefined | false)[]): string | null {
+  const validas = partes.filter(Boolean) as string[]
+  return validas.length > 0 ? validas.join(' · ') : null
+}
+
+const ITENS_ACOMPANHAMENTO: { key: keyof VisitanteRecepcao; label: string; detalhe?: (v: VisitanteRecepcao) => string | null }[] = [
+  { key: 'contato_feito', label: 'Contato feito', detalhe: v => juntar(v.contato_por, v.contato_data && formatarData(v.contato_data)) },
+  { key: 'visita_agendada', label: 'Visita marcada', detalhe: v => juntar(v.visita_agendada_por, v.visita_casa_data && `agendada p/ ${formatarData(v.visita_casa_data)}`) },
   { key: 'visita_casa_feita', label: 'Visita realizada' },
-  { key: 'voltou_culto', label: 'Voltou ao culto' },
-  { key: 'discipulado', label: 'Discipulado' },
+  { key: 'voltou_culto', label: 'Voltou ao culto', detalhe: v => v.voltou_culto_data ? formatarData(v.voltou_culto_data) : null },
+  { key: 'discipulado', label: 'Discipulado', detalhe: v => juntar(v.discipulador, v.discipulado_inicio && `desde ${formatarData(v.discipulado_inicio)}`) },
   { key: 'batizado', label: 'Batizado' },
 ]
 
@@ -86,15 +92,18 @@ function statusTags(v: VisitanteRecepcao): string[] {
   return ITENS_ACOMPANHAMENTO.filter(i => v[i.key]).map(i => i.label)
 }
 
-function StatusItem({ done, label }: { done: boolean; label: string }) {
+function StatusItem({ done, label, detalhe }: { done: boolean; label: string; detalhe?: string | null }) {
   return (
-    <div className="flex items-center gap-1.5 text-xs">
-      <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
+    <div className="flex items-start gap-1.5 text-xs">
+      <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
         done ? 'bg-emerald-500 text-white' : 'border border-muted-foreground/30'
       }`}>
         {done && <Check className="h-2.5 w-2.5" />}
       </span>
-      <span className={done ? 'text-foreground' : 'text-muted-foreground'}>{label}</span>
+      <div className="min-w-0">
+        <span className={done ? 'text-foreground' : 'text-muted-foreground'}>{label}</span>
+        {done && detalhe && <p className="text-[11px] text-muted-foreground truncate">{detalhe}</p>}
+      </div>
     </div>
   )
 }
@@ -627,11 +636,21 @@ function RecepcaoInner() {
 
                   {expandidoAcomp === v.membro_id && (
                     <div className="mt-1.5 pb-1 space-y-2.5">
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-1.5">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-2">
                         {ITENS_ACOMPANHAMENTO.map(i => (
-                          <StatusItem key={i.key} done={!!v[i.key]} label={i.label} />
+                          <StatusItem key={i.key} done={!!v[i.key]} label={i.label} detalhe={i.detalhe?.(v)} />
                         ))}
                       </div>
+                      {(v.congregacao_origem || v.observacoes) && (
+                        <div className="space-y-1 pt-2 border-t text-xs">
+                          {v.congregacao_origem && (
+                            <p><span className="text-muted-foreground">Já congrega em: </span>{v.congregacao_origem}</p>
+                          )}
+                          {v.observacoes && (
+                            <p className="whitespace-pre-wrap"><span className="text-muted-foreground">Observações: </span>{v.observacoes}</p>
+                          )}
+                        </div>
+                      )}
                       <button
                         type="button"
                         onClick={() => setEditando(v)}
