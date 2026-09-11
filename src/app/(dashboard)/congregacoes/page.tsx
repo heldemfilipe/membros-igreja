@@ -61,19 +61,29 @@ function NovoCulto({ onAdd }: { onAdd: (c: Culto) => void }) {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1.3fr_auto] gap-2">
-      <select
-        value={dia}
-        onChange={e => setDia(Number(e.target.value))}
-        className="h-9 px-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-      >
-        {DIAS_SEMANA.map((d, i) => <option key={i} value={i}>{d}</option>)}
-      </select>
-      <Input type="time" value={horario} onChange={e => setHorario(e.target.value)} className="h-9 sm:w-28" />
-      <Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex.: Culto de Celebração" className="h-9" />
-      <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={add}>
-        <Plus className="h-3.5 w-3.5" /> Adicionar
-      </Button>
+    <div className="space-y-2">
+      <div className="grid grid-cols-2 gap-2">
+        <select
+          value={dia}
+          onChange={e => setDia(Number(e.target.value))}
+          className="h-9 px-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          {DIAS_SEMANA.map((d, i) => <option key={i} value={i}>{d}</option>)}
+        </select>
+        <Input type="time" value={horario} onChange={e => setHorario(e.target.value)} className="h-9" />
+      </div>
+      <div className="flex gap-2">
+        <Input
+          value={nome}
+          onChange={e => setNome(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add() } }}
+          placeholder="Ex.: Culto de Celebração"
+          className="h-9 flex-1 min-w-0"
+        />
+        <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={add}>
+          <Plus className="h-3.5 w-3.5" /> Adicionar
+        </Button>
+      </div>
     </div>
   )
 }
