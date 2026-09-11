@@ -119,14 +119,16 @@ function SimNao({ label, valor, onChange }: { label: string; valor: boolean | nu
   )
 }
 
-function DataLocal({ data, local, onData, onLocal }: {
-  data: string; local: string; onData: (v: string) => void; onLocal: (v: string) => void
+function DataLocal({ id, data, local, erro, onData, onLocal }: {
+  id: string; data: string; local: string; erro?: string; onData: (v: string) => void; onLocal: (v: string) => void
 }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-1 -mt-1 pb-1">
+    <div id={id} className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-1 -mt-1 pb-1">
       <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">Quando?</Label>
-        <Input type="date" value={data} onChange={e => onData(e.target.value)} className="h-10" />
+        <Label className="text-xs text-muted-foreground">Quando? *</Label>
+        <Input type="date" value={data} onChange={e => onData(e.target.value)}
+          className={`h-10 ${erro ? 'border-red-500 focus-visible:ring-red-500' : ''}`} />
+        {erro && <p className="text-xs text-red-500">{erro}</p>}
       </div>
       <div className="space-y-1.5">
         <Label className="text-xs text-muted-foreground">Onde?</Label>
@@ -178,6 +180,8 @@ function Chips({ label, valor, onChange, placeholder }: {
   )
 }
 
+type Errors = Partial<Record<keyof Form, string>>
+
 export default function CadastroPublicoPage() {
   const params = useParams<{ congregacaoId: string }>()
   const [carregando, setCarregando] = useState(true)
@@ -185,6 +189,7 @@ export default function CadastroPublicoPage() {
   const [congNome, setCongNome] = useState('')
   const [campos, setCampos] = useState<FormularioPublicoConfig | null>(null)
   const [form, setForm] = useState<Form>(vazio)
+  const [erros, setErros] = useState<Errors>({})
   const [buscandoCep, setBuscandoCep] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const [enviado, setEnviado] = useState(false)
@@ -201,7 +206,10 @@ export default function CadastroPublicoPage() {
       .finally(() => setCarregando(false))
   }, [params.congregacaoId])
 
-  const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm(f => ({ ...f, [k]: v }))
+  const set = <K extends keyof Form>(k: K, v: Form[K]) => {
+    setForm(f => ({ ...f, [k]: v }))
+    setErros(e => (e[k] ? { ...e, [k]: undefined } : e))
+  }
 
   const buscarCep = async () => {
     const cep = form.cep.replace(/\D/g, '')
@@ -224,8 +232,34 @@ export default function CadastroPublicoPage() {
     }
   }
 
+  const validar = (): Errors => {
+    const e: Errors = {}
+    if (!form.nome.trim()) e.nome = 'Informe seu nome completo.'
+    if (!form.telefone.trim()) e.telefone = 'Informe um telefone para contato.'
+    if ((form.estado_civil === 'Casado(a)' || form.estado_civil === 'União Estável') && !form.data_casamento) {
+      e.data_casamento = 'Informe a data de casamento.'
+    }
+    if (form.batizado_espirito_santo === true && !form.data_batismo_espirito_santo) {
+      e.data_batismo_espirito_santo = 'Informe quando foi batizado(a).'
+    }
+    if (form.batizado_aguas === true && !form.data_batismo_aguas) {
+      e.data_batismo_aguas = 'Informe quando foi batizado(a).'
+    }
+    if (form.origem_religiosa === 'Outra' && !form.origem_religiosa_detalhe.trim()) {
+      e.origem_religiosa_detalhe = 'Diga qual é a sua religião.'
+    }
+    return e
+  }
+
   const enviar = async () => {
-    if (!form.nome.trim()) { setErroCampo('Informe seu nome completo.'); return }
+    const e = validar()
+    setErros(e)
+    const chaves = Object.keys(e)
+    if (chaves.length > 0) {
+      setErroCampo('Preencha os campos em vermelho para poder enviar.')
+      document.getElementById(`campo-${chaves[0]}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return
+    }
     setErroCampo(null)
     setEnviando(true)
     try {
@@ -293,15 +327,18 @@ export default function CadastroPublicoPage() {
         </div>
 
         <Secao icon={User} titulo="Seus dados">
-          <div className="space-y-1.5">
+          <div id="campo-nome" className="space-y-1.5">
             <Label className="text-sm">Nome completo *</Label>
             <Input value={form.nome} onChange={e => set('nome', e.target.value)} placeholder="Seu nome completo"
-              className="h-11" autoFocus />
+              className={`h-11 ${erros.nome ? 'border-red-500 focus-visible:ring-red-500' : ''}`} autoFocus />
+            {erros.nome && <p className="text-xs text-red-500">{erros.nome}</p>}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-sm">Telefone / WhatsApp</Label>
-              <Input type="tel" value={form.telefone} onChange={e => set('telefone', e.target.value)} placeholder="(00) 00000-0000" className="h-11" />
+            <div id="campo-telefone" className="space-y-1.5">
+              <Label className="text-sm">Telefone / WhatsApp *</Label>
+              <Input type="tel" value={form.telefone} onChange={e => set('telefone', e.target.value)} placeholder="(00) 00000-0000"
+                className={`h-11 ${erros.telefone ? 'border-red-500 focus-visible:ring-red-500' : ''}`} />
+              {erros.telefone && <p className="text-xs text-red-500">{erros.telefone}</p>}
             </div>
             <div className="space-y-1.5">
               <Label className="text-sm">E-mail</Label>
@@ -396,22 +433,30 @@ export default function CadastroPublicoPage() {
 
         {c.estado_civil && (
           <Secao icon={HeartHandshake} titulo="Estado civil">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-sm">Estado civil</Label>
-                <select value={form.estado_civil} onChange={e => set('estado_civil', e.target.value)}
-                  className="w-full h-11 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-                  <option value="">Selecione...</option>
-                  {['Solteiro(a)', 'Casado(a)', 'União Estável', 'Divorciado(a)', 'Separado(a)', 'Viúvo(a)'].map(v => (
-                    <option key={v} value={v}>{v}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-sm">Data de casamento</Label>
-                <Input type="date" value={form.data_casamento} onChange={e => set('data_casamento', e.target.value)} className="h-11" />
-              </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm">Estado civil</Label>
+              <select
+                value={form.estado_civil}
+                onChange={e => {
+                  const v = e.target.value
+                  set('estado_civil', v)
+                  if (v !== 'Casado(a)' && v !== 'União Estável') set('data_casamento', '')
+                }}
+                className="w-full h-11 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                <option value="">Selecione...</option>
+                {['Solteiro(a)', 'Casado(a)', 'União Estável', 'Divorciado(a)', 'Separado(a)', 'Viúvo(a)'].map(v => (
+                  <option key={v} value={v}>{v}</option>
+                ))}
+              </select>
             </div>
+            {(form.estado_civil === 'Casado(a)' || form.estado_civil === 'União Estável') && (
+              <div id="campo-data_casamento" className="space-y-1.5">
+                <Label className="text-sm">Data de casamento *</Label>
+                <Input type="date" value={form.data_casamento} onChange={e => set('data_casamento', e.target.value)}
+                  className={`h-11 ${erros.data_casamento ? 'border-red-500 focus-visible:ring-red-500' : ''}`} />
+                {erros.data_casamento && <p className="text-xs text-red-500">{erros.data_casamento}</p>}
+              </div>
+            )}
           </Secao>
         )}
 
@@ -448,18 +493,28 @@ export default function CadastroPublicoPage() {
         {c.vida_espiritual && (
           <Secao icon={Cross} titulo="Vida espiritual">
             <SimNao label="É batizado(a) com o Espírito Santo?" valor={form.batizado_espirito_santo}
-              onChange={v => set('batizado_espirito_santo', v)} />
+              onChange={v => {
+                set('batizado_espirito_santo', v)
+                if (!v) { set('data_batismo_espirito_santo', ''); set('local_batismo_espirito_santo', '') }
+              }} />
             {form.batizado_espirito_santo === true && (
               <DataLocal
+                id="campo-data_batismo_espirito_santo"
                 data={form.data_batismo_espirito_santo} local={form.local_batismo_espirito_santo}
+                erro={erros.data_batismo_espirito_santo}
                 onData={v => set('data_batismo_espirito_santo', v)} onLocal={v => set('local_batismo_espirito_santo', v)}
               />
             )}
             <SimNao label="É batizado(a) nas águas?" valor={form.batizado_aguas}
-              onChange={v => set('batizado_aguas', v)} />
+              onChange={v => {
+                set('batizado_aguas', v)
+                if (!v) { set('data_batismo_aguas', ''); set('local_batismo_aguas', '') }
+              }} />
             {form.batizado_aguas === true && (
               <DataLocal
+                id="campo-data_batismo_aguas"
                 data={form.data_batismo_aguas} local={form.local_batismo_aguas}
+                erro={erros.data_batismo_aguas}
                 onData={v => set('data_batismo_aguas', v)} onLocal={v => set('local_batismo_aguas', v)}
               />
             )}
@@ -477,16 +532,24 @@ export default function CadastroPublicoPage() {
           <Secao icon={BookOpen} titulo="Se nunca foi evangélico">
             <div className="space-y-1.5">
               <Label className="text-sm">Qual era sua religião? O que você cria?</Label>
-              <select value={form.origem_religiosa} onChange={e => set('origem_religiosa', e.target.value)}
+              <select
+                value={form.origem_religiosa}
+                onChange={e => {
+                  const v = e.target.value
+                  set('origem_religiosa', v)
+                  if (v !== 'Outra') set('origem_religiosa_detalhe', '')
+                }}
                 className="w-full h-11 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring">
                 <option value="">Selecione...</option>
                 {ORIGENS_RELIGIOSAS.map(v => <option key={v} value={v}>{v}</option>)}
               </select>
             </div>
             {form.origem_religiosa === 'Outra' && (
-              <div className="space-y-1.5">
-                <Label className="text-sm">Qual?</Label>
-                <Input value={form.origem_religiosa_detalhe} onChange={e => set('origem_religiosa_detalhe', e.target.value)} className="h-11" />
+              <div id="campo-origem_religiosa_detalhe" className="space-y-1.5">
+                <Label className="text-sm">Qual? *</Label>
+                <Input value={form.origem_religiosa_detalhe} onChange={e => set('origem_religiosa_detalhe', e.target.value)}
+                  className={`h-11 ${erros.origem_religiosa_detalhe ? 'border-red-500 focus-visible:ring-red-500' : ''}`} />
+                {erros.origem_religiosa_detalhe && <p className="text-xs text-red-500">{erros.origem_religiosa_detalhe}</p>}
               </div>
             )}
           </Secao>
