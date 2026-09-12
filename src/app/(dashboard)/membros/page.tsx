@@ -152,10 +152,12 @@ export default function MembrosPage() {
   const carregarPendentes = useCallback(async () => {
     if (!token || !podeRevisarCadastros) return
     try {
-      const res = await fetch('/api/cadastros-publicos?status=pendente', { headers: { Authorization: `Bearer ${token}` } })
+      const cong = filtroCongregacao || filterCongregacao
+      const qs = cong ? `&congregacao=${cong}` : ''
+      const res = await fetch(`/api/cadastros-publicos?status=pendente${qs}`, { headers: { Authorization: `Bearer ${token}` } })
       if (res.ok) setPendentes(await res.json())
     } catch { /* ignore */ }
-  }, [token, podeRevisarCadastros])
+  }, [token, podeRevisarCadastros, filtroCongregacao, filterCongregacao])
 
   useEffect(() => { carregarPendentes() }, [carregarPendentes])
 
