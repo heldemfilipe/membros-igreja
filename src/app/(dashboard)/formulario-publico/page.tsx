@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Loader2, Link2, Copy, ExternalLink, ClipboardList, Check } from 'lucide-react'
 import type { FormularioPublicoConfig } from '@/types'
 
-type Cong = { id: number; nome: string }
+type Cong = { id: number; nome: string; slug?: string | null }
 
 const BLOCOS: { key: keyof FormularioPublicoConfig; titulo: string; descricao: string }[] = [
   { key: 'nascimento', titulo: 'Data de nascimento', descricao: 'Útil para aniversariantes.' },
@@ -90,8 +90,9 @@ export default function FormularioPublicoPage() {
     }
   }
 
+  const congObj = congregacoes.find(c => c.id === congSelecionada)
   const link = congSelecionada && typeof window !== 'undefined'
-    ? `${window.location.origin}/cadastro/${congSelecionada}`
+    ? `${window.location.origin}/cadastro/${congObj?.slug || congSelecionada}`
     : ''
 
   const copiarLink = async () => {

@@ -70,6 +70,15 @@ export function normalizar(s: string): string {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
 }
 
+/** "Jardim Independ\u00eancia" \u2192 "jardim-independencia" \u2014 pra usar em links (/cadastro/[slug]). */
+export function slugify(s: string): string {
+  return s
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
 /** Normaliza um telefone BR para o formato do wa.me (com DDI 55). '' se inv\u00e1lido. */
 export function numeroWhatsApp(tel?: string | null): string {
   const d = (tel || '').replace(/\D/g, '')

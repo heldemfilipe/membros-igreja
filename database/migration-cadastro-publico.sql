@@ -15,6 +15,10 @@ ALTER TABLE membros ADD COLUMN IF NOT EXISTS desafios_pessoais TEXT;
 
 -- Configuração única (linha fixa id=1) de quais blocos opcionais aparecem
 -- no formulário público. Nome, telefone e congregação são sempre fixos.
+-- OBS: esse formato (linha única global) foi substituído por uma linha por
+-- congregação em migration-formulario-publico-por-congregacao.sql. Isso aqui
+-- fica só de guarda pra quem nunca rodou nenhuma das duas — se a tabela já
+-- existe (em qualquer formato), não faz nada.
 CREATE TABLE IF NOT EXISTS formulario_publico_config (
   id INTEGER PRIMARY KEY DEFAULT 1,
   endereco BOOLEAN NOT NULL DEFAULT TRUE,
@@ -29,7 +33,15 @@ CREATE TABLE IF NOT EXISTS formulario_publico_config (
   observacoes BOOLEAN NOT NULL DEFAULT TRUE,
   CONSTRAINT formulario_publico_config_singleton CHECK (id = 1)
 );
-INSERT INTO formulario_publico_config (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'formulario_publico_config' AND column_name = 'id'
+  ) THEN
+    INSERT INTO formulario_publico_config (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
+  END IF;
+END $$;
 
 -- Envios do formulário público, aguardando revisão antes de virar membro.
 CREATE TABLE IF NOT EXISTS cadastros_publicos (

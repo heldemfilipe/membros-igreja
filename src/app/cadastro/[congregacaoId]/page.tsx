@@ -189,6 +189,7 @@ export default function CadastroPublicoPage() {
   const params = useParams<{ congregacaoId: string }>()
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
+  const [congId, setCongId] = useState<number | null>(null)
   const [congNome, setCongNome] = useState('')
   const [campos, setCampos] = useState<FormularioPublicoConfig | null>(null)
   const [form, setForm] = useState<Form>(vazio)
@@ -204,7 +205,7 @@ export default function CadastroPublicoPage() {
         if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error(d.error || 'Link inválido.') }
         return r.json()
       })
-      .then(data => { setCongNome(data.congregacao?.nome || ''); setCampos(data.campos) })
+      .then(data => { setCongId(data.congregacao?.id ?? null); setCongNome(data.congregacao?.nome || ''); setCampos(data.campos) })
       .catch(e => setErro(e.message || 'Não foi possível carregar este formulário.'))
       .finally(() => setCarregando(false))
   }, [params.congregacaoId])
@@ -269,7 +270,7 @@ export default function CadastroPublicoPage() {
       const res = await fetch('/api/publico/cadastro', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, congregacao_id: Number(params.congregacaoId) }),
+        body: JSON.stringify({ ...form, congregacao_id: congId }),
       })
       const data = await res.json()
       if (!res.ok) { setErroCampo(data.error || 'Não foi possível enviar. Tente novamente.'); return }

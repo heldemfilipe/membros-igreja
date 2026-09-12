@@ -38,18 +38,24 @@ CREATE TABLE IF NOT EXISTS formulario_publico_config (
 
 -- Leva a config antiga (se existia e tinha algo diferente do padrão) para
 -- todas as congregações já cadastradas, para ninguém perder o que já tinha
--- configurado.
-INSERT INTO formulario_publico_config (
-  congregacao_id, endereco, nascimento, estado_civil, escolaridade_area,
-  dons_talentos, vida_espiritual, origem_religiosa, desafios_pessoais,
-  convidado_por, observacoes
-)
-SELECT c.id, o.endereco, o.nascimento, o.estado_civil, o.escolaridade_area,
-  o.dons_talentos, o.vida_espiritual, o.origem_religiosa, o.desafios_pessoais,
-  o.convidado_por, o.observacoes
-FROM congregacoes c
-CROSS JOIN formulario_publico_config_old o
-WHERE o.id = 1
-ON CONFLICT (congregacao_id) DO NOTHING;
+-- configurado. Só roda se a tabela antiga realmente existir (idempotente —
+-- em runs seguintes ela já não existe mais e este bloco só é pulado).
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'formulario_publico_config_old') THEN
+    INSERT INTO formulario_publico_config (
+      congregacao_id, endereco, nascimento, estado_civil, escolaridade_area,
+      dons_talentos, vida_espiritual, origem_religiosa, desafios_pessoais,
+      convidado_por, observacoes
+    )
+    SELECT c.id, o.endereco, o.nascimento, o.estado_civil, o.escolaridade_area,
+      o.dons_talentos, o.vida_espiritual, o.origem_religiosa, o.desafios_pessoais,
+      o.convidado_por, o.observacoes
+    FROM congregacoes c
+    CROSS JOIN formulario_publico_config_old o
+    WHERE o.id = 1
+    ON CONFLICT (congregacao_id) DO NOTHING;
 
-DROP TABLE IF EXISTS formulario_publico_config_old;
+    DROP TABLE formulario_publico_config_old;
+  END IF;
+END $$;
