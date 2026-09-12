@@ -480,7 +480,6 @@ function PautaInner() {
                           <p className="text-[11px] text-muted-foreground">
                             {rotuloDia(a.dia)}
                             {!!a.anos && ` · ${a.anos} ${a.anos === 1 ? 'ano' : 'anos'}`}
-                            {a.passada && ' · semana passada'}
                           </p>
                         </div>
                         <LinkWhats telefone={a.telefone} texto={textoItem({ tipo: a.tipo, titulo: a.nome })} />

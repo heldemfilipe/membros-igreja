@@ -371,7 +371,6 @@ export interface PautaAutomatico {
   anos: number | null
   telefone: string | null
   concluido: boolean
-  passada: boolean
 }
 
 export interface PautaSemana {
@@ -379,7 +378,6 @@ export interface PautaSemana {
   congregacao_nome: string
   semana_inicio: string
   semana_fim: string
-  janela_inicio: string
   automaticos: PautaAutomatico[]
   itens: PautaItem[]
 }

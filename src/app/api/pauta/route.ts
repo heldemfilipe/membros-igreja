@@ -32,9 +32,9 @@ async function resolverCongregacao(
  * Devolve a pauta de UMA semana: os aniversários/bodas que o sistema já
  * conhece (calculados na hora, nunca copiados) + o que a recepção digitou.
  *
- * A janela dos aniversários é de DUAS semanas — a semana escolhida e a
- * anterior — porque no culto também se parabeniza quem fez aniversário
- * durante a semana que passou.
+ * Os aniversários mostrados são só os DENTRO da semana escolhida (a mesma
+ * que aparece no cabeçalho, ex.: "7 a 13 de setembro") — nada de semana
+ * anterior misturado na lista.
  */
 export const GET = withAuth(async (req: NextRequest, user) => {
   const { searchParams } = new URL(req.url)
@@ -43,16 +43,15 @@ export const GET = withAuth(async (req: NextRequest, user) => {
   const semanaParam = searchParams.get('semana')
   const semanaInicio = segundaFeira(isISO(semanaParam) ? semanaParam : hojeISO())
   const semanaFim = addDias(semanaInicio, 6)
-  const janelaInicio = addDias(semanaInicio, -7)
 
   const cong = await pool.query('SELECT id, nome FROM congregacoes WHERE id = $1', [congId])
   if (cong.rows.length === 0) throw new ApiError(404, 'Congregação não encontrada.')
   const congNome: string = cong.rows[0].nome
 
-  // 'MM-DD' de cada dia da janela: compara a data do aniversário sem o ano.
-  const dias = diasMMDD(janelaInicio, semanaFim)
+  // 'MM-DD' de cada dia da semana: compara a data do aniversário sem o ano.
+  const dias = diasMMDD(semanaInicio, semanaFim)
   const mapaDias = new Map<string, string>()
-  for (const d of diasDoIntervalo(janelaInicio, semanaFim)) mapaDias.set(d.slice(5), d)
+  for (const d of diasDoIntervalo(semanaInicio, semanaFim)) mapaDias.set(d.slice(5), d)
   // Quem nasceu em 29/02 é parabenizado no dia 28 nos anos não-bissextos.
   if (!mapaDias.has('02-29') && mapaDias.has('02-28')) mapaDias.set('02-29', mapaDias.get('02-28')!)
 
@@ -128,7 +127,6 @@ export const GET = withAuth(async (req: NextRequest, user) => {
       anos: Number.isFinite(anos) && anos >= 0 ? anos : null,
       telefone: row.telefone_principal,
       concluido: feitas.get(chave) === true,
-      passada: dia < semanaInicio,
     }
   }
 
@@ -144,7 +142,6 @@ export const GET = withAuth(async (req: NextRequest, user) => {
     congregacao_nome: congNome,
     semana_inicio: semanaInicio,
     semana_fim: semanaFim,
-    janela_inicio: janelaInicio,
     automaticos,
     itens: itens.rows,
   }
