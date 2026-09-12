@@ -20,6 +20,9 @@ export const POST = withAuth(async (req: NextRequest, user) => {
 
   const dataVisita = body.data_visita || new Date().toISOString().split('T')[0]
   const obs = (body.observacoes || '').trim() || null
+  const origemReligiosa = (body.origem_religiosa || '').trim() || null
+  const origemReligiosaDetalhe = (body.origem_religiosa_detalhe || '').trim() || null
+  const congregacaoOrigem = (body.congregacao_origem || '').trim() || null
 
   // Tudo na MESMA conexão (o pool é max:1 em serverless — não dá para abrir
   // um segundo pool.query enquanto a transação segura a conexão).
@@ -27,15 +30,24 @@ export const POST = withAuth(async (req: NextRequest, user) => {
   try {
     await client.query('BEGIN')
     const m = await client.query(
-      `INSERT INTO membros (nome, telefone_principal, informacoes_complementares, tipo_participante, igreja)
-       VALUES ($1,$2,$3,'Visitante',$4) RETURNING id`,
-      [nome, (body.telefone_principal || '').trim() || null, obs, igreja],
+      `INSERT INTO membros (nome, telefone_principal, informacoes_complementares, tipo_participante, igreja, origem_religiosa, origem_religiosa_detalhe)
+       VALUES ($1,$2,$3,'Visitante',$4,$5,$6) RETURNING id`,
+      [nome, (body.telefone_principal || '').trim() || null, obs, igreja, origemReligiosa, origemReligiosaDetalhe],
     )
     const membroId = m.rows[0].id
     await client.query(
       'INSERT INTO visitas (membro_id, data_visita, observacoes) VALUES ($1,$2,$3)',
       [membroId, dataVisita, obs],
     )
+
+    // Se já vem de uma congregação (mesma denominação), guarda no acompanhamento —
+    // fica pronto pra virar membro depois, sem ter que perguntar de novo.
+    if (congregacaoOrigem) {
+      await client.query(
+        'INSERT INTO acompanhamento_visitante (membro_id, congregacao_origem) VALUES ($1,$2)',
+        [membroId, congregacaoOrigem],
+      )
+    }
 
     const cong = await client.query(
       `SELECT c.notificar_whatsapp, dm.nome AS dirigente_nome,

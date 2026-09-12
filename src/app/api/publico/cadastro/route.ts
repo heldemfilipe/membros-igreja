@@ -98,6 +98,8 @@ export async function POST(req: NextRequest) {
       if (v) dados.origem_religiosa = v
       const d = str(body.origem_religiosa_detalhe)
       if (d) dados.origem_religiosa_detalhe = d
+      const or = str(body.observacao_religiosa)
+      if (or) dados.observacao_religiosa = or
     }
     if (config.documentos) {
       const cpf = str(body.cpf)

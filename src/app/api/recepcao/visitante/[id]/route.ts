@@ -27,14 +27,17 @@ export const PATCH = withAuthParams<{ id: string }>(async (req: NextRequest, use
   await pool.query(
     `UPDATE membros
      SET nome = $1, telefone_principal = $2, email = $3,
-         data_nascimento = $4, informacoes_complementares = $5
-     WHERE id = $6`,
+         data_nascimento = $4, informacoes_complementares = $5,
+         origem_religiosa = $6, origem_religiosa_detalhe = $7
+     WHERE id = $8`,
     [
       nome,
       toNull((b.telefone_principal || '').trim()),
       toNull((b.email || '').trim()),
       toNull((b.data_nascimento || '').trim()),
       toNull((b.informacoes_complementares || '').trim()),
+      toNull((b.origem_religiosa || '').trim()),
+      toNull((b.origem_religiosa_detalhe || '').trim()),
       id,
     ],
   )

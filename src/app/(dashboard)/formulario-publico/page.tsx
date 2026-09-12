@@ -19,7 +19,7 @@ const BLOCOS: { key: keyof FormularioPublicoConfig; titulo: string; descricao: s
   { key: 'escolaridade_area', titulo: 'Formação e área de atuação', descricao: 'Escolaridade e profissão/área de atuação.' },
   { key: 'dons_talentos', titulo: 'Dons e talentos', descricao: 'O que a pessoa já sabe fazer e o que gostaria de aprender.' },
   { key: 'vida_espiritual', titulo: 'Vida espiritual', descricao: 'Batismos (com data e local), dom espiritual, pregação, discipulado, ministério.' },
-  { key: 'origem_religiosa', titulo: 'Religião anterior', descricao: 'Para quem nunca foi evangélico.' },
+  { key: 'origem_religiosa', titulo: 'Religião anterior', descricao: 'Para quem nunca foi evangélico, e espaço opcional pra contar sobre pacto/ritual espiritual em outra religião.' },
   { key: 'convidado_por', titulo: 'Quem convidou', descricao: 'Quem convidou ou conhecidos na igreja.' },
   { key: 'observacoes', titulo: 'Observações gerais', descricao: 'Espaço livre para a pessoa contar mais.' },
   { key: 'desafios_pessoais', titulo: 'Espaço pessoal (sensível)', descricao: 'Traumas, vícios, insônia, depressão, finanças. Desligado por padrão.' },

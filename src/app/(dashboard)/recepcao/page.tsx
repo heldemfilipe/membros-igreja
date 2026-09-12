@@ -15,6 +15,7 @@ import {
   Inbox, ChevronDown, ChevronUp, Check, X,
 } from 'lucide-react'
 import { formatarData, numeroWhatsApp, calcularIdade } from '@/lib/utils'
+import { ORIGENS_RELIGIOSAS } from '@/lib/constants'
 import { AvisoDirigente, type AvisoDados } from '@/components/recepcao/AvisoDirigente'
 import { AcompanhamentoModal, type VisitanteEdicao } from '@/components/recepcao/AcompanhamentoModal'
 import { EnviarMensagemModal, type AlvoMensagem } from '@/components/recepcao/EnviarMensagemModal'
@@ -46,6 +47,7 @@ const LABELS_CADASTRO_PUBLICO: Record<string, string> = {
   vida_ministerial: 'Vida ministerial',
   origem_religiosa: 'Religião anterior',
   origem_religiosa_detalhe: 'Qual religião',
+  observacao_religiosa: 'Pacto / compromisso espiritual',
   cpf: 'CPF',
   identidade: 'RG / Identidade',
   tipo_sanguineo: 'Tipo sanguíneo',
@@ -128,6 +130,7 @@ function RecepcaoInner() {
 
   const [form, setForm] = useState({
     nome: '', congregacao_nome: '', telefone: '', data_visita: hoje(), obs: '',
+    origem_religiosa: '', origem_religiosa_detalhe: '', congregacao_origem: '',
   })
   const [saving, setSaving] = useState(false)
   const [aviso, setAviso] = useState<AvisoDados | null>(null)
@@ -230,6 +233,9 @@ function RecepcaoInner() {
           telefone_principal: form.telefone.trim(),
           data_visita: form.data_visita || hoje(),
           observacoes: obs,
+          origem_religiosa: form.origem_religiosa,
+          origem_religiosa_detalhe: form.origem_religiosa_detalhe,
+          congregacao_origem: form.congregacao_origem,
         }),
       })
       const data = await res.json()
@@ -263,7 +269,7 @@ function RecepcaoInner() {
       } else {
         janela?.close()
       }
-      setForm(f => ({ ...f, nome: '', telefone: '', obs: '' }))
+      setForm(f => ({ ...f, nome: '', telefone: '', obs: '', origem_religiosa: '', origem_religiosa_detalhe: '', congregacao_origem: '' }))
       carregar()
     } finally {
       setSaving(false)
@@ -308,6 +314,8 @@ function RecepcaoInner() {
           email: dados.email,
           data_nascimento: dados.data_nascimento,
           informacoes_complementares: dados.informacoes_complementares,
+          origem_religiosa: dados.origem_religiosa,
+          origem_religiosa_detalhe: dados.origem_religiosa_detalhe,
         }),
       })
       if (!res.ok) {
@@ -418,6 +426,36 @@ function RecepcaoInner() {
                     </Button>
                   </div>
                 </div>
+                <div className="space-y-1">
+                  <Label>De onde essa pessoa vem? (opcional)</Label>
+                  <select
+                    value={form.origem_religiosa}
+                    onChange={e => {
+                      const v = e.target.value
+                      setForm(f => ({
+                        ...f, origem_religiosa: v,
+                        origem_religiosa_detalhe: v === 'Outra' ? f.origem_religiosa_detalhe : '',
+                        congregacao_origem: v === 'Evangélico' ? f.congregacao_origem : '',
+                      }))
+                    }}
+                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="">Não informado</option>
+                    {ORIGENS_RELIGIOSAS.map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                </div>
+                {form.origem_religiosa === 'Outra' && (
+                  <div className="space-y-1">
+                    <Label>Qual religião?</Label>
+                    <Input value={form.origem_religiosa_detalhe} onChange={e => setForm(f => ({ ...f, origem_religiosa_detalhe: e.target.value }))} />
+                  </div>
+                )}
+                {form.origem_religiosa === 'Evangélico' && (
+                  <div className="space-y-1">
+                    <Label>De qual congregação ele(a) veio?</Label>
+                    <Input value={form.congregacao_origem} onChange={e => setForm(f => ({ ...f, congregacao_origem: e.target.value }))} placeholder="Ex.: nome da congregação" />
+                  </div>
+                )}
                 <div className="space-y-1 sm:col-span-2">
                   <Label>Como conheceu / observações</Label>
                   <Input value={form.obs} onChange={e => setForm(f => ({ ...f, obs: e.target.value }))} placeholder="Indicação, evento, rede social..." />
@@ -641,8 +679,14 @@ function RecepcaoInner() {
                           <StatusItem key={i.key} done={!!v[i.key]} label={i.label} detalhe={i.detalhe?.(v)} />
                         ))}
                       </div>
-                      {(v.congregacao_origem || v.observacoes) && (
+                      {(v.origem_religiosa || v.congregacao_origem || v.observacoes) && (
                         <div className="space-y-1 pt-2 border-t text-xs">
+                          {v.origem_religiosa && (
+                            <p>
+                              <span className="text-muted-foreground">Vem de: </span>
+                              {v.origem_religiosa === 'Outra' ? (v.origem_religiosa_detalhe || 'Outra') : v.origem_religiosa}
+                            </p>
+                          )}
                           {v.congregacao_origem && (
                             <p><span className="text-muted-foreground">Já congrega em: </span>{v.congregacao_origem}</p>
                           )}

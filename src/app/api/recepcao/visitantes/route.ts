@@ -18,6 +18,7 @@ export const GET = withAuth(async (req: NextRequest, user) => {
   const result = await pool.query(
     `SELECT m.id AS membro_id, m.nome, m.telefone_principal, m.igreja,
             m.email, m.informacoes_complementares,
+            m.origem_religiosa, m.origem_religiosa_detalhe,
             m.data_nascimento::text AS data_nascimento,
             COALESCE(av.contato_feito, false)     AS contato_feito,
             av.contato_por,

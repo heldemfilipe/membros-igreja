@@ -263,6 +263,8 @@ export interface VisitanteRecepcao extends Acompanhamento {
   email: string | null
   data_nascimento: string | null
   informacoes_complementares: string | null
+  origem_religiosa: string | null
+  origem_religiosa_detalhe: string | null
   igreja: string | null
   total_visitas: number
   ultima_visita: string
@@ -310,6 +312,7 @@ export interface CadastroPublicoDados {
   vida_ministerial?: string
   origem_religiosa?: string
   origem_religiosa_detalhe?: string
+  observacao_religiosa?: string
   cpf?: string
   identidade?: string
   tipo_sanguineo?: string

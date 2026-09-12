@@ -41,6 +41,8 @@ type Form = {
   vida_ministerial: string
   origem_religiosa: string
   origem_religiosa_detalhe: string
+  tem_pacto: boolean | null
+  observacao_religiosa: string
   cpf: string
   identidade: string
   tipo_sanguineo: string
@@ -60,6 +62,7 @@ const vazio: Form = {
   batizado_aguas: null, data_batismo_aguas: '', local_batismo_aguas: '',
   vida_ministerial: '',
   origem_religiosa: '', origem_religiosa_detalhe: '',
+  tem_pacto: null, observacao_religiosa: '',
   cpf: '', identidade: '', tipo_sanguineo: '', naturalidade: '', uf_naturalidade: '',
   desafios_pessoais: '', convidado_por: '', informacoes_complementares: '',
 }
@@ -552,6 +555,20 @@ export default function CadastroPublicoPage() {
                 {erros.origem_religiosa_detalhe && <p className="text-xs text-red-500">{erros.origem_religiosa_detalhe}</p>}
               </div>
             )}
+            <div className="pt-2 border-t space-y-3">
+              <SimNao label="Já fez algum pacto, ritual ou compromisso espiritual em outra religião?" valor={form.tem_pacto}
+                onChange={v => {
+                  set('tem_pacto', v)
+                  if (!v) set('observacao_religiosa', '')
+                }} />
+              {form.tem_pacto === true && (
+                <div className="space-y-1.5 pl-1 -mt-1">
+                  <Label className="text-xs text-muted-foreground">Se quiser, conte um pouco sobre isso (opcional)</Label>
+                  <Textarea value={form.observacao_religiosa} onChange={e => set('observacao_religiosa', e.target.value)} rows={3}
+                    placeholder="Fique à vontade para escrever..." />
+                </div>
+              )}
+            </div>
           </Secao>
         )}
 

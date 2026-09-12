@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Loader2, Check } from 'lucide-react'
+import { ORIGENS_RELIGIOSAS } from '@/lib/constants'
 import type { VisitanteRecepcao, Acompanhamento } from '@/types'
 
 export type VisitanteEdicao = Partial<Acompanhamento> & {
@@ -17,11 +18,14 @@ export type VisitanteEdicao = Partial<Acompanhamento> & {
   email: string | null
   data_nascimento: string | null
   informacoes_complementares: string | null
+  origem_religiosa: string | null
+  origem_religiosa_detalhe: string | null
 }
 
 type F = {
   // dados do visitante
   nome: string; telefone_principal: string; email: string; data_nascimento: string; informacoes_complementares: string
+  origem_religiosa: string; origem_religiosa_detalhe: string
   // acompanhamento
   contato_feito: boolean; contato_por: string; contato_data: string
   visita_agendada: boolean; visita_agendada_por: string; visita_casa_data: string; visita_casa_feita: boolean
@@ -40,6 +44,8 @@ function fromVisitante(v: VisitanteRecepcao): F {
     email: v.email ?? '',
     data_nascimento: iso(v.data_nascimento),
     informacoes_complementares: v.informacoes_complementares ?? '',
+    origem_religiosa: v.origem_religiosa ?? '',
+    origem_religiosa_detalhe: v.origem_religiosa_detalhe ?? '',
     contato_feito: v.contato_feito, contato_por: v.contato_por ?? '', contato_data: iso(v.contato_data),
     visita_agendada: v.visita_agendada, visita_agendada_por: v.visita_agendada_por ?? '',
     visita_casa_data: iso(v.visita_casa_data), visita_casa_feita: v.visita_casa_feita,
@@ -112,6 +118,8 @@ export function AcompanhamentoModal({
         email: f.email.trim() || null,
         data_nascimento: f.data_nascimento || null,
         informacoes_complementares: f.informacoes_complementares.trim() || null,
+        origem_religiosa: f.origem_religiosa || null,
+        origem_religiosa_detalhe: f.origem_religiosa_detalhe.trim() || null,
         contato_feito: f.contato_feito,
         contato_por: f.contato_por.trim() || null,
         contato_data: f.contato_data || null,
@@ -206,11 +214,35 @@ export function AcompanhamentoModal({
           </Secao>
 
           <div className="space-y-3 rounded-lg border p-3">
-            <Toggle label="Já é batizado(a)" on={f.batizado} onToggle={() => set('batizado', !f.batizado)} />
             <div className="space-y-1">
-              <Label className="text-xs">Já congrega em outro lugar? Qual</Label>
-              <Input value={f.congregacao_origem} onChange={e => set('congregacao_origem', e.target.value)} placeholder="Ex.: outra igreja / congregação" className="h-9" />
+              <Label className="text-xs">De onde essa pessoa vem?</Label>
+              <select
+                value={f.origem_religiosa}
+                onChange={e => {
+                  const v = e.target.value
+                  set('origem_religiosa', v)
+                  if (v !== 'Outra') set('origem_religiosa_detalhe', '')
+                  if (v !== 'Evangélico') set('congregacao_origem', '')
+                }}
+                className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">Não informado</option>
+                {ORIGENS_RELIGIOSAS.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
             </div>
+            {f.origem_religiosa === 'Outra' && (
+              <div className="space-y-1">
+                <Label className="text-xs">Qual religião?</Label>
+                <Input value={f.origem_religiosa_detalhe} onChange={e => set('origem_religiosa_detalhe', e.target.value)} className="h-9" />
+              </div>
+            )}
+            {f.origem_religiosa === 'Evangélico' && (
+              <div className="space-y-1">
+                <Label className="text-xs">De qual congregação ele(a) veio?</Label>
+                <Input value={f.congregacao_origem} onChange={e => set('congregacao_origem', e.target.value)} placeholder="Ex.: nome da congregação" className="h-9" />
+              </div>
+            )}
+            <Toggle label="Já é batizado(a)" on={f.batizado} onToggle={() => set('batizado', !f.batizado)} />
             <div className="space-y-1">
               <Label className="text-xs">Observações do acompanhamento</Label>
               <Textarea value={f.observacoes} onChange={e => set('observacoes', e.target.value)} rows={3} placeholder="Anotações do acompanhamento..." />
