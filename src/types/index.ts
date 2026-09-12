@@ -129,6 +129,8 @@ export interface Permissoes {
   usuarios_gerenciar?: boolean
   recepcao?: boolean
   cadastro_publico?: boolean
+  pauta_ver?: boolean
+  pauta_editar?: boolean
   [key: string]: boolean | undefined
 }
 
@@ -334,6 +336,52 @@ export interface CadastroPublicoDados {
   desafios_pessoais?: string
   convidado_por?: string
   informacoes_complementares?: string
+}
+
+// ─── Pauta da semana ───────────────────────────────────────────────────────
+
+export type PautaTipo = 'aniversario' | 'bodas' | 'oracao' | 'aviso'
+
+/** Item digitado pela recepção (aviso, pedido de oração, aniversário de fora). */
+export interface PautaItem {
+  id: number
+  congregacao_id: number
+  semana_inicio: string
+  tipo: PautaTipo
+  titulo: string
+  descricao: string | null
+  data_referencia: string | null
+  telefone: string | null
+  concluido: boolean
+  concluido_em: string | null
+  adiado_de: string | null
+  criado_por_nome?: string | null
+  created_at?: string
+}
+
+/** Aniversário/bodas que veio automático do cadastro de membros. */
+export interface PautaAutomatico {
+  chave: string
+  tipo: 'aniversario' | 'bodas'
+  membro_id: number
+  nome: string
+  conjuge_nome: string | null
+  data: string
+  dia: string
+  anos: number | null
+  telefone: string | null
+  concluido: boolean
+  passada: boolean
+}
+
+export interface PautaSemana {
+  congregacao_id: number
+  congregacao_nome: string
+  semana_inicio: string
+  semana_fim: string
+  janela_inicio: string
+  automaticos: PautaAutomatico[]
+  itens: PautaItem[]
 }
 
 export interface CadastroPublico {

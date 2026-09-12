@@ -246,6 +246,8 @@ export const PERMISSOES_DISPONIVEIS = [
   { key: 'registros_editar',    label: 'Lista Aniversários — Editar', descricao: 'Preencher datas de nascimento e casamento direto na lista' },
   { key: 'usuarios_gerenciar',  label: 'Usuários — Gerenciar',     descricao: 'Criar e editar usuários vinculados à(s) sua(s) congregação(ões)' },
   { key: 'recepcao',            label: 'Recepção',                descricao: 'Cadastrar visitantes e acompanhar (tela de Recepção)' },
+  { key: 'pauta_ver',           label: 'Pauta da Semana — Ver',   descricao: 'Ver a pauta da semana (aniversários, bodas, pedidos de oração e avisos)' },
+  { key: 'pauta_editar',        label: 'Pauta da Semana — Editar', descricao: 'Montar a pauta: incluir avisos, pedidos de oração e marcar itens como concluídos' },
   { key: 'cadastro_publico',    label: 'Cadastro Público — Gerenciar', descricao: 'Configurar o formulário público e pegar o link de cadastro da(s) sua(s) congregação(ões)' },
 ] as const
 
@@ -258,6 +260,7 @@ export const ROTAS_MENU: { href: string; permissao: string }[] = [
   { href: '/dashboard',       permissao: 'dashboard' },
   { href: '/membros',         permissao: 'membros_ver' },
   { href: '/recepcao',        permissao: 'recepcao' },
+  { href: '/pauta',           permissao: 'pauta_ver' },
   { href: '/aniversariantes', permissao: 'aniversariantes_ver' },
   { href: '/departamentos',   permissao: 'departamentos_ver' },
   { href: '/congregacoes',    permissao: 'congregacoes_ver' },

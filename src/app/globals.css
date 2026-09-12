@@ -57,3 +57,18 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Impressão: a Pauta da Semana é levada impressa para o púlpito. Tira o
+   menu lateral e as margens da tela, deixando só o conteúdo. */
+@media print {
+  aside {
+    display: none !important;
+  }
+  main {
+    margin-left: 0 !important;
+  }
+  main > div {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+}

@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, Users, Building2, UserCog, Cake, DoorOpen,
   Menu, X, Church, LogOut, Shield, Loader2, Lock, Filter, ClipboardList, ChevronRight, Link2,
+  CalendarCheck,
 } from 'lucide-react'
 
 import { useEffect, useState } from 'react'
@@ -16,6 +17,7 @@ const menuItems = [
   { title: 'Dashboard',       icon: LayoutDashboard, href: '/dashboard',       permissao: 'dashboard' },
   { title: 'Membros',         icon: Users,            href: '/membros',         permissao: 'membros_ver' },
   { title: 'Recepção',        icon: DoorOpen,         href: '/recepcao',        permissao: 'recepcao' },
+  { title: 'Pauta da Semana', icon: CalendarCheck,    href: '/pauta',           permissao: 'pauta_ver' },
   { title: 'Aniversariantes', icon: Cake,             href: '/aniversariantes', permissao: 'aniversariantes_ver' },
   { title: 'Departamentos',   icon: Building2,        href: '/departamentos',   permissao: 'departamentos_ver' },
   { title: 'Congregações',    icon: Church,           href: '/congregacoes',    permissao: 'congregacoes_ver' },
