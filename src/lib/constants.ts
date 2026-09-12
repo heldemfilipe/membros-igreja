@@ -32,6 +32,24 @@ export const DONS_TALENTOS = [
   'Trabalho com crianças', 'Trabalho com jovens', 'Ação social',
 ]
 
+// Áreas em que a pessoa pode querer ajuda (bloco sensível do cadastro público).
+// "Outra" abre um campo pra ela escrever qual.
+export const DIFICULDADES = [
+  'Organização financeira',
+  'Casamento / relacionamento',
+  'Gestão emocional',
+  'Ansiedade',
+  'Depressão',
+  'Luto / perda',
+  'Vícios',
+  'Insônia',
+  'Saúde',
+  'Família / filhos',
+  'Solidão',
+  'Trabalho / desemprego',
+  'Outra',
+]
+
 // Tipos do histórico eclesiástico — DEVE bater com o CHECK de historicos_tipo_check
 // (database/migration-fix-constraints.sql).
 export const TIPOS_HISTORICO = [

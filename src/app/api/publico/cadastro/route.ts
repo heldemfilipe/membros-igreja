@@ -116,6 +116,8 @@ export async function POST(req: NextRequest) {
     if (config.desafios_pessoais) {
       const v = str(body.desafios_pessoais)
       if (v) dados.desafios_pessoais = v
+      const dif = str(body.dificuldades)
+      if (dif) dados.dificuldades = dif
     }
     if (config.convidado_por) {
       const v = str(body.convidado_por)

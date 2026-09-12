@@ -45,6 +45,7 @@ export interface Membro {
   batizado_aguas?: boolean | null
   vida_ministerial?: string | null
   desafios_pessoais?: string | null
+  dificuldades?: string | null
   tipo_participante: 'Membro' | 'Congregado' | 'Visitante'
   ativo?: boolean
   informacoes_complementares?: string
@@ -318,6 +319,7 @@ export interface CadastroPublicoDados {
   tipo_sanguineo?: string
   naturalidade?: string
   uf_naturalidade?: string
+  dificuldades?: string
   desafios_pessoais?: string
   convidado_por?: string
   informacoes_complementares?: string

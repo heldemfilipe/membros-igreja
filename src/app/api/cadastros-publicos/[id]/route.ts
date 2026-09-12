@@ -49,10 +49,10 @@ export const PATCH = withAuthParams<{ id: string }>(async (req: NextRequest, use
            dons_talentos, dons_desejados, batizado_espirito_santo, batizado_aguas,
            vida_ministerial, origem_religiosa, origem_religiosa_detalhe, observacao_religiosa,
            cpf, identidade, tipo_sanguineo, naturalidade, uf_naturalidade,
-           desafios_pessoais, convidado_por, informacoes_complementares
+           dificuldades, desafios_pessoais, convidado_por, informacoes_complementares
          ) VALUES (
            $1,$2,$3,$4,$5,'Visitante',$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,
-           $21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32
+           $21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33
          ) RETURNING id`,
         [
           c.nome, c.telefone || null, d.email || null, d.data_nascimento || null, igreja,
@@ -66,6 +66,7 @@ export const PATCH = withAuthParams<{ id: string }>(async (req: NextRequest, use
           d.observacao_religiosa || null,
           d.cpf || null, d.identidade || null, d.tipo_sanguineo || null,
           d.naturalidade || null, d.uf_naturalidade || null,
+          d.dificuldades || null,
           d.desafios_pessoais || null, d.convidado_por || null, d.informacoes_complementares || null,
         ],
       )

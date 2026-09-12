@@ -53,7 +53,8 @@ const LABELS_CADASTRO_PUBLICO: Record<string, string> = {
   tipo_sanguineo: 'Tipo sanguíneo',
   naturalidade: 'Naturalidade',
   uf_naturalidade: 'UF Naturalidade',
-  desafios_pessoais: 'Espaço pessoal',
+  dificuldades: 'Quer ajuda com',
+  desafios_pessoais: 'História / o que marcou',
   convidado_por: 'Convidado por',
   informacoes_complementares: 'Observações',
 }

@@ -22,7 +22,7 @@ const BLOCOS: { key: keyof FormularioPublicoConfig; titulo: string; descricao: s
   { key: 'origem_religiosa', titulo: 'Religião anterior', descricao: 'Para quem nunca foi evangélico, e espaço opcional pra contar sobre pacto/ritual espiritual em outra religião.' },
   { key: 'convidado_por', titulo: 'Quem convidou', descricao: 'Quem convidou ou conhecidos na igreja.' },
   { key: 'observacoes', titulo: 'Observações gerais', descricao: 'Espaço livre para a pessoa contar mais.' },
-  { key: 'desafios_pessoais', titulo: 'Espaço pessoal (sensível)', descricao: 'Traumas, vícios, insônia, depressão, finanças. Desligado por padrão.' },
+  { key: 'desafios_pessoais', titulo: 'Espaço pessoal (sensível)', descricao: 'Lista de dificuldades pra marcar (finanças, casamento, emocional, vícios...) + espaço pra contar traumas e história de vida. Desligado por padrão.' },
 ]
 
 export default function FormularioPublicoPage() {

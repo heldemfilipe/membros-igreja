@@ -11,7 +11,7 @@ import {
   Church, Loader2, CheckCircle2, User, MapPin, GraduationCap, Sparkles,
   Cross, BookOpen, HeartHandshake, UserPlus, MessageSquare, X, Check, Search, FileText,
 } from 'lucide-react'
-import { DONS_TALENTOS, ORIGENS_RELIGIOSAS } from '@/lib/constants'
+import { DONS_TALENTOS, ORIGENS_RELIGIOSAS, DIFICULDADES } from '@/lib/constants'
 import type { FormularioPublicoConfig } from '@/types'
 
 type Form = {
@@ -48,6 +48,8 @@ type Form = {
   tipo_sanguineo: string
   naturalidade: string
   uf_naturalidade: string
+  dificuldades: string
+  dificuldade_outra: string
   desafios_pessoais: string
   convidado_por: string
   informacoes_complementares: string
@@ -64,6 +66,7 @@ const vazio: Form = {
   origem_religiosa: '', origem_religiosa_detalhe: '',
   tem_pacto: null, observacao_religiosa: '',
   cpf: '', identidade: '', tipo_sanguineo: '', naturalidade: '', uf_naturalidade: '',
+  dificuldades: '', dificuldade_outra: '',
   desafios_pessoais: '', convidado_por: '', informacoes_complementares: '',
 }
 
@@ -215,6 +218,23 @@ export default function CadastroPublicoPage() {
     setErros(e => (e[k] ? { ...e, [k]: undefined } : e))
   }
 
+  const dificuldadesLista = form.dificuldades.split(',').map(s => s.trim()).filter(Boolean)
+  const toggleDificuldade = (d: string) => {
+    // Calcula a partir do estado mais recente (e não da lista do render atual),
+    // senão dois cliques seguidos rápidos perdem a marcação anterior.
+    setForm(f => {
+      const atual = f.dificuldades.split(',').map(s => s.trim()).filter(Boolean)
+      const marcada = atual.includes(d)
+      const nova = marcada ? atual.filter(x => x !== d) : [...atual, d]
+      return {
+        ...f,
+        dificuldades: nova.join(', '),
+        // desmarcou "Outra" → limpa o texto que ela tinha escrito
+        dificuldade_outra: d === 'Outra' && marcada ? '' : f.dificuldade_outra,
+      }
+    })
+  }
+
   const buscarCep = async () => {
     const cep = form.cep.replace(/\D/g, '')
     if (cep.length !== 8) return
@@ -270,7 +290,14 @@ export default function CadastroPublicoPage() {
       const res = await fetch('/api/publico/cadastro', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, congregacao_id: congId }),
+        body: JSON.stringify({
+          ...form,
+          // "Outra" vira o que a pessoa escreveu, pra lista já ficar legível
+          dificuldades: dificuldadesLista
+            .map(d => (d === 'Outra' ? (form.dificuldade_outra.trim() || 'Outra') : d))
+            .join(', '),
+          congregacao_id: congId,
+        }),
       })
       const data = await res.json()
       if (!res.ok) { setErroCampo(data.error || 'Não foi possível enviar. Tente novamente.'); return }
@@ -576,11 +603,52 @@ export default function CadastroPublicoPage() {
         {c.desafios_pessoais && (
           <Secao icon={HeartHandshake} titulo="Um espaço só seu">
             <p className="text-xs text-muted-foreground -mt-1">
-              Traumas psicológicos ou emocionais, vícios, insônia, depressão, finanças... Se quiser compartilhar,
-              fica só entre você e quem for te acompanhar.
+              Tudo nesta parte é opcional e fica só entre você e quem for te acompanhar.
+              Se preferir falar disso pessoalmente mais pra frente, tudo bem também.
             </p>
-            <Textarea value={form.desafios_pessoais} onChange={e => set('desafios_pessoais', e.target.value)} rows={3}
-              placeholder="Fique à vontade para escrever (opcional)..." />
+
+            <div className="space-y-2">
+              <Label className="text-sm">Tem alguma dificuldade em que gostaria de ajuda?</Label>
+              <p className="text-xs text-muted-foreground -mt-1">Pode marcar quantas quiser.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+                {DIFICULDADES.map(d => {
+                  const marcada = dificuldadesLista.includes(d)
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => toggleDificuldade(d)}
+                      className="flex items-center gap-2.5 py-2 text-left text-sm rounded-md hover:bg-accent/40 transition-colors px-1 -mx-1"
+                    >
+                      <span className={`w-[18px] h-[18px] rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                        marcada ? 'bg-primary border-primary' : 'border-muted-foreground/40'
+                      }`}>
+                        {marcada && <Check className="h-3 w-3 text-primary-foreground" />}
+                      </span>
+                      <span className={marcada ? 'text-foreground' : 'text-muted-foreground'}>{d}</span>
+                    </button>
+                  )
+                })}
+              </div>
+              {dificuldadesLista.includes('Outra') && (
+                <Input
+                  value={form.dificuldade_outra}
+                  onChange={e => set('dificuldade_outra', e.target.value)}
+                  placeholder="Qual outra dificuldade?"
+                  className="h-11"
+                />
+              )}
+            </div>
+
+            <div className="space-y-1.5 pt-2 border-t">
+              <Label className="text-sm">Quer contar um pouco da sua história?</Label>
+              <p className="text-xs text-muted-foreground">
+                Algo que te marcou na infância, na adolescência ou na vida adulta — um trauma,
+                uma perda, algo que ainda machuca. Escreva do seu jeito, no seu tempo.
+              </p>
+              <Textarea value={form.desafios_pessoais} onChange={e => set('desafios_pessoais', e.target.value)} rows={5}
+                placeholder="Fique à vontade para escrever..." />
+            </div>
           </Secao>
         )}
 

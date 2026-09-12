@@ -49,6 +49,7 @@ const MIGRATIONS = [
   'migration-cadastro-publico.sql',
   'migration-cultos.sql',
   'migration-formulario-publico-por-congregacao.sql',
+  'migration-dificuldades.sql',
   'migration-rls-enable.sql',
 ]
 
