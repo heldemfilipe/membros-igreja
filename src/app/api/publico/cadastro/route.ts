@@ -92,6 +92,21 @@ export async function POST(req: NextRequest) {
       }
       const vm = str(body.vida_ministerial)
       if (vm) dados.vida_ministerial = vm
+
+      // Perguntas separadas da vida ministerial (cada uma Sim/Não + detalhe)
+      const temDom = bool(body.tem_dom_espiritual)
+      if (temDom) {
+        const qual = str(body.dom_espiritual)
+        if (qual) dados.dom_espiritual = qual
+      }
+      for (const k of ['ja_pregou', 'ja_discipulou', 'foi_discipulado', 'eh_obreiro'] as const) {
+        const b = bool(body[k])
+        if (b !== undefined) dados[k] = b
+      }
+      if (bool(body.eh_obreiro)) {
+        const funcao = str(body.funcao_igreja)
+        if (funcao) dados.funcao_igreja = funcao
+      }
     }
     if (config.origem_religiosa) {
       const v = str(body.origem_religiosa)

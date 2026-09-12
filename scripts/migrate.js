@@ -50,6 +50,7 @@ const MIGRATIONS = [
   'migration-cultos.sql',
   'migration-formulario-publico-por-congregacao.sql',
   'migration-dificuldades.sql',
+  'migration-vida-ministerial-detalhada.sql',
   'migration-rls-enable.sql',
 ]
 

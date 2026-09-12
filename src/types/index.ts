@@ -44,6 +44,11 @@ export interface Membro {
   batizado_espirito_santo?: boolean | null
   batizado_aguas?: boolean | null
   vida_ministerial?: string | null
+  dom_espiritual?: string | null
+  ja_pregou?: boolean | null
+  ja_discipulou?: boolean | null
+  foi_discipulado?: boolean | null
+  eh_obreiro?: boolean | null
   desafios_pessoais?: string | null
   dificuldades?: string | null
   tipo_participante: 'Membro' | 'Congregado' | 'Visitante'
@@ -311,6 +316,12 @@ export interface CadastroPublicoDados {
   data_batismo_aguas?: string
   local_batismo_aguas?: string
   vida_ministerial?: string
+  dom_espiritual?: string
+  ja_pregou?: boolean
+  ja_discipulou?: boolean
+  foi_discipulado?: boolean
+  eh_obreiro?: boolean
+  funcao_igreja?: string
   origem_religiosa?: string
   origem_religiosa_detalhe?: string
   observacao_religiosa?: string

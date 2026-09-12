@@ -38,6 +38,13 @@ type Form = {
   batizado_aguas: boolean | null
   data_batismo_aguas: string
   local_batismo_aguas: string
+  tem_dom_espiritual: boolean | null
+  dom_espiritual: string
+  ja_pregou: boolean | null
+  ja_discipulou: boolean | null
+  foi_discipulado: boolean | null
+  eh_obreiro: boolean | null
+  funcao_igreja: string
   vida_ministerial: string
   origem_religiosa: string
   origem_religiosa_detalhe: string
@@ -51,6 +58,7 @@ type Form = {
   dificuldades: string
   dificuldade_outra: string
   desafios_pessoais: string
+  tem_convite: boolean | null
   convidado_por: string
   informacoes_complementares: string
 }
@@ -62,12 +70,15 @@ const vazio: Form = {
   dons_talentos: '', dons_desejados: '',
   batizado_espirito_santo: null, data_batismo_espirito_santo: '', local_batismo_espirito_santo: '',
   batizado_aguas: null, data_batismo_aguas: '', local_batismo_aguas: '',
+  tem_dom_espiritual: null, dom_espiritual: '',
+  ja_pregou: null, ja_discipulou: null, foi_discipulado: null,
+  eh_obreiro: null, funcao_igreja: '',
   vida_ministerial: '',
   origem_religiosa: '', origem_religiosa_detalhe: '',
   tem_pacto: null, observacao_religiosa: '',
   cpf: '', identidade: '', tipo_sanguineo: '', naturalidade: '', uf_naturalidade: '',
   dificuldades: '', dificuldade_outra: '',
-  desafios_pessoais: '', convidado_por: '', informacoes_complementares: '',
+  desafios_pessoais: '', tem_convite: null, convidado_por: '', informacoes_complementares: '',
 }
 
 const maskCEP = (v: string) => {
@@ -140,6 +151,16 @@ function DataLocal({ id, data, local, erro, onData, onLocal }: {
         <Label className="text-xs text-muted-foreground">Onde?</Label>
         <Input value={local} onChange={e => onLocal(e.target.value)} placeholder="Igreja, cidade..." className="h-10" />
       </div>
+    </div>
+  )
+}
+
+/** Campo que só aparece depois de uma resposta — recuado pra ficar claro que é um detalhe dela. */
+function SubCampo({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5 pl-1 -mt-1 pb-1">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      {children}
     </div>
   )
 }
@@ -549,12 +570,40 @@ export default function CadastroPublicoPage() {
                 onData={v => set('data_batismo_aguas', v)} onLocal={v => set('local_batismo_aguas', v)}
               />
             )}
-            <div className="space-y-1.5 pt-1">
-              <Label className="text-sm">
-                Tem algum dom espiritual? Já pregou? Já discipulou ou foi discipulado(a)? É obreiro(a)? Qual função?
-              </Label>
+            <div className="pt-2 border-t space-y-1">
+              <SimNao label="Tem algum dom espiritual?" valor={form.tem_dom_espiritual}
+                onChange={v => {
+                  set('tem_dom_espiritual', v)
+                  if (!v) set('dom_espiritual', '')
+                }} />
+              {form.tem_dom_espiritual === true && (
+                <SubCampo label="Qual(is)?">
+                  <Input value={form.dom_espiritual} onChange={e => set('dom_espiritual', e.target.value)}
+                    placeholder="Ex.: ensino, intercessão, louvor..." className="h-10" />
+                </SubCampo>
+              )}
+
+              <SimNao label="Já pregou?" valor={form.ja_pregou} onChange={v => set('ja_pregou', v)} />
+              <SimNao label="Já discipulou alguém?" valor={form.ja_discipulou} onChange={v => set('ja_discipulou', v)} />
+              <SimNao label="Já foi discipulado(a)?" valor={form.foi_discipulado} onChange={v => set('foi_discipulado', v)} />
+
+              <SimNao label="É obreiro(a)?" valor={form.eh_obreiro}
+                onChange={v => {
+                  set('eh_obreiro', v)
+                  if (!v) set('funcao_igreja', '')
+                }} />
+              {form.eh_obreiro === true && (
+                <SubCampo label="Qual função?">
+                  <Input value={form.funcao_igreja} onChange={e => set('funcao_igreja', e.target.value)}
+                    placeholder="Ex.: diácono, cooperador(a), professor(a), músico(a)..." className="h-10" />
+                </SubCampo>
+              )}
+            </div>
+
+            <div className="space-y-1.5 pt-2 border-t">
+              <Label className="text-sm">Quer contar mais alguma coisa sobre sua caminhada?</Label>
               <Textarea value={form.vida_ministerial} onChange={e => set('vida_ministerial', e.target.value)} rows={3}
-                placeholder="Conte um pouco..." />
+                placeholder="Opcional — fique à vontade..." />
             </div>
           </Secao>
         )}
@@ -654,7 +703,17 @@ export default function CadastroPublicoPage() {
 
         {c.convidado_por && (
           <Secao icon={UserPlus} titulo="Quem te convidou?">
-            <Input value={form.convidado_por} onChange={e => set('convidado_por', e.target.value)} placeholder="Nome de quem te convidou ou de conhecidos na igreja" className="h-11" />
+            <SimNao label="Alguém te convidou para vir à igreja?" valor={form.tem_convite}
+              onChange={v => {
+                set('tem_convite', v)
+                if (!v) set('convidado_por', '')
+              }} />
+            {form.tem_convite === true && (
+              <SubCampo label="Quem?">
+                <Input value={form.convidado_por} onChange={e => set('convidado_por', e.target.value)}
+                  placeholder="Nome de quem te convidou ou de conhecidos na igreja" className="h-11" />
+              </SubCampo>
+            )}
           </Secao>
         )}
 
