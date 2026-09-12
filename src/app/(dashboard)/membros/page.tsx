@@ -3,27 +3,86 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
-import { Membro, Departamento } from '@/types'
+import { Membro, Departamento, CadastroPublico } from '@/types'
 import { useToast } from '@/components/ui/use-toast'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { VisitorModal } from '@/components/membros/VisitorModal'
 import { MemberViewModal } from '@/components/membros/MemberViewModal'
 import { MemberModal } from '@/components/membros/MemberModal'
 import { ExportModal } from '@/components/membros/ExportModal'
-import { Loader2, Plus, Search, Pencil, Trash2, Eye, UserPlus, Download, Phone, Church, UserX, UserCheck } from 'lucide-react'
-import { calcularIdade, cn } from '@/lib/utils'
+import {
+  Loader2, Plus, Search, Pencil, Trash2, Eye, UserPlus, Download, Phone, Church, UserX, UserCheck,
+  Inbox, ChevronDown, ChevronUp, Check, X,
+} from 'lucide-react'
+import { calcularIdade, cn, formatarData } from '@/lib/utils'
 import { getCargoStyle, getDeptBadgeStyle, CARGOS_ECLESIASTICOS, TIPO_STYLE, ESTADO_CIVIL_ABREV } from '@/lib/constants'
+
+const LABELS_CADASTRO_PUBLICO: Record<string, string> = {
+  email: 'E-mail',
+  data_nascimento: 'Nascimento',
+  cep: 'CEP',
+  logradouro: 'Logradouro',
+  numero: 'Número',
+  complemento: 'Complemento',
+  bairro: 'Bairro',
+  cidade: 'Cidade',
+  estado: 'Estado (UF)',
+  data_casamento: 'Data de casamento',
+  estado_civil: 'Estado civil',
+  grau_instrucao: 'Formação escolar',
+  profissao: 'Área de atuação',
+  dons_talentos: 'Dons e talentos',
+  dons_desejados: 'Gostaria de aprender',
+  batizado_espirito_santo: 'Batizado com Espírito Santo',
+  data_batismo_espirito_santo: 'Data (batismo Espírito Santo)',
+  local_batismo_espirito_santo: 'Local (batismo Espírito Santo)',
+  batizado_aguas: 'Batizado nas águas',
+  data_batismo_aguas: 'Data (batismo nas águas)',
+  local_batismo_aguas: 'Local (batismo nas águas)',
+  vida_ministerial: 'Sobre a caminhada',
+  dom_espiritual: 'Dom espiritual',
+  ja_pregou: 'Já pregou',
+  ja_discipulou: 'Já discipulou',
+  foi_discipulado: 'Já foi discipulado(a)',
+  eh_obreiro: 'É obreiro(a)',
+  funcao_igreja: 'Função na igreja',
+  origem_religiosa: 'Religião anterior',
+  origem_religiosa_detalhe: 'Qual religião',
+  observacao_religiosa: 'Pacto / compromisso espiritual',
+  cpf: 'CPF',
+  identidade: 'RG / Identidade',
+  tipo_sanguineo: 'Tipo sanguíneo',
+  naturalidade: 'Naturalidade',
+  uf_naturalidade: 'UF Naturalidade',
+  dificuldades: 'Quer ajuda com',
+  desafios_pessoais: 'História / o que marcou',
+  convidado_por: 'Convidado por',
+  informacoes_complementares: 'Observações',
+}
+
+function camposCadastroPublico(dados: CadastroPublico['dados']): { label: string; valor: string }[] {
+  return Object.entries(dados)
+    .filter(([, v]) => v !== null && v !== undefined && v !== '')
+    .map(([k, v]) => ({
+      label: LABELS_CADASTRO_PUBLICO[k] || k,
+      valor: typeof v === 'boolean' ? (v ? 'Sim' : 'Não') : String(v),
+    }))
+}
 
 export default function MembrosPage() {
   const { token, isAdmin, filtroCongregacao, temPermissao } = useAuth()
   const podeEditar = temPermissao('membros_editar')
   const podeExcluir = temPermissao('membros_excluir')
   const podeExportar = temPermissao('membros_exportar')
+  const podeRevisarCadastros = temPermissao('recepcao')
   const { toast } = useToast()
   const searchParams = useSearchParams()
   const [membros, setMembros] = useState<Membro[]>([])
+  const [pendentes, setPendentes] = useState<CadastroPublico[]>([])
+  const [expandidoPendente, setExpandidoPendente] = useState<number | null>(null)
+  const [processandoPendente, setProcessandoPendente] = useState<number | null>(null)
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
   const [congregacoesLista, setCongregacoesLista] = useState<{ id: number; nome: string }[]>([])
   const [loading, setLoading] = useState(true)
@@ -90,6 +149,34 @@ export default function MembrosPage() {
     if (filtroCongregacao) setFilterCongregacao('')
   }, [filtroCongregacao])
 
+  const carregarPendentes = useCallback(async () => {
+    if (!token || !podeRevisarCadastros) return
+    try {
+      const res = await fetch('/api/cadastros-publicos?status=pendente', { headers: { Authorization: `Bearer ${token}` } })
+      if (res.ok) setPendentes(await res.json())
+    } catch { /* ignore */ }
+  }, [token, podeRevisarCadastros])
+
+  useEffect(() => { carregarPendentes() }, [carregarPendentes])
+
+  const revisarPendente = async (id: number, acao: 'aprovar' | 'rejeitar') => {
+    setProcessandoPendente(id)
+    try {
+      const res = await fetch(`/api/cadastros-publicos/${id}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ acao }),
+      })
+      const data = await res.json()
+      if (!res.ok) { toast({ title: data.error || 'Erro ao revisar cadastro.', variant: 'destructive' }); return }
+      setPendentes(prev => prev.filter(p => p.id !== id))
+      toast({ title: acao === 'aprovar' ? '✓ Cadastro aprovado!' : 'Cadastro rejeitado.' })
+      if (acao === 'aprovar') refreshSilent()
+    } finally {
+      setProcessandoPendente(null)
+    }
+  }
+
   const handleToggleAtivo = async (id: number, nome: string, ativoAtual: boolean) => {
     const acao = ativoAtual ? 'desativar' : 'reativar'
     if (!confirm(`${ativoAtual ? 'Desativar' : 'Reativar'} o membro "${nome}"?`)) return
@@ -153,6 +240,78 @@ export default function MembrosPage() {
           )}
         </div>
       </div>
+
+      {/* ─── Cadastros públicos pendentes ────────────────────────────────── */}
+      {podeRevisarCadastros && pendentes.length > 0 && (
+        <Card className="border-l-4 border-l-blue-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Inbox className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              Cadastros públicos pendentes
+              <Badge variant="outline" className="ml-1">{pendentes.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {pendentes.map(p => {
+              const aberto = expandidoPendente === p.id
+              const campos = camposCadastroPublico(p.dados)
+              return (
+                <div key={p.id} className="rounded-lg border">
+                  <button
+                    type="button"
+                    onClick={() => setExpandidoPendente(aberto ? null : p.id)}
+                    className="w-full flex items-center gap-3 p-3 text-left hover:bg-accent/40 transition-colors"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm">{p.nome}</p>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground mt-0.5">
+                        {p.congregacao_nome && <span className="flex items-center gap-1"><Church className="h-3 w-3" />{p.congregacao_nome}</span>}
+                        {p.telefone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{p.telefone}</span>}
+                        <span>{formatarData(p.created_at)}</span>
+                      </div>
+                    </div>
+                    {aberto ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
+                  </button>
+                  {aberto && (
+                    <div className="border-t p-3 space-y-3">
+                      {campos.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+                          {campos.map(c => (
+                            <div key={c.label}>
+                              <span className="text-xs text-muted-foreground block">{c.label}</span>
+                              <span className="break-words">{c.valor}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">Sem campos extras — só nome e telefone.</p>
+                      )}
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          size="sm" variant="outline"
+                          className="gap-1.5 text-destructive hover:text-destructive"
+                          disabled={processandoPendente === p.id}
+                          onClick={() => revisarPendente(p.id, 'rejeitar')}
+                        >
+                          <X className="h-3.5 w-3.5" /> Rejeitar
+                        </Button>
+                        <Button
+                          size="sm" className="gap-1.5"
+                          disabled={processandoPendente === p.id}
+                          onClick={() => revisarPendente(p.id, 'aprovar')}
+                        >
+                          {processandoPendente === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                          Aprovar
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Filtros */}
       <div className={`grid grid-cols-1 sm:grid-cols-2 gap-2 ${isAdmin && !filtroCongregacao && congregacoesLista.length > 1 ? 'xl:grid-cols-6' : 'xl:grid-cols-5'}`}>
