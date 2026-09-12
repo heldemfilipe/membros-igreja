@@ -409,7 +409,7 @@ function PautaInner() {
             <div className="flex items-center gap-2 print:hidden">
               {semana !== semanaAtual && (
                 <Button variant="secondary" size="sm" onClick={() => setSemana(semanaAtual)}>
-                  Voltar para esta semana
+                  Semana atual
                 </Button>
               )}
               {congs.length > 1 && (
