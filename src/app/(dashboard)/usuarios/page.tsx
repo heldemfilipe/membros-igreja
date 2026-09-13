@@ -596,10 +596,16 @@ export default function UsuariosPage() {
             {userForm.tipo !== 'admin' && (
               <>
                 {(() => {
-                  const opcoes = perfis.filter(p =>
-                    userForm.congregacoes_acesso.length === 0 ||
-                    (p.congregacao_id != null && userForm.congregacoes_acesso.includes(p.congregacao_id))
-                  )
+                  // Admin geral enxerga e pode atribuir QUALQUER perfil — global
+                  // ou de qualquer congregação (mesma regra de perfilVisivel no
+                  // servidor). Só o gestor (não-admin) fica restrito aos perfis
+                  // da(s) congregação(ões) marcada(s) para o usuário.
+                  const opcoes = isAdmin
+                    ? perfis
+                    : perfis.filter(p =>
+                        userForm.congregacoes_acesso.length === 0 ||
+                        (p.congregacao_id != null && userForm.congregacoes_acesso.includes(p.congregacao_id))
+                      )
                   const perfilForaDaLista =
                     userForm.perfil_id !== '' && !perfis.some(p => p.id === Number(userForm.perfil_id))
 
