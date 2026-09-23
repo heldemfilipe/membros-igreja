@@ -219,6 +219,7 @@ export interface VisitaRecente {
   membro_id: number
   nome: string
   telefone_principal?: string
+  igreja?: string | null
   data_visita: string
   observacoes?: string
 }

@@ -61,7 +61,7 @@ export const GET = withAuth(async (req: NextRequest, user) => {
   )
   if (empty) return Response.json([])
   const result = await pool.query(
-    `SELECT v.id, v.membro_id, m.nome, m.telefone_principal,
+    `SELECT v.id, v.membro_id, m.nome, m.telefone_principal, m.igreja,
             v.data_visita::text as data_visita, v.observacoes
      FROM visitas v
      JOIN membros m ON v.membro_id = m.id

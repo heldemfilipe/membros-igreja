@@ -530,6 +530,11 @@ export default function DashboardPage() {
                         {v.telefone_principal && (
                           <p className="text-[10px] text-muted-foreground">{v.telefone_principal}</p>
                         )}
+                        {!filtroCongregacao && v.igreja && (
+                          <p className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                            <Church className="h-2.5 w-2.5 shrink-0" />{v.igreja}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <span className="text-xs text-muted-foreground shrink-0 font-medium">
@@ -1047,7 +1052,7 @@ export default function DashboardPage() {
 
 // ─── Subcomponente: Membros Recentes ─────────────────────────────────────────
 function RecentMembros({ token, congregacao }: { token: string | null; congregacao: number | null }) {
-  const [membros, setMembros] = useState<{ id: number; nome: string; tipo_participante: string; created_at: string }[]>([])
+  const [membros, setMembros] = useState<{ id: number; nome: string; tipo_participante: string; created_at: string; igreja?: string | null }[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -1058,7 +1063,7 @@ function RecentMembros({ token, congregacao }: { token: string | null; congregac
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.ok ? r.json() : [])
-      .then((data: { id: number; nome: string; tipo_participante: string; created_at: string }[]) => {
+      .then((data: { id: number; nome: string; tipo_participante: string; created_at: string; igreja?: string | null }[]) => {
         // Ordena por created_at mais recente e pega os 8 primeiros
         const sorted = (data || [])
           .filter(m => m.created_at)
@@ -1087,7 +1092,14 @@ function RecentMembros({ token, congregacao }: { token: string | null; congregac
             <div className="w-7 h-7 rounded-full bg-emerald-500/10 flex items-center justify-center text-[10px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
               {m.nome.slice(0, 2).toUpperCase()}
             </div>
-            <p className="text-sm font-medium truncate leading-tight">{m.nome}</p>
+            <div className="min-w-0">
+              <p className="text-sm font-medium truncate leading-tight">{m.nome}</p>
+              {!congregacao && m.igreja && (
+                <p className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                  <Church className="h-2.5 w-2.5 shrink-0" />{m.igreja}
+                </p>
+              )}
+            </div>
           </div>
           <span className={`text-xs shrink-0 font-medium ${TIPO_CORES_TEXT[m.tipo_participante] || 'text-muted-foreground'}`}>
             {m.tipo_participante}
