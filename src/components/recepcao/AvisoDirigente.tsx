@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { MessageCircle, Check } from 'lucide-react'
 
 export interface AvisoDados {
-  numero: string                 // telefone do dirigente já normalizado (wa.me)
+  /** Nome do dirigente cadastrado na congregação — só um lembrete, não define o destino. */
   dirigenteNome?: string | null
   congregacao?: string | null
   /** Campos disponíveis, na ordem de exibição. */
@@ -49,7 +49,9 @@ export function AvisoDirigente({
       ? linhas.map(c => `${c.label}: ${c.valor || '—'}`).join('\n')
       : '(nenhum campo selecionado)')
 
-  const url = `https://wa.me/${aviso.numero}?text=${encodeURIComponent(texto)}`
+  // Sem número fixo: o WhatsApp abre e a própria pessoa escolhe pra quem manda
+  // (o dirigente, um grupo de recepção, etc.).
+  const url = `https://wa.me/?text=${encodeURIComponent(texto)}`
 
   return (
     <Dialog open={!!aviso} onOpenChange={o => { if (!o) onClose() }}>
@@ -57,9 +59,12 @@ export function AvisoDirigente({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MessageCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-            Avisar {aviso.dirigenteNome || 'o dirigente'}
+            Avisar sobre o visitante
           </DialogTitle>
-          <DialogDescription>Escolha o que vai na mensagem.</DialogDescription>
+          <DialogDescription>
+            Escolha o que vai na mensagem. Ao abrir o WhatsApp, você escolhe o contato ou grupo
+            {aviso.dirigenteNome ? ` (dirigente: ${aviso.dirigenteNome})` : ''}.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-1.5">

@@ -10,7 +10,6 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog'
 import { Loader2, CalendarDays, Lock } from 'lucide-react'
-import { numeroWhatsApp } from '@/lib/utils'
 import { AvisoDirigente, type AvisoDados } from '@/components/recepcao/AvisoDirigente'
 
 interface Props {
@@ -87,9 +86,10 @@ export function VisitorModal({ open, onClose, onSuccess, token }: Props) {
     }
 
     // Abre a aba AGORA (dentro do clique) se a congregação avisa por WhatsApp,
-    // para o navegador não bloquear como popup.
+    // para o navegador não bloquear como popup. Sem número fixo: quem cadastra
+    // escolhe o contato ou grupo na hora de enviar.
     const congPre = congregacoes.find(c => c.nome === form.congregacao_nome)
-    const vaiAvisar = congPre?.notificar_whatsapp !== false && !!numeroWhatsApp(congPre?.dirigente_telefone_efetivo)
+    const vaiAvisar = congPre?.notificar_whatsapp !== false
     const janela = vaiAvisar ? window.open('about:blank', '_blank') : null
 
     setSaving(true)
@@ -129,21 +129,19 @@ export function VisitorModal({ open, onClose, onSuccess, token }: Props) {
       onSuccess()
       toast({ title: '✓ Visitante registrado!' })
 
-      // Aviso ao dirigente no WhatsApp, se a congregação tiver isso configurado
+      // Aviso no WhatsApp, se a congregação tiver isso habilitado
       const cong = congregacoes.find(c => c.nome === form.congregacao_nome)
-      const numero = cong?.notificar_whatsapp !== false ? numeroWhatsApp(cong?.dirigente_telefone_efetivo) : ''
       const nome = form.nome.trim()
       const obs = form.informacoes_complementares.trim()
-      if (numero) {
+      if (vaiAvisar) {
         const texto = `Novo visitante — ${form.congregacao_nome}\n\nNome: ${nome}\nObservações: ${obs || '—'}`
-        const url = `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`
+        const url = `https://wa.me/?text=${encodeURIComponent(texto)}`
         if (janela) {
           janela.location.href = url
           reset()
           onClose()
         } else {
           setAviso({
-            numero,
             dirigenteNome: cong?.dirigente_nome || null,
             congregacao: form.congregacao_nome,
             campos: [

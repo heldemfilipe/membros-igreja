@@ -138,9 +138,10 @@ function RecepcaoInner() {
 
     // Se a congregação avisa por WhatsApp, já abre uma aba em branco AGORA
     // (dentro do clique) para não ser bloqueada pelo navegador; depois do
-    // cadastro, mandamos ela para o wa.me.
+    // cadastro, mandamos ela para o wa.me — sem número fixo, quem cadastra
+    // escolhe o contato ou grupo na hora de enviar.
     const congObj = congs.find(c => c.nome === cong)
-    const vaiAvisar = congObj?.notificar_whatsapp !== false && !!numeroWhatsApp(congObj?.dirigente_telefone_efetivo)
+    const vaiAvisar = congObj?.notificar_whatsapp !== false
     const janela = vaiAvisar ? window.open('about:blank', '_blank') : null
 
     const nome = form.nome.trim()
@@ -170,16 +171,14 @@ function RecepcaoInner() {
       }
 
       toast({ title: '✓ Visitante registrado!' })
-      const numero = numeroWhatsApp(data.dirigente?.telefone)
-      if (numero) {
+      if (vaiAvisar) {
         const texto = `Novo visitante — ${cong}\n\nNome: ${nome}\nObservações: ${obs || '—'}`
-        const url = `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`
+        const url = `https://wa.me/?text=${encodeURIComponent(texto)}`
         if (janela) {
           janela.location.href = url
         } else {
           // aba foi bloqueada — abre o diálogo com o botão manual
           setAviso({
-            numero,
             dirigenteNome: data.dirigente?.nome || null,
             congregacao: cong,
             campos: [
@@ -272,19 +271,16 @@ function RecepcaoInner() {
     }
   }
 
-  /** Número do dirigente da congregação do visitante — '' se não dá para avisar. */
-  const numeroDirigente = (v: VisitanteRecepcao): string => {
+  /** A congregação do visitante tem o aviso de WhatsApp habilitado? */
+  const podeAvisar = (v: VisitanteRecepcao): boolean => {
     const cong = congs.find(c => c.nome === v.igreja)
-    if (cong?.notificar_whatsapp === false) return ''
-    return numeroWhatsApp(cong?.dirigente_telefone_efetivo)
+    return cong?.notificar_whatsapp !== false
   }
 
   const abrirAviso = (v: VisitanteRecepcao) => {
-    const numero = numeroDirigente(v)
-    if (!numero) return
+    if (!podeAvisar(v)) return
     const cong = congs.find(c => c.nome === v.igreja)
     setAviso({
-      numero,
       dirigenteNome: cong?.dirigente_nome || null,
       congregacao: v.igreja,
       campos: [
@@ -473,10 +469,10 @@ function RecepcaoInner() {
                         <Send className="h-4 w-4" />
                       </button>
                     )}
-                    {numeroDirigente(v) && (
+                    {podeAvisar(v) && (
                       <button
                         onClick={() => abrirAviso(v)}
-                        title="Avisar dirigente no WhatsApp"
+                        title="Avisar no WhatsApp — você escolhe o contato ou grupo"
                         className="h-8 w-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950 transition-colors"
                       >
                         <MessageCircle className="h-4 w-4" />

@@ -433,44 +433,31 @@ export default function CongregacoesPage() {
                     onChange={e => setForm(f => ({ ...f, notificar_whatsapp: e.target.checked }))}
                     className="h-4 w-4 mt-0.5 accent-primary"
                   />
-                  <span className="text-sm">Mostrar o botão &quot;Avisar dirigente&quot; ao cadastrar um visitante</span>
+                  <span className="text-sm">Mostrar o botão de avisar ao cadastrar um visitante</span>
                 </label>
+                <p className="text-xs text-muted-foreground">
+                  Ao clicar, o WhatsApp abre com a mensagem já pronta e quem cadastrou escolhe o
+                  contato ou grupo na hora de enviar — não manda direto pra um número fixo.
+                </p>
 
                 <div className="space-y-2">
-                  <Label>Dirigente</Label>
+                  <Label>Dirigente (opcional)</Label>
                   <select
                     value={form.dirigente_membro_id}
                     onChange={e => setForm(f => ({ ...f, dirigente_membro_id: e.target.value }))}
                     className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   >
-                    <option value="">— Nenhum (usar telefone manual) —</option>
+                    <option value="">— Nenhum —</option>
                     {membrosDoModal.map(m => (
                       <option key={m.id} value={m.id}>
                         {m.nome}{m.telefone_principal ? ` — ${m.telefone_principal}` : ' — (sem telefone)'}
                       </option>
                     ))}
                   </select>
-                  <p className="text-xs text-muted-foreground">O telefone vem sempre da ficha do membro escolhido.</p>
+                  <p className="text-xs text-muted-foreground">
+                    Só aparece como lembrete na mensagem (ex.: &quot;dirigente: Fulano&quot;) — não define pra quem o aviso vai.
+                  </p>
                 </div>
-
-                <div className="space-y-2">
-                  <Label>Telefone manual (fallback)</Label>
-                  <Input
-                    value={form.dirigente_telefone}
-                    onChange={e => setForm(f => ({ ...f, dirigente_telefone: e.target.value }))}
-                    placeholder="(00) 00000-0000"
-                  />
-                </div>
-
-                {(() => {
-                  const memSel = membrosDoModal.find(m => String(m.id) === String(form.dirigente_membro_id))
-                  const tel = memSel?.telefone_principal || form.dirigente_telefone.trim()
-                  return (
-                    <p className={`text-xs ${tel ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                      {tel ? `Os avisos vão para: ${tel}` : 'Nenhum telefone definido — o aviso não aparece.'}
-                    </p>
-                  )
-                })()}
               </div>
             ) : (
               <p className="text-xs text-muted-foreground">

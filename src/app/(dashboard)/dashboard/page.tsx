@@ -206,14 +206,15 @@ export default function DashboardPage() {
   const loadVisitas = useCallback(async () => {
     if (!token) return
     try {
+      const congSuffix = filtroCongregacao ? `&congregacao=${filtroCongregacao}` : ''
       const [rec, freq] = await Promise.all([
-        fetch('/api/visitas?tipo=recentes&limit=10', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : []),
-        fetch('/api/visitas?tipo=frequentes&dias=28', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : []),
+        fetch(`/api/visitas?tipo=recentes&limit=10${congSuffix}`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : []),
+        fetch(`/api/visitas?tipo=frequentes&dias=28${congSuffix}`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : []),
       ])
       setVisitasRecentes(rec || [])
       setVisitantesFrequentes(freq || [])
     } catch { /**/ }
-  }, [token])
+  }, [token, filtroCongregacao])
 
   useEffect(() => { loadVisitas() }, [loadVisitas])
 
@@ -558,7 +559,7 @@ export default function DashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              <RecentMembros token={token} />
+              <RecentMembros token={token} congregacao={filtroCongregacao} />
             </CardContent>
           </Card>
         </div>
@@ -1045,13 +1046,15 @@ export default function DashboardPage() {
 }
 
 // ─── Subcomponente: Membros Recentes ─────────────────────────────────────────
-function RecentMembros({ token }: { token: string | null }) {
+function RecentMembros({ token, congregacao }: { token: string | null; congregacao: number | null }) {
   const [membros, setMembros] = useState<{ id: number; nome: string; tipo_participante: string; created_at: string }[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!token) return
-    fetch('/api/membros?order=recentes&limit=8', {
+    setLoading(true)
+    const congSuffix = congregacao ? `&congregacao=${congregacao}` : ''
+    fetch(`/api/membros?order=recentes&limit=8${congSuffix}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.ok ? r.json() : [])
@@ -1065,7 +1068,7 @@ function RecentMembros({ token }: { token: string | null }) {
       })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [token])
+  }, [token, congregacao])
 
   if (loading) return <div className="flex justify-center py-4"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
   if (membros.length === 0) return <p className="text-sm text-muted-foreground">Nenhum cadastro recente.</p>
