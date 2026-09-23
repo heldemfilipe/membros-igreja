@@ -85,7 +85,7 @@ function RecepcaoInner() {
 
   const [form, setForm] = useState({
     nome: '', congregacao_nome: '', telefone: '', data_visita: hoje(), obs: '',
-    origem_religiosa: '', origem_religiosa_detalhe: '', congregacao_origem: '',
+    origem_religiosa: '', origem_religiosa_detalhe: '', congregacao_origem: '', convidado_por: '',
   })
   const [saving, setSaving] = useState(false)
   const [aviso, setAviso] = useState<AvisoDados | null>(null)
@@ -146,6 +146,7 @@ function RecepcaoInner() {
 
     const nome = form.nome.trim()
     const obs = form.obs.trim()
+    const convidadoPor = form.convidado_por.trim()
 
     setSaving(true)
     try {
@@ -161,6 +162,7 @@ function RecepcaoInner() {
           origem_religiosa: form.origem_religiosa,
           origem_religiosa_detalhe: form.origem_religiosa_detalhe,
           congregacao_origem: form.congregacao_origem,
+          convidado_por: convidadoPor,
         }),
       })
       const data = await res.json()
@@ -172,7 +174,9 @@ function RecepcaoInner() {
 
       toast({ title: '✓ Visitante registrado!' })
       if (vaiAvisar) {
-        const texto = `Novo visitante — ${cong}\n\nNome: ${nome}\nObservações: ${obs || '—'}`
+        const texto = `Novo visitante — ${cong}\n\nNome: ${nome}` +
+          (convidadoPor ? `\nConvidado por: ${convidadoPor}` : '') +
+          `\nObservações: ${obs || '—'}`
         const url = `https://wa.me/?text=${encodeURIComponent(texto)}`
         if (janela) {
           janela.location.href = url
@@ -185,6 +189,7 @@ function RecepcaoInner() {
               { key: 'nome', label: 'Nome', valor: nome },
               { key: 'telefone', label: 'Telefone', valor: form.telefone.trim() },
               { key: 'data_visita', label: 'Data da visita', valor: dataBR(form.data_visita || hoje()) },
+              ...(convidadoPor ? [{ key: 'convidado_por', label: 'Convidado por', valor: convidadoPor }] : []),
               { key: 'observacoes', label: 'Observações', valor: obs },
             ],
           })
@@ -192,7 +197,10 @@ function RecepcaoInner() {
       } else {
         janela?.close()
       }
-      setForm(f => ({ ...f, nome: '', telefone: '', obs: '', origem_religiosa: '', origem_religiosa_detalhe: '', congregacao_origem: '' }))
+      setForm(f => ({
+        ...f, nome: '', telefone: '', obs: '', origem_religiosa: '', origem_religiosa_detalhe: '',
+        congregacao_origem: '', convidado_por: '',
+      }))
       carregar()
     } finally {
       setSaving(false)
@@ -209,7 +217,7 @@ function RecepcaoInner() {
       'visita_agendada', 'visita_agendada_por', 'visita_casa_data', 'visita_casa_feita',
       'voltou_culto', 'voltou_culto_data',
       'discipulado', 'discipulado_inicio', 'discipulador',
-      'batizado', 'congregacao_origem', 'observacoes',
+      'batizado', 'congregacao_origem', 'convidado_por', 'observacoes',
     ]
     const body: Record<string, unknown> = { membro_id: membroId }
     campos.forEach(k => { body[k] = merged[k] })
@@ -289,6 +297,7 @@ function RecepcaoInner() {
         { key: 'visitas', label: 'Visitas', valor: `${v.total_visitas}${v.ultima_visita ? ` · última ${formatarData(v.ultima_visita)}` : ''}` },
         { key: 'voltou', label: 'Voltou no culto', valor: v.voltou_culto ? (v.voltou_culto_data ? formatarData(v.voltou_culto_data) : 'sim') : 'não' },
         { key: 'discipulado', label: 'Discipulado', valor: v.discipulado ? (v.discipulador || 'sim') : 'não' },
+        ...(v.convidado_por ? [{ key: 'convidado_por', label: 'Convidado por', valor: v.convidado_por }] : []),
         { key: 'observacoes', label: 'Observações', valor: v.observacoes || '' },
       ],
     })
@@ -376,6 +385,10 @@ function RecepcaoInner() {
                     <Input value={form.congregacao_origem} onChange={e => setForm(f => ({ ...f, congregacao_origem: e.target.value }))} placeholder="Ex.: nome da congregação" />
                   </div>
                 )}
+                <div className="space-y-1">
+                  <Label>Quem convidou? (opcional)</Label>
+                  <Input value={form.convidado_por} onChange={e => setForm(f => ({ ...f, convidado_por: e.target.value }))} placeholder="Nome de quem convidou" />
+                </div>
                 <div className="space-y-1 sm:col-span-2">
                   <Label>Como conheceu / observações</Label>
                   <Input value={form.obs} onChange={e => setForm(f => ({ ...f, obs: e.target.value }))} placeholder="Indicação, evento, rede social..." />
@@ -527,7 +540,7 @@ function RecepcaoInner() {
                           <StatusItem key={i.key} done={!!v[i.key]} label={i.label} detalhe={i.detalhe?.(v)} />
                         ))}
                       </div>
-                      {(v.origem_religiosa || v.congregacao_origem || v.observacoes) && (
+                      {(v.origem_religiosa || v.congregacao_origem || v.convidado_por || v.observacoes) && (
                         <div className="space-y-1 pt-2 border-t text-xs">
                           {v.origem_religiosa && (
                             <p>
@@ -537,6 +550,9 @@ function RecepcaoInner() {
                           )}
                           {v.congregacao_origem && (
                             <p><span className="text-muted-foreground">Já congrega em: </span>{v.congregacao_origem}</p>
+                          )}
+                          {v.convidado_por && (
+                            <p><span className="text-muted-foreground">Convidado por: </span>{v.convidado_por}</p>
                           )}
                           {v.observacoes && (
                             <p className="whitespace-pre-wrap"><span className="text-muted-foreground">Observações: </span>{v.observacoes}</p>

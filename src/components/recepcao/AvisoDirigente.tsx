@@ -15,8 +15,8 @@ export interface AvisoDados {
   campos: { key: string; label: string; valor: string }[]
 }
 
-/** Campos que começam marcados (aviso simples: só nome + observações). */
-const PADRAO = ['nome', 'observacoes']
+/** Campos que começam marcados (aviso simples: nome, quem convidou e observações). */
+const PADRAO = ['nome', 'convidado_por', 'observacoes']
 
 export function AvisoDirigente({
   aviso,

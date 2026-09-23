@@ -32,6 +32,7 @@ type F = {
   voltou_culto: boolean; voltou_culto_data: string
   discipulado: boolean; discipulado_inicio: string; discipulador: string
   batizado: boolean; congregacao_origem: string
+  convidado_por: string
   observacoes: string
 }
 
@@ -52,6 +53,7 @@ function fromVisitante(v: VisitanteRecepcao): F {
     voltou_culto: v.voltou_culto, voltou_culto_data: iso(v.voltou_culto_data),
     discipulado: v.discipulado, discipulado_inicio: iso(v.discipulado_inicio), discipulador: v.discipulador ?? '',
     batizado: v.batizado, congregacao_origem: v.congregacao_origem ?? '',
+    convidado_por: v.convidado_por ?? '',
     observacoes: v.observacoes ?? '',
   }
 }
@@ -134,6 +136,7 @@ export function AcompanhamentoModal({
         discipulador: f.discipulador.trim() || null,
         batizado: f.batizado,
         congregacao_origem: f.congregacao_origem.trim() || null,
+        convidado_por: f.convidado_por.trim() || null,
         observacoes: f.observacoes.trim() || null,
       })
       onClose()
@@ -184,6 +187,10 @@ export function AcompanhamentoModal({
             <div className="space-y-1">
               <Label className="text-xs">E-mail</Label>
               <Input type="email" value={f.email} onChange={e => set('email', e.target.value)} placeholder="email@exemplo.com" className="h-9" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Quem convidou?</Label>
+              <Input value={f.convidado_por} onChange={e => set('convidado_por', e.target.value)} placeholder="Nome de quem convidou" className="h-9" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Como conheceu / observações da visita</Label>

@@ -34,6 +34,7 @@ export const GET = withAuth(async (req: NextRequest, user) => {
             av.discipulador,
             COALESCE(av.batizado, false)          AS batizado,
             av.congregacao_origem,
+            av.convidado_por,
             av.observacoes,
             COALESCE(vs.total_visitas, 0)         AS total_visitas,
             vs.ultima_visita, vs.primeira_visita

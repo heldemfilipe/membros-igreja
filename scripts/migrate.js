@@ -53,6 +53,7 @@ const MIGRATIONS = [
   'migration-vida-ministerial-detalhada.sql',
   'migration-pauta-semanal.sql',
   'migration-rls-enable.sql',
+  'migration-visitante-convidado-por.sql',
 ]
 
 async function main() {

@@ -248,6 +248,7 @@ export interface Acompanhamento {
   discipulador: string | null
   batizado: boolean
   congregacao_origem: string | null
+  convidado_por: string | null
   observacoes: string | null
 }
 

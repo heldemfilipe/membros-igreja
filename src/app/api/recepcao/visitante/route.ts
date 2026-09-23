@@ -23,6 +23,7 @@ export const POST = withAuth(async (req: NextRequest, user) => {
   const origemReligiosa = (body.origem_religiosa || '').trim() || null
   const origemReligiosaDetalhe = (body.origem_religiosa_detalhe || '').trim() || null
   const congregacaoOrigem = (body.congregacao_origem || '').trim() || null
+  const convidadoPor = (body.convidado_por || '').trim() || null
 
   // Tudo na MESMA conexão (o pool é max:1 em serverless — não dá para abrir
   // um segundo pool.query enquanto a transação segura a conexão).
@@ -40,12 +41,13 @@ export const POST = withAuth(async (req: NextRequest, user) => {
       [membroId, dataVisita, obs],
     )
 
-    // Se já vem de uma congregação (mesma denominação), guarda no acompanhamento —
-    // fica pronto pra virar membro depois, sem ter que perguntar de novo.
-    if (congregacaoOrigem) {
+    // Se já vem de uma congregação (mesma denominação) ou foi convidado por
+    // alguém, guarda no acompanhamento — fica pronto pra virar membro depois,
+    // sem ter que perguntar de novo, e alimenta a mensagem de aviso.
+    if (congregacaoOrigem || convidadoPor) {
       await client.query(
-        'INSERT INTO acompanhamento_visitante (membro_id, congregacao_origem) VALUES ($1,$2)',
-        [membroId, congregacaoOrigem],
+        'INSERT INTO acompanhamento_visitante (membro_id, congregacao_origem, convidado_por) VALUES ($1,$2,$3)',
+        [membroId, congregacaoOrigem, convidadoPor],
       )
     }
 

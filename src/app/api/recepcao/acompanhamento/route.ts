@@ -19,6 +19,7 @@ const CAMPOS = [
   ['discipulador', 'text'],
   ['batizado', 'bool'],
   ['congregacao_origem', 'text'],
+  ['convidado_por', 'text'],
   ['observacoes', 'text'],
 ] as const
 
