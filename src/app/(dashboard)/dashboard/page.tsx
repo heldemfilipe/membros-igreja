@@ -1064,9 +1064,10 @@ function RecentMembros({ token, congregacao }: { token: string | null; congregac
     })
       .then(r => r.ok ? r.json() : [])
       .then((data: { id: number; nome: string; tipo_participante: string; created_at: string; igreja?: string | null }[]) => {
-        // Ordena por created_at mais recente e pega os 8 primeiros
+        // Só quem foi cadastrado nos últimos 30 dias; dentro disso, os 8 mais recentes.
+        const limiteData = Date.now() - 30 * 24 * 60 * 60 * 1000
         const sorted = (data || [])
-          .filter(m => m.created_at)
+          .filter(m => m.created_at && new Date(m.created_at).getTime() >= limiteData)
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
           .slice(0, 8)
         setMembros(sorted)
@@ -1076,7 +1077,7 @@ function RecentMembros({ token, congregacao }: { token: string | null; congregac
   }, [token, congregacao])
 
   if (loading) return <div className="flex justify-center py-4"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
-  if (membros.length === 0) return <p className="text-sm text-muted-foreground">Nenhum cadastro recente.</p>
+  if (membros.length === 0) return <p className="text-sm text-muted-foreground">Nenhum cadastro nos últimos 30 dias.</p>
 
   const TIPO_CORES_TEXT: Record<string, string> = {
     Membro: 'text-blue-600 dark:text-blue-400',
