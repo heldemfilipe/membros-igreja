@@ -299,6 +299,10 @@ export interface FormularioPublicoConfig {
 
 export interface CadastroPublicoDados {
   email?: string
+  sexo?: string
+  tipo_participante?: string
+  cargo?: string
+  nome_conjuge?: string
   data_nascimento?: string
   cep?: string
   logradouro?: string

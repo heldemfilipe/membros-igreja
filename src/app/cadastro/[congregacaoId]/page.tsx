@@ -9,9 +9,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Church, Loader2, CheckCircle2, User, MapPin, GraduationCap, Sparkles,
-  Cross, BookOpen, HeartHandshake, UserPlus, MessageSquare, X, Check, Search, FileText,
+  Cross, BookOpen, Briefcase, HeartHandshake, UserPlus, MessageSquare, X, Check, Search, FileText,
 } from 'lucide-react'
-import { DONS_TALENTOS, ORIGENS_RELIGIOSAS, DIFICULDADES } from '@/lib/constants'
+import { DONS_TALENTOS, ORIGENS_RELIGIOSAS, DIFICULDADES, CARGOS_ECLESIASTICOS } from '@/lib/constants'
 import type { FormularioPublicoConfig } from '@/types'
 
 type Form = {
@@ -19,6 +19,9 @@ type Form = {
   telefone: string
   email: string
   data_nascimento: string
+  sexo: string
+  tipo_participante: string
+  cargo: string
   cep: string
   logradouro: string
   numero: string
@@ -27,6 +30,7 @@ type Form = {
   cidade: string
   estado: string
   estado_civil: string
+  nome_conjuge: string
   data_casamento: string
   grau_instrucao: string
   profissao: string
@@ -64,9 +68,9 @@ type Form = {
 }
 
 const vazio: Form = {
-  nome: '', telefone: '', email: '', data_nascimento: '',
+  nome: '', telefone: '', email: '', data_nascimento: '', sexo: '', tipo_participante: '', cargo: '',
   cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '',
-  estado_civil: '', data_casamento: '', grau_instrucao: '', profissao: '',
+  estado_civil: '', nome_conjuge: '', data_casamento: '', grau_instrucao: '', profissao: '',
   dons_talentos: '', dons_desejados: '',
   batizado_espirito_santo: null, data_batismo_espirito_santo: '', local_batismo_espirito_santo: '',
   batizado_aguas: null, data_batismo_aguas: '', local_batismo_aguas: '',
@@ -397,12 +401,46 @@ export default function CadastroPublicoPage() {
               <Input type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="seuemail@exemplo.com" className="h-11" />
             </div>
           </div>
-          {c.nascimento && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-sm">Data de nascimento</Label>
-              <Input type="date" value={form.data_nascimento} onChange={e => set('data_nascimento', e.target.value)} className="h-11" />
+              <Label className="text-sm">Sexo</Label>
+              <select value={form.sexo} onChange={e => set('sexo', e.target.value)}
+                className="w-full h-11 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                <option value="">Selecione...</option>
+                {['Masculino', 'Feminino'].map(v => <option key={v} value={v}>{v}</option>)}
+              </select>
             </div>
-          )}
+            {c.nascimento && (
+              <div className="space-y-1.5">
+                <Label className="text-sm">Data de nascimento</Label>
+                <Input type="date" value={form.data_nascimento} onChange={e => set('data_nascimento', e.target.value)} className="h-11" />
+              </div>
+            )}
+          </div>
+        </Secao>
+
+        <Secao icon={Briefcase} titulo="Dados eclesiásticos">
+          <div className="space-y-1.5">
+            <Label className="text-sm">Tipo de participante</Label>
+            <select value={form.tipo_participante} onChange={e => set('tipo_participante', e.target.value)}
+              className="w-full h-11 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+              <option value="">Selecione...</option>
+              {['Membro', 'Congregado', 'Visitante'].map(v => <option key={v} value={v}>{v}</option>)}
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-sm">Cargo</Label>
+            <select value={form.cargo} onChange={e => set('cargo', e.target.value)}
+              className="w-full h-11 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+              <option value="">Nenhum</option>
+              {CARGOS_ECLESIASTICOS.map(v => <option key={v} value={v}>{v}</option>)}
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-sm">Função na igreja</Label>
+            <Input value={form.funcao_igreja} onChange={e => set('funcao_igreja', e.target.value)}
+              placeholder="Ex.: músico(a), professor(a) da EBD, recepção, mídia..." className="h-11" />
+          </div>
         </Secao>
 
         {c.endereco && (
@@ -492,7 +530,7 @@ export default function CadastroPublicoPage() {
                 onChange={e => {
                   const v = e.target.value
                   set('estado_civil', v)
-                  if (v !== 'Casado(a)' && v !== 'União Estável') set('data_casamento', '')
+                  if (v !== 'Casado(a)' && v !== 'União Estável') { set('data_casamento', ''); set('nome_conjuge', '') }
                 }}
                 className="w-full h-11 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring">
                 <option value="">Selecione...</option>
@@ -501,6 +539,13 @@ export default function CadastroPublicoPage() {
                 ))}
               </select>
             </div>
+            {(form.estado_civil === 'Casado(a)' || form.estado_civil === 'União Estável') && (
+              <div className="space-y-1.5">
+                <Label className="text-sm">Nome do cônjuge</Label>
+                <Input value={form.nome_conjuge} onChange={e => set('nome_conjuge', e.target.value)}
+                  placeholder="Nome completo do(a) esposo(a)" className="h-11" />
+              </div>
+            )}
             {(form.estado_civil === 'Casado(a)' || form.estado_civil === 'União Estável') && (
               <div id="campo-data_casamento" className="space-y-1.5">
                 <Label className="text-sm">Data de casamento *</Label>
@@ -587,17 +632,7 @@ export default function CadastroPublicoPage() {
               <SimNao label="Já discipulou alguém?" valor={form.ja_discipulou} onChange={v => set('ja_discipulou', v)} />
               <SimNao label="Já foi discipulado(a)?" valor={form.foi_discipulado} onChange={v => set('foi_discipulado', v)} />
 
-              <SimNao label="É obreiro(a)?" valor={form.eh_obreiro}
-                onChange={v => {
-                  set('eh_obreiro', v)
-                  if (!v) set('funcao_igreja', '')
-                }} />
-              {form.eh_obreiro === true && (
-                <SubCampo label="Qual função?">
-                  <Input value={form.funcao_igreja} onChange={e => set('funcao_igreja', e.target.value)}
-                    placeholder="Ex.: diácono, cooperador(a), professor(a), músico(a)..." className="h-10" />
-                </SubCampo>
-              )}
+              <SimNao label="É obreiro(a)?" valor={form.eh_obreiro} onChange={v => set('eh_obreiro', v)} />
             </div>
 
             <div className="space-y-1.5 pt-2 border-t">

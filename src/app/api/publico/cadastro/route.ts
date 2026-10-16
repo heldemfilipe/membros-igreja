@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import pool from '@/lib/db'
 import { ApiError, errorResponse } from '@/lib/api'
-import { FORMULARIO_PUBLICO_CONFIG_PADRAO } from '@/lib/constants'
+import { FORMULARIO_PUBLICO_CONFIG_PADRAO, CARGOS_ECLESIASTICOS } from '@/lib/constants'
 import type { FormularioPublicoConfig, CadastroPublicoDados } from '@/types'
 
 /**
@@ -44,6 +44,17 @@ export async function POST(req: NextRequest) {
     const email = str(body.email)
     if (email) dados.email = email
 
+    // Identificação e dados eclesiásticos aparecem sempre (não dependem da config).
+    // Valores de lista fechada: só aceita os conhecidos.
+    const sexo = str(body.sexo)
+    if (sexo === 'Masculino' || sexo === 'Feminino') dados.sexo = sexo
+    const tipo = str(body.tipo_participante)
+    if (tipo === 'Membro' || tipo === 'Congregado' || tipo === 'Visitante') dados.tipo_participante = tipo
+    const cargo = str(body.cargo)
+    if (cargo && CARGOS_ECLESIASTICOS.includes(cargo)) dados.cargo = cargo
+    const funcao = str(body.funcao_igreja)
+    if (funcao) dados.funcao_igreja = funcao
+
     if (config.endereco) {
       const campos = ['cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'estado'] as const
       for (const c of campos) {
@@ -60,6 +71,8 @@ export async function POST(req: NextRequest) {
       if (v) dados.estado_civil = v
       const dc = str(body.data_casamento)
       if (dc) dados.data_casamento = dc
+      const conjuge = str(body.nome_conjuge)
+      if (conjuge && (v === 'Casado(a)' || v === 'União Estável')) dados.nome_conjuge = conjuge
     }
     if (config.escolaridade_area) {
       const v = str(body.grau_instrucao)
@@ -102,10 +115,6 @@ export async function POST(req: NextRequest) {
       for (const k of ['ja_pregou', 'ja_discipulou', 'foi_discipulado', 'eh_obreiro'] as const) {
         const b = bool(body[k])
         if (b !== undefined) dados[k] = b
-      }
-      if (bool(body.eh_obreiro)) {
-        const funcao = str(body.funcao_igreja)
-        if (funcao) dados.funcao_igreja = funcao
       }
     }
     if (config.origem_religiosa) {
