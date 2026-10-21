@@ -7,7 +7,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { OfertaFormModal, type CongregacaoOferta } from '@/components/ofertas/OfertaFormModal'
-import { HandCoins, Plus, Loader2, ChevronLeft, ChevronRight, Pencil, Trash2, Users, UserPlus, Lock } from 'lucide-react'
+import { HandCoins, BarChart3, Plus, Loader2, ChevronLeft, ChevronRight, Pencil, Trash2, Users, UserPlus, Lock } from 'lucide-react'
 import { TIPOS_OFERTA, formatarBRL } from '@/lib/ofertas-shared'
 import { formatarData } from '@/lib/utils'
 
@@ -138,6 +138,11 @@ export default function OfertasPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {(podeVer || podeEditar) && (
+            <Button variant="outline" asChild>
+              <Link href="/ofertas/resumo"><BarChart3 className="h-4 w-4" /> Resumo</Link>
+            </Button>
+          )}
           {podePendentes && (
             <Button variant="outline" asChild>
               <Link href="/ofertas/pendentes"><UserPlus className="h-4 w-4" /> Pendentes de cadastro</Link>

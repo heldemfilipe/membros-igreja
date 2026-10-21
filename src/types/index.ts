@@ -424,7 +424,7 @@ export interface CrescimentoItem {
 
 export interface CrescimentoData {
   periodo: {
-    tipo: 'semana' | 'mes' | 'ano' | 'custom'
+    tipo: 'dia' | 'semana' | 'mes' | 'ano' | 'custom'
     inicio: string
     fim: string
     anterior_inicio: string

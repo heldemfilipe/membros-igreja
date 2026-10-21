@@ -30,7 +30,7 @@ const SEM_INFO = 'Não informado'
 
 export async function buscarCrescimento(user: AuthUser, sp: URLSearchParams): Promise<CrescimentoData> {
   const tipoParam = sp.get('periodo') ?? 'mes'
-  const tipo: TipoPeriodo = (['semana', 'mes', 'ano', 'custom'] as const).includes(tipoParam as TipoPeriodo)
+  const tipo: TipoPeriodo = (['semana', 'mes', 'ano', 'custom'] as TipoPeriodo[]).includes(tipoParam as TipoPeriodo)
     ? (tipoParam as TipoPeriodo)
     : 'mes'
   const hoje = new Date().toISOString().slice(0, 10)

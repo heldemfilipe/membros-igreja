@@ -1,6 +1,6 @@
 import { ApiError } from './api'
 
-export type TipoPeriodo = 'semana' | 'mes' | 'ano' | 'custom'
+export type TipoPeriodo = 'dia' | 'semana' | 'mes' | 'ano' | 'custom'
 
 export interface Periodo {
   tipo: TipoPeriodo
@@ -29,6 +29,7 @@ function addDias(d: Date, n: number): Date {
 /**
  * Calcula o período (inclusive nas duas pontas) e o período imediatamente
  * anterior, de mesma duração/natureza, para comparação.
+ *  - dia: só o dia `ref` (anterior = mesmo dia da semana passada)
  *  - semana: segunda a domingo da semana de `ref`
  *  - mes / ano: mês / ano civil de `ref`
  *  - custom: `inicio`..`fim`; o anterior é o mesmo número de dias antes
@@ -41,6 +42,10 @@ export function calcularPeriodo(
 ): Periodo {
   if (!ISO.test(ref)) throw new ApiError(400, 'Data de referência inválida.')
   const r = parse(ref)
+
+  if (tipo === 'dia') {
+    return { tipo, inicio: ref, fim: ref, anterior_inicio: fmt(addDias(r, -7)), anterior_fim: fmt(addDias(r, -7)) }
+  }
 
   if (tipo === 'semana') {
     const diaSemana = (r.getUTCDay() + 6) % 7 // segunda = 0
