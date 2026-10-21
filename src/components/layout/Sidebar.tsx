@@ -6,19 +6,30 @@ import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, Users, Building2, UserCog, Cake, DoorOpen,
   Menu, X, Church, LogOut, Shield, Loader2, Lock, Filter, ClipboardList, ChevronRight, Link2,
-  CalendarCheck, TrendingUp,
+  CalendarCheck, TrendingUp, HandCoins,
 } from 'lucide-react'
 
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 
-const menuItems = [
+type MenuItem = {
+  title: string
+  icon: typeof LayoutDashboard
+  href: string
+  permissao: string
+  /** Permissões que NÃO valem pela retrocompat "sem perfil = tudo" (ex.: ofertas). */
+  estritas?: string[]
+}
+
+const menuItems: MenuItem[] = [
   { title: 'Dashboard',       icon: LayoutDashboard, href: '/dashboard',       permissao: 'dashboard' },
   { title: 'Membros',         icon: Users,            href: '/membros',         permissao: 'membros_ver' },
   { title: 'Recepção',        icon: DoorOpen,         href: '/recepcao',        permissao: 'recepcao' },
   { title: 'Pauta da Semana', icon: CalendarCheck,    href: '/pauta',           permissao: 'pauta_ver' },
   { title: 'Crescimento',     icon: TrendingUp,       href: '/crescimento',     permissao: 'crescimento_ver' },
+  { title: 'Ofertas',         icon: HandCoins,        href: '/ofertas',         permissao: 'ofertas_lancar',
+    estritas: ['ofertas_lancar', 'ofertas_ver', 'ofertas_editar'] },
   { title: 'Aniversariantes', icon: Cake,             href: '/aniversariantes', permissao: 'aniversariantes_ver' },
   { title: 'Departamentos',   icon: Building2,        href: '/departamentos',   permissao: 'departamentos_ver' },
   { title: 'Congregações',    icon: Church,           href: '/congregacoes',    permissao: 'congregacoes_ver' },
@@ -150,7 +161,9 @@ export function Sidebar() {
           ) : (
             <>
               {menuItems
-                .filter(item => temPermissao(item.permissao))
+                .filter(item => item.estritas
+                  ? isAdmin || item.estritas.some(k => permissoes[k] === true)
+                  : temPermissao(item.permissao))
                 .map((item) => {
                   const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
                   const Icon = item.icon

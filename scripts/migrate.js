@@ -56,6 +56,7 @@ const MIGRATIONS = [
   'migration-visitante-convidado-por.sql',
   'migration-saida-membro.sql',
   'migration-faixas-etarias.sql',
+  'migration-ofertas.sql',
 ]
 
 async function main() {

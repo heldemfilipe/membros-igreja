@@ -250,6 +250,10 @@ export const PERMISSOES_DISPONIVEIS = [
   { key: 'pauta_editar',        label: 'Pauta da Semana — Editar', descricao: 'Montar a pauta: incluir avisos, pedidos de oração e marcar itens como concluídos' },
   { key: 'crescimento_ver',     label: 'Crescimento — Ver',       descricao: 'Ver o painel de crescimento (entradas, saídas e perfil por faixa etária, sexo e departamento)' },
   { key: 'faixas_editar',       label: 'Faixas Etárias — Editar', descricao: 'Personalizar as faixas etárias (crianças, jovens, adultos...) da(s) sua(s) congregação(ões)' },
+  { key: 'ofertas_lancar',      label: 'Ofertas — Lançar',         descricao: 'Lançar a oferta do culto (vê só os próprios lançamentos, a menos que tenha "Ofertas — Ver")' },
+  { key: 'ofertas_ver',         label: 'Ofertas — Ver',            descricao: 'Ver todos os lançamentos de oferta da(s) sua(s) congregação(ões)' },
+  { key: 'ofertas_editar',      label: 'Ofertas — Corrigir/Excluir', descricao: 'Corrigir ou excluir qualquer lançamento, mesmo depois do prazo de 7 dias' },
+  { key: 'ofertas_detalhe_ver', label: 'Ofertas — Ver por pessoa', descricao: 'Ver quanto cada pessoa deu (detalhe por pessoa). Dado sensível.' },
   { key: 'cadastro_publico',    label: 'Cadastro Público — Gerenciar', descricao: 'Configurar o formulário público e pegar o link de cadastro da(s) sua(s) congregação(ões)' },
 ] as const
 
@@ -264,6 +268,8 @@ export const ROTAS_MENU: { href: string; permissao: string }[] = [
   { href: '/recepcao',        permissao: 'recepcao' },
   { href: '/pauta',           permissao: 'pauta_ver' },
   { href: '/crescimento',     permissao: 'crescimento_ver' },
+  { href: '/ofertas',         permissao: 'ofertas_lancar' },
+  { href: '/ofertas',         permissao: 'ofertas_ver' },
   { href: '/aniversariantes', permissao: 'aniversariantes_ver' },
   { href: '/departamentos',   permissao: 'departamentos_ver' },
   { href: '/congregacoes',    permissao: 'congregacoes_ver' },

@@ -137,6 +137,10 @@ export interface Permissoes {
   pauta_editar?: boolean
   crescimento_ver?: boolean
   faixas_editar?: boolean
+  ofertas_lancar?: boolean
+  ofertas_ver?: boolean
+  ofertas_editar?: boolean
+  ofertas_detalhe_ver?: boolean
   [key: string]: boolean | undefined
 }
 
