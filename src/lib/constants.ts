@@ -248,6 +248,7 @@ export const PERMISSOES_DISPONIVEIS = [
   { key: 'recepcao',            label: 'Recepção',                descricao: 'Cadastrar visitantes e acompanhar (tela de Recepção)' },
   { key: 'pauta_ver',           label: 'Pauta da Semana — Ver',   descricao: 'Ver a pauta da semana (aniversários, bodas, pedidos de oração e avisos)' },
   { key: 'pauta_editar',        label: 'Pauta da Semana — Editar', descricao: 'Montar a pauta: incluir avisos, pedidos de oração e marcar itens como concluídos' },
+  { key: 'crescimento_ver',     label: 'Crescimento — Ver',       descricao: 'Ver o painel de crescimento (entradas, saídas e perfil por faixa etária, sexo e departamento)' },
   { key: 'cadastro_publico',    label: 'Cadastro Público — Gerenciar', descricao: 'Configurar o formulário público e pegar o link de cadastro da(s) sua(s) congregação(ões)' },
 ] as const
 
@@ -261,6 +262,7 @@ export const ROTAS_MENU: { href: string; permissao: string }[] = [
   { href: '/membros',         permissao: 'membros_ver' },
   { href: '/recepcao',        permissao: 'recepcao' },
   { href: '/pauta',           permissao: 'pauta_ver' },
+  { href: '/crescimento',     permissao: 'crescimento_ver' },
   { href: '/aniversariantes', permissao: 'aniversariantes_ver' },
   { href: '/departamentos',   permissao: 'departamentos_ver' },
   { href: '/congregacoes',    permissao: 'congregacoes_ver' },
@@ -275,3 +277,16 @@ export function rotaInicial(u: {
   const tem = (k: string) => u.tipo === 'admin' || !u.perfil_id || !!u.permissoes?.[k]
   return ROTAS_MENU.find(r => tem(r.permissao))?.href ?? '/minha-conta'
 }
+
+/** Motivos de saída de um membro. 'Outro' exige texto livre (motivo_saida_outro). */
+export const MOTIVOS_SAIDA = [
+  'Transferência para outra congregação/igreja',
+  'Mudança de cidade',
+  'Afastamento voluntário',
+  'Inatividade (sem contato)',
+  'Disciplina',
+  'Falecimento',
+  'Outro',
+] as const
+
+export type MotivoSaida = (typeof MOTIVOS_SAIDA)[number]

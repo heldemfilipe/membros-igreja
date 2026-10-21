@@ -12,6 +12,7 @@ import { VisitorModal } from '@/components/membros/VisitorModal'
 import { MemberViewModal } from '@/components/membros/MemberViewModal'
 import { MemberModal } from '@/components/membros/MemberModal'
 import { ExportModal } from '@/components/membros/ExportModal'
+import { SaidaModal } from '@/components/membros/SaidaModal'
 import {
   Loader2, Plus, Search, Pencil, Trash2, Eye, UserPlus, Download, Phone, Church, UserX, UserCheck,
   Inbox, ChevronDown, ChevronUp, Check, X,
@@ -100,6 +101,7 @@ export default function MembrosPage() {
   const [viewMembro, setViewMembro] = useState<Membro | null>(null)
   const [memberModal, setMemberModal] = useState<{ open: boolean; id?: number }>({ open: false })
   const [exportModal, setExportModal] = useState(false)
+  const [saidaMembro, setSaidaMembro] = useState<{ id: number; nome: string } | null>(null)
   const searchTimer = useRef<ReturnType<typeof setTimeout>>()
 
   const loadMembros = useCallback(async (silent = false) => {
@@ -184,12 +186,13 @@ export default function MembrosPage() {
   }
 
   const handleToggleAtivo = async (id: number, nome: string, ativoAtual: boolean) => {
-    const acao = ativoAtual ? 'desativar' : 'reativar'
-    if (!confirm(`${ativoAtual ? 'Desativar' : 'Reativar'} o membro "${nome}"?`)) return
+    // Desativar abre o modal de saída (data + motivo); reativar só confirma.
+    if (ativoAtual) { setSaidaMembro({ id, nome }); return }
+    if (!confirm(`Reativar o membro "${nome}"?`)) return
     const res = await fetch(`/api/membros/${id}`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ativo: !ativoAtual }),
+      body: JSON.stringify({ ativo: true }),
     })
     const data = await res.json()
     if (!res.ok) {
@@ -440,6 +443,8 @@ export default function MembrosPage() {
                         {inativo && (
                           <Badge variant="outline" className="text-xs h-5 border-destructive/50 text-destructive">
                             Inativo
+                            {m.motivo_saida && ` · ${m.motivo_saida === 'Outro' ? (m.motivo_saida_outro || 'Outro') : m.motivo_saida}`}
+                            {m.data_saida && ` · ${formatarData(m.data_saida)}`}
                           </Badge>
                         )}
                       </div>
@@ -585,6 +590,14 @@ export default function MembrosPage() {
         membroId={memberModal.id}
         onClose={() => setMemberModal({ open: false })}
         onSuccess={refreshSilent}
+      />
+
+      <SaidaModal
+        membro={saidaMembro}
+        token={token}
+        onClose={() => setSaidaMembro(null)}
+        onSuccess={msg => { setSaidaMembro(null); toast({ title: msg }); loadMembros() }}
+        onError={msg => toast({ title: msg, variant: 'destructive' })}
       />
 
       <ExportModal

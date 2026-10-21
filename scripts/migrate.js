@@ -54,6 +54,7 @@ const MIGRATIONS = [
   'migration-pauta-semanal.sql',
   'migration-rls-enable.sql',
   'migration-visitante-convidado-por.sql',
+  'migration-saida-membro.sql',
 ]
 
 async function main() {

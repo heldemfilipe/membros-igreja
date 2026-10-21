@@ -7,6 +7,7 @@ import { inferirRelacoesFamiliares } from '@/lib/familyInference'
 import { membroAcessivel } from '@/lib/access'
 import { assertIgrejaNoEscopo } from '@/lib/scope'
 import { membroSchema, buildUpdateMembro } from '@/lib/membros-schema'
+import { MOTIVOS_SAIDA } from '@/lib/constants'
 
 function parentescoReverso(parentesco: string, sexoDoMembro: string | null): string {
   switch (parentesco) {
@@ -179,7 +180,32 @@ export const PATCH = withAuthParams<{ id: string }>(async (req, user, { params }
     return Response.json({ error: 'Campo "ativo" (boolean) é obrigatório.' }, { status: 400 })
   }
 
-  await pool.query('UPDATE membros SET ativo = $1 WHERE id = $2', [body.ativo, id])
+  if (body.ativo) {
+    // Reativação: limpa os dados de saída.
+    await pool.query(
+      `UPDATE membros SET ativo = TRUE, data_saida = NULL, motivo_saida = NULL, motivo_saida_outro = NULL
+       WHERE id = $1`,
+      [id],
+    )
+  } else {
+    const motivo = typeof body.motivo_saida === 'string' ? body.motivo_saida.trim() : ''
+    if (!motivo || !(MOTIVOS_SAIDA as readonly string[]).includes(motivo)) {
+      return Response.json({ error: 'Informe o motivo da saída.' }, { status: 400 })
+    }
+    const outro = typeof body.motivo_saida_outro === 'string' ? body.motivo_saida_outro.trim() : ''
+    if (motivo === 'Outro' && !outro) {
+      return Response.json({ error: 'Descreva o motivo da saída.' }, { status: 400 })
+    }
+    const dataSaida = typeof body.data_saida === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.data_saida)
+      ? body.data_saida
+      : null
+    await pool.query(
+      `UPDATE membros
+       SET ativo = FALSE, data_saida = COALESCE($2::date, CURRENT_DATE), motivo_saida = $3, motivo_saida_outro = $4
+       WHERE id = $1`,
+      [id, dataSaida, motivo, motivo === 'Outro' ? outro : null],
+    )
+  }
   const msg = body.ativo ? 'Membro reativado com sucesso!' : 'Membro desativado com sucesso!'
   return Response.json({ message: msg })
 }, { permission: 'membros_editar' })

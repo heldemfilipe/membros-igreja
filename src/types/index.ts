@@ -53,6 +53,10 @@ export interface Membro {
   dificuldades?: string | null
   tipo_participante: 'Membro' | 'Congregado' | 'Visitante'
   ativo?: boolean
+  data_entrada?: string | null
+  data_saida?: string | null
+  motivo_saida?: string | null
+  motivo_saida_outro?: string | null
   informacoes_complementares?: string
   funcao_igreja?: string
   created_at?: string
@@ -131,6 +135,7 @@ export interface Permissoes {
   cadastro_publico?: boolean
   pauta_ver?: boolean
   pauta_editar?: boolean
+  crescimento_ver?: boolean
   [key: string]: boolean | undefined
 }
 
@@ -398,4 +403,52 @@ export interface CadastroPublico {
   status: 'pendente' | 'aprovado' | 'rejeitado'
   membro_id: number | null
   created_at: string
+}
+
+// ─── Painel de crescimento ─────────────────────────────────────────────────
+
+export interface CrescimentoItem {
+  nome: string
+  /** ativos ao fim do período */
+  total: number
+  /** que entraram no período */
+  novos: number
+  /** que saíram no período */
+  saidas?: number
+}
+
+export interface CrescimentoData {
+  periodo: {
+    tipo: 'semana' | 'mes' | 'ano' | 'custom'
+    inicio: string
+    fim: string
+    anterior_inicio: string
+    anterior_fim: string
+  }
+  resumo: {
+    total_inicio: number
+    total_fim: number
+    novos: number
+    saidas: number
+    saldo: number
+    novos_ant: number
+    saidas_ant: number
+    saldo_ant: number
+    variacao_pct: number | null
+    visitantes: number
+  }
+  serie: { mes: string; total: number; novos: number; saidas: number }[]
+  por_sexo: CrescimentoItem[]
+  por_tipo: CrescimentoItem[]
+  por_faixa: CrescimentoItem[]
+  por_departamento: (CrescimentoItem & { congregacao_nome?: string | null })[]
+  saidas_por_motivo: { motivo: string; total: number }[]
+  por_congregacao: {
+    nome: string
+    total: number
+    novos: number
+    saidas: number
+    saldo: number
+    jovens: number
+  }[]
 }
