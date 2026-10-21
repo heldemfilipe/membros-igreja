@@ -91,6 +91,7 @@ export const membroSchema = z.object({
   dons_talentos: str,
   dons_desejados: str,
   tipo_participante: z.enum(['Membro', 'Congregado', 'Visitante']).optional(),
+  data_entrada: str,
   informacoes_complementares: str,
   funcao_igreja: str,
   historicos: z.array(historicoSchema).optional(),
@@ -98,6 +99,10 @@ export const membroSchema = z.object({
   formacoes: z.array(formacaoSchema).optional(),
   departamentos: z.array(departamentoVinculoSchema).optional(),
 }).superRefine((data, ctx) => {
+  // Data de entrada: base do painel de crescimento; não pode ser no futuro.
+  if (data.data_entrada && data.data_entrada.slice(0, 10) > new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['data_entrada'], message: 'A data de entrada não pode ser no futuro.' })
+  }
   // Familiares: linha totalmente em branco é ignorada; linha pela metade é erro.
   // (impede criar membro "vazio" a partir de um familiar Cônjuge/Filho(a) sem nome)
   ;(data.familiares ?? []).forEach((f, i) => {
@@ -191,15 +196,28 @@ function camposMembro(body: MembroPayload): { col: string; value: unknown }[] {
     { col: 'dons_talentos', value: toNull(body.dons_talentos) },
     { col: 'dons_desejados', value: toNull(body.dons_desejados) },
     { col: 'tipo_participante', value: body.tipo_participante || 'Membro' },
+    { col: 'data_entrada', value: toNull(body.data_entrada) },
     { col: 'informacoes_complementares', value: toNull(body.informacoes_complementares) },
     { col: 'funcao_igreja', value: toNull(body.funcao_igreja) },
   ]
 }
 
+/**
+ * Colunas que, vazias, não viram NULL: data_entrada sem valor fica com a data
+ * de hoje no cadastro e com o valor atual na edição (o painel de crescimento
+ * depende dela).
+ */
+const EXPR_INSERT: Record<string, (p: string) => string> = {
+  data_entrada: p => `COALESCE(${p}::date, CURRENT_DATE)`,
+}
+const EXPR_UPDATE: Record<string, (p: string) => string> = {
+  data_entrada: p => `COALESCE(${p}::date, data_entrada, CURRENT_DATE)`,
+}
+
 export function buildInsertMembro(body: MembroPayload): { text: string; values: unknown[] } {
   const campos = camposMembro(body)
   const cols = campos.map(c => c.col).join(', ')
-  const placeholders = campos.map((_, i) => `$${i + 1}`).join(', ')
+  const placeholders = campos.map((c, i) => (EXPR_INSERT[c.col] ?? (p => p))(`$${i + 1}`)).join(', ')
   return {
     text: `INSERT INTO membros (${cols}) VALUES (${placeholders}) RETURNING id`,
     values: campos.map(c => c.value),
@@ -208,7 +226,7 @@ export function buildInsertMembro(body: MembroPayload): { text: string; values: 
 
 export function buildUpdateMembro(body: MembroPayload, id: string | number): { text: string; values: unknown[] } {
   const campos = camposMembro(body)
-  const sets = campos.map((c, i) => `${c.col}=$${i + 1}`).join(', ')
+  const sets = campos.map((c, i) => `${c.col}=${(EXPR_UPDATE[c.col] ?? (p => p))(`$${i + 1}`)}`).join(', ')
   const values = campos.map(c => c.value)
   values.push(id)
   return {

@@ -33,7 +33,7 @@ const defaultForm: MemberFormData = {
   chefe_familiar: false, data_casamento: '', naturalidade: '', uf_naturalidade: '',
   nacionalidade: 'Brasileira', origem_religiosa: '', origem_religiosa_detalhe: '',
   observacao_religiosa: '', convidado_por: '', dons_talentos: '', dons_desejados: '',
-  tipo_participante: 'Membro',
+  tipo_participante: 'Membro', data_entrada: '',
   informacoes_complementares: '', funcao_igreja: '',
   historicos: [], familiares: [], formacoes: [],
 }
@@ -155,6 +155,7 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
             ...rest,
             data_nascimento: d(rest.data_nascimento),
             data_casamento: d(rest.data_casamento),
+            data_entrada: d(rest.data_entrada),
             data_expedicao: d(rest.data_expedicao),
             historicos: (data.historicos || []).map((h: Historico) => ({ ...h, data: d(h.data) })),
             familiares: (data.familiares || []).map((f: Familiar) => ({ ...f, data_nascimento: d(f.data_nascimento) })),
@@ -601,6 +602,9 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
       case 'data_casamento':
         new Date(value) <= new Date() ? clrErr('data_casamento') : setErr('data_casamento', 'Data no futuro')
         break
+      case 'data_entrada':
+        new Date(value) <= new Date() ? clrErr('data_entrada') : setErr('data_entrada', 'Data no futuro')
+        break
       case 'cep':
         value.replace(/\D/g, '').length === 8 ? clrErr('cep') : setErr('cep', 'CEP inválido (8 dígitos)')
         break
@@ -735,6 +739,12 @@ export function MemberForm({ membroId, initialNome, onSuccess, onCancel }: Props
           </div>
           {field('Conhecido Como', 'conhecido_como', 'text', undefined, true)}
           {selectField('Tipo de Participante', 'tipo_participante', ['Membro', 'Congregado', 'Visitante'])}
+          <div className="space-y-1">
+            {field('Data de entrada na igreja', 'data_entrada', 'date')}
+            <p className="text-xs text-muted-foreground">
+              Quando passou a fazer parte. Vazio = data do cadastro. Usada no painel de Crescimento.
+            </p>
+          </div>
           {selectField('Sexo', 'sexo', ['Masculino', 'Feminino'])}
           {field('Data de Nascimento', 'data_nascimento', 'date')}
           {selectField('Estado Civil', 'estado_civil', ['Solteiro(a)', 'Casado(a)', 'Divorciado(a)', 'Viúvo(a)', 'Separado(a)', 'União Estável'])}

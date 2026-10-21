@@ -131,6 +131,11 @@ export function MemberViewModal({ membro, open, onClose, onEdit, onVisitaRegistr
         ? `${membro.estado_civil} · casado(a) em ${formatarData(membro.data_casamento)}`
         : membro.estado_civil,
     },
+    membro.data_entrada && !isVisitante && {
+      icon: null,
+      label: 'Na igreja desde',
+      value: formatarData(membro.data_entrada),
+    },
     membro.profissao && { icon: null, label: 'Profissão', value: membro.profissao },
     membro.grau_instrucao && { icon: null, label: 'Escolaridade', value: membro.grau_instrucao },
     (membro.naturalidade || membro.uf_naturalidade) && {
