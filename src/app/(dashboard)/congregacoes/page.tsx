@@ -11,10 +11,11 @@ import { Badge } from '@/components/ui/badge'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
-import { Loader2, Plus, Pencil, Trash2, Church, Users, ChevronDown, ChevronUp, MapPin, MessageCircle, Clock, X } from 'lucide-react'
+import { Loader2, Plus, Pencil, Trash2, Church, Users, ChevronDown, ChevronUp, MapPin, MessageCircle, Clock, X, Cake } from 'lucide-react'
 import { calcularIdade } from '@/lib/utils'
 import { getCargoStyle, DIAS_SEMANA } from '@/lib/constants'
 import type { Culto } from '@/types'
+import { FaixasModal, type AlvoFaixas } from '@/components/congregacoes/FaixasModal'
 
 type Congregacao = {
   id: number
@@ -89,7 +90,9 @@ function NovoCulto({ onAdd }: { onAdd: (c: Culto) => void }) {
 }
 
 export default function CongregacoesPage() {
-  const { token, isAdmin } = useAuth()
+  const { token, isAdmin, permissoes } = useAuth()
+  const podeFaixas = isAdmin || permissoes.faixas_editar === true
+  const [faixasAlvo, setFaixasAlvo] = useState<AlvoFaixas | null>(null)
   const { toast } = useToast()
   const [congregacoes, setCongregacoes] = useState<Congregacao[]>([])
   const [loading, setLoading] = useState(true)
@@ -233,12 +236,20 @@ export default function CongregacoesPage() {
             {congregacoes.length} congregação{congregacoes.length !== 1 ? 'ões' : ''}
           </p>
         </div>
-        {isAdmin && (
-          <Button onClick={openNew}>
-            <Plus className="h-4 w-4" />
-            Nova Congregação
-          </Button>
-        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          {isAdmin && (
+            <Button variant="outline" onClick={() => setFaixasAlvo({ id: null, nome: 'padrão geral' })}>
+              <Cake className="h-4 w-4" />
+              Faixas etárias (padrão)
+            </Button>
+          )}
+          {isAdmin && (
+            <Button onClick={openNew}>
+              <Plus className="h-4 w-4" />
+              Nova Congregação
+            </Button>
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -294,6 +305,12 @@ export default function CongregacoesPage() {
                     </div>
 
                     <div className="flex items-center gap-2">
+                      {podeFaixas && (
+                        <Button variant="ghost" size="icon" className="h-8 w-8" title="Faixas etárias"
+                          onClick={e => { e.stopPropagation(); setFaixasAlvo({ id: c.id, nome: c.nome }) }}>
+                          <Cake className="h-4 w-4" />
+                        </Button>
+                      )}
                       {isAdmin && (
                         <>
                           <Button variant="ghost" size="icon" className="h-8 w-8"
@@ -363,6 +380,13 @@ export default function CongregacoesPage() {
           })}
         </div>
       )}
+
+      <FaixasModal
+        alvo={faixasAlvo}
+        token={token}
+        podeEditar={faixasAlvo?.id === null ? isAdmin : podeFaixas}
+        onClose={() => setFaixasAlvo(null)}
+      />
 
       {/* Modal CRUD */}
       <Dialog open={modal} onOpenChange={setModal}>

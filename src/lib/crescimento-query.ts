@@ -2,7 +2,8 @@ import pool from '@/lib/db'
 import type { AuthUser } from '@/lib/auth'
 import { buildAccessWhere } from '@/lib/access'
 import { calcularPeriodo, type TipoPeriodo } from '@/lib/crescimento'
-import { FAIXAS_PADRAO, faixaDaIdade } from '@/lib/faixas'
+import { carregarFaixas, carregarPadrao, faixaDaIdade } from '@/lib/faixas'
+import type { FaixaEtaria } from '@/lib/faixas'
 import type { CrescimentoData, CrescimentoItem } from '@/types'
 
 /**
@@ -39,7 +40,23 @@ export async function buscarCrescimento(user: AuthUser, sp: URLSearchParams): Pr
     paramOffset: 4,
     tableAlias: 'm',
   })
-  if (empty) return vazio(periodo)
+  // Faixas etárias: as da congregação em foco (filtro, ou a única que o usuário
+  // acessa); com várias congregações em jogo vale o padrão geral.
+  const congFoco = congregacaoDasFaixas(user, sp.get('congregacao'))
+  const [{ faixas: faixasEf, personalizada }, padrao, nomeFoco] = await Promise.all([
+    carregarFaixas(pool, congFoco),
+    carregarPadrao(pool),
+    congFoco == null
+      ? Promise.resolve(null)
+      : pool.query('SELECT nome FROM congregacoes WHERE id = $1', [congFoco]).then(r => (r.rows[0]?.nome as string) ?? null),
+  ])
+  const [jovMin, jovMax] = jovensRange(padrao)
+  const faixasInfo: CrescimentoData['faixas_info'] = {
+    origem: personalizada ? 'congregacao' : 'padrao',
+    congregacao_nome: personalizada ? nomeFoco : null,
+    jovens: { min: jovMin, max: jovMax },
+  }
+  if (empty) return vazio(periodo, faixasInfo)
 
   const base = `WITH base AS (
     SELECT m.id, m.sexo, m.tipo_participante, m.igreja, m.data_nascimento,
@@ -115,7 +132,7 @@ export async function buscarCrescimento(user: AuthUser, sp: URLSearchParams): Pr
          COUNT(*) FILTER (WHERE ${NOVO}) AS novos,
          COUNT(*) FILTER (WHERE ${SAIDA}) AS saidas,
          COUNT(*) FILTER (WHERE ${ATIVO_FIM} AND ${IDADE_FIM} BETWEEN $${params.length + 1} AND $${params.length + 2}) AS jovens
-       FROM base b GROUP BY 1 ORDER BY 2 DESC`, jovensRange()),
+       FROM base b GROUP BY 1 ORDER BY 2 DESC`, [jovMin, jovMax ?? 150]),
 
     contarVisitantes(user, sp.get('congregacao'), periodo.inicio, periodo.fim),
   ])
@@ -126,15 +143,15 @@ export async function buscarCrescimento(user: AuthUser, sp: URLSearchParams): Pr
   const saidas = n(r.saidas)
   const saldo = novos - saidas
 
-  // Faixas etárias: agrupa por idade e distribui nas faixas (padrão por enquanto).
-  const faixas: CrescimentoItem[] = FAIXAS_PADRAO.map(fx => ({ nome: fx.nome, total: 0, novos: 0 }))
+  // Faixas etárias: agrupa por idade e distribui nas faixas em vigor.
+  const faixas: CrescimentoItem[] = faixasEf.map(fx => ({ nome: fx.nome, total: 0, novos: 0 }))
   const semIdade: CrescimentoItem = { nome: SEM_INFO, total: 0, novos: 0 }
   for (const row of idades.rows) {
     const alvo = row.idade == null || row.idade < 0
       ? semIdade
       : (() => {
-          const fx = faixaDaIdade(FAIXAS_PADRAO, Number(row.idade))
-          return fx ? faixas[FAIXAS_PADRAO.indexOf(fx)] : semIdade
+          const fx = faixaDaIdade(faixasEf, Number(row.idade))
+          return fx ? faixas[faixasEf.indexOf(fx)] : semIdade
         })()
     alvo.total += n(row.total)
     alvo.novos += n(row.novos)
@@ -168,6 +185,7 @@ export async function buscarCrescimento(user: AuthUser, sp: URLSearchParams): Pr
     por_faixa: faixas,
     por_departamento: deptos.rows.map(d => ({ ...item(d), congregacao_nome: d.congregacao_nome })),
     saidas_por_motivo: motivos.rows.map(m => ({ motivo: m.motivo, total: n(m.total) })),
+    faixas_info: faixasInfo,
     por_congregacao: congs.rows.map(c => ({
       nome: c.nome,
       total: n(c.total),
@@ -181,10 +199,18 @@ export async function buscarCrescimento(user: AuthUser, sp: URLSearchParams): Pr
 }
 
 
-/** Faixa "Jovens" do padrão, usada na tabela comparativa entre congregações. */
-function jovensRange(): [number, number] {
-  const j = FAIXAS_PADRAO.find(f => f.nome === 'Jovens')!
-  return [j.min, j.max ?? 150]
+/** Faixa "Jovens" do padrão geral (comparativo entre congregações); fallback 18–35. */
+function jovensRange(padrao: FaixaEtaria[]): [number, number | null] {
+  const j = padrao.find(f => f.nome.toLowerCase().startsWith('jove'))
+  return j ? [j.min, j.max] : [18, 35]
+}
+
+/** Congregação cujas faixas valem para esta consulta (null = padrão geral). */
+function congregacaoDasFaixas(user: AuthUser, congregacaoParam: string | null): number | null {
+  const acesso = user.congregacoes_acesso?.length ? user.congregacoes_acesso : null
+  const id = congregacaoParam && congregacaoParam !== 'sem' ? parseInt(congregacaoParam) : NaN
+  if (Number.isInteger(id) && id > 0) return !acesso || acesso.includes(id) ? id : null
+  return acesso && acesso.length === 1 ? acesso[0] : null
 }
 
 async function contarVisitantes(
@@ -209,7 +235,7 @@ async function contarVisitantes(
   }
 }
 
-function vazio(periodo: CrescimentoData['periodo']): CrescimentoData {
+function vazio(periodo: CrescimentoData['periodo'], faixasInfo: CrescimentoData['faixas_info']): CrescimentoData {
   return {
     periodo,
     resumo: {
@@ -218,5 +244,6 @@ function vazio(periodo: CrescimentoData['periodo']): CrescimentoData {
     },
     serie: [], por_sexo: [], por_tipo: [], por_faixa: [],
     por_departamento: [], saidas_por_motivo: [], por_congregacao: [],
+    faixas_info: faixasInfo,
   }
 }

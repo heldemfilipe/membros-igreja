@@ -136,6 +136,7 @@ export interface Permissoes {
   pauta_ver?: boolean
   pauta_editar?: boolean
   crescimento_ver?: boolean
+  faixas_editar?: boolean
   [key: string]: boolean | undefined
 }
 
@@ -443,6 +444,12 @@ export interface CrescimentoData {
   por_faixa: CrescimentoItem[]
   por_departamento: (CrescimentoItem & { congregacao_nome?: string | null })[]
   saidas_por_motivo: { motivo: string; total: number }[]
+  /** de onde vieram as faixas etárias usadas e qual a faixa "Jovens" do padrão geral */
+  faixas_info: {
+    origem: 'congregacao' | 'padrao'
+    congregacao_nome: string | null
+    jovens: { min: number; max: number | null }
+  }
   por_congregacao: {
     nome: string
     total: number

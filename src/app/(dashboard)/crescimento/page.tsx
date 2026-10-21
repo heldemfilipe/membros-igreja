@@ -261,7 +261,11 @@ function CrescimentoInner() {
 
           <div className="grid gap-4 md:grid-cols-2">
             <Secao titulo="Por sexo"><BarList itens={data.por_sexo} /></Secao>
-            <Secao titulo="Por faixa etária" subtitulo="Faixas padrão (editáveis por congregação em breve)">
+            <Secao titulo="Por faixa etária" subtitulo={
+              data.faixas_info.origem === 'congregacao'
+                ? `Faixas próprias de ${data.faixas_info.congregacao_nome ?? 'esta congregação'}`
+                : 'Faixas do padrão geral'
+            }>
               <BarList itens={data.por_faixa} />
             </Secao>
             <Secao titulo="Por tipo"><BarList itens={data.por_tipo} /></Secao>
@@ -284,7 +288,7 @@ function CrescimentoInner() {
           </Secao>
 
           {data.por_congregacao.length > 1 && (
-            <Secao titulo="Comparativo entre congregações" subtitulo="“Jovens” usa a faixa padrão (18–35 anos)">
+            <Secao titulo="Comparativo entre congregações" subtitulo={`“Jovens” usa a faixa do padrão geral (${data.faixas_info.jovens.min}${data.faixas_info.jovens.max == null ? '+' : `–${data.faixas_info.jovens.max}`} anos), para comparar em pé de igualdade`}>
               <div className="overflow-x-auto -mx-2">
                 <table className="w-full text-sm">
                   <thead>

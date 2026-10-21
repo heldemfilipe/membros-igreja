@@ -249,6 +249,7 @@ export const PERMISSOES_DISPONIVEIS = [
   { key: 'pauta_ver',           label: 'Pauta da Semana — Ver',   descricao: 'Ver a pauta da semana (aniversários, bodas, pedidos de oração e avisos)' },
   { key: 'pauta_editar',        label: 'Pauta da Semana — Editar', descricao: 'Montar a pauta: incluir avisos, pedidos de oração e marcar itens como concluídos' },
   { key: 'crescimento_ver',     label: 'Crescimento — Ver',       descricao: 'Ver o painel de crescimento (entradas, saídas e perfil por faixa etária, sexo e departamento)' },
+  { key: 'faixas_editar',       label: 'Faixas Etárias — Editar', descricao: 'Personalizar as faixas etárias (crianças, jovens, adultos...) da(s) sua(s) congregação(ões)' },
   { key: 'cadastro_publico',    label: 'Cadastro Público — Gerenciar', descricao: 'Configurar o formulário público e pegar o link de cadastro da(s) sua(s) congregação(ões)' },
 ] as const
 

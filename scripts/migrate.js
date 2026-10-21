@@ -55,6 +55,7 @@ const MIGRATIONS = [
   'migration-rls-enable.sql',
   'migration-visitante-convidado-por.sql',
   'migration-saida-membro.sql',
+  'migration-faixas-etarias.sql',
 ]
 
 async function main() {
